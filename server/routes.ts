@@ -132,6 +132,20 @@ export async function registerRoutes(
   });
 
   // === LOCATIONS & REPORTS ===
+  app.get("/api/locations/favorites", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const favs = await storage.getFavoriteLocations(userId);
+    res.json(favs);
+  });
+
+  app.post("/api/locations/:id/favorite", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    await storage.toggleFavoriteLocation(userId, parseInt(req.params.id));
+    res.sendStatus(200);
+  });
+
   app.get(api.locations.list.path, async (req, res) => {
     const locations = await storage.getLocations();
     res.json(locations);

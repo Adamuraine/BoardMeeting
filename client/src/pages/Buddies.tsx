@@ -78,7 +78,7 @@ export default function Buddies() {
               onDragEnd={handleDragEnd}
               animate={controls}
               initial={{ scale: 0.95, opacity: 0 }}
-              enter={{ scale: 1, opacity: 1 }}
+              whileInView={{ scale: 1, opacity: 1 }}
               exit={{ scale: 1.05, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="absolute w-full h-[65vh] rounded-3xl overflow-hidden shadow-2xl bg-white border border-border/50 select-none cursor-grab active:cursor-grabbing"

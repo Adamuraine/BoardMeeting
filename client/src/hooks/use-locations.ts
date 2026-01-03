@@ -1,5 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { api, buildUrl } from "@shared/routes";
+import { apiRequest, queryClient } from "@/lib/queryClient";
 
 export function useLocations() {
   return useQuery({
@@ -20,6 +21,23 @@ export function useLocation(id: number) {
       const res = await fetch(url, { credentials: "include" });
       if (!res.ok) throw new Error("Failed to fetch location");
       return api.locations.get.responses[200].parse(await res.json());
+    },
+  });
+}
+
+export function useFavoriteLocations() {
+  return useQuery<any[]>({
+    queryKey: ["/api/locations/favorites"],
+  });
+}
+
+export function useToggleFavorite() {
+  return useMutation({
+    mutationFn: async (locationId: number) => {
+      await apiRequest("POST", `/api/locations/${locationId}/favorite`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/locations/favorites"] });
     },
   });
 }

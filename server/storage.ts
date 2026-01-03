@@ -1,11 +1,12 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport,
   type Trip, type InsertTrip,
   type Post, type InsertPost,
+  type FavoriteSpot, type InsertFavoriteSpot,
   users
 } from "@shared/schema";
 import { eq, and, desc, sql, notInArray } from "drizzle-orm";
@@ -27,6 +28,8 @@ export interface IStorage {
   // Locations & Reports
   getLocations(): Promise<(Location & { reports: SurfReport[] })[]>;
   getLocation(id: number): Promise<(Location & { reports: SurfReport[] }) | undefined>;
+  getFavoriteLocations(userId: string): Promise<(Location & { reports: SurfReport[] })[]>;
+  toggleFavoriteLocation(userId: string, locationId: number): Promise<void>;
   
   // Trips
   getTrips(): Promise<(Trip & { organizer: Profile })[]>;
@@ -178,6 +181,33 @@ export class DatabaseStorage implements IStorage {
     return { ...loc, reports };
   }
 
+  async getFavoriteLocations(userId: string): Promise<(Location & { reports: SurfReport[] })[]> {
+    const favorites = await db.select({ locationId: favoriteSpots.locationId })
+      .from(favoriteSpots)
+      .where(eq(favoriteSpots.userId, userId));
+    
+    if (favorites.length === 0) return [];
+
+    const result = [];
+    for (const fav of favorites) {
+      const loc = await this.getLocation(fav.locationId);
+      if (loc) result.push(loc);
+    }
+    return result;
+  }
+
+  async toggleFavoriteLocation(userId: string, locationId: number): Promise<void> {
+    const [existing] = await db.select()
+      .from(favoriteSpots)
+      .where(and(eq(favoriteSpots.userId, userId), eq(favoriteSpots.locationId, locationId)));
+    
+    if (existing) {
+      await db.delete(favoriteSpots).where(eq(favoriteSpots.id, existing.id));
+    } else {
+      await db.insert(favoriteSpots).values({ userId, locationId });
+    }
+  }
+
   async getTrips(): Promise<(Trip & { organizer: Profile })[]> {
     // Join trips with profiles
     const tripsData = await db.select({
@@ -205,38 +235,31 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getLocations();
     if (existing.length > 0) return;
 
-    // Seed Locations with realistic Surfline/Swellwatch style data
     const spots = [
-      { name: "Pipeline", latitude: "21.66", longitude: "-158.05", description: "The world's most famous reef break. Powerful, hollow, and intense.", difficultyLevel: "pro", region: "Oahu, HI" },
-      { name: "Superbank", latitude: "-28.16", longitude: "153.55", description: "Incredible right-hand point break that can peel for hundreds of yards.", difficultyLevel: "advanced", region: "Gold Coast, AUS" },
-      { name: "Teahupoo", latitude: "-17.84", longitude: "-149.26", description: "A thick, heavy left-hander that breaks over a shallow reef.", difficultyLevel: "pro", region: "Tahiti, PF" },
-      { name: "Uluwatu", latitude: "-8.81", longitude: "115.08", description: "Consistent and world-class left-hand reef break.", difficultyLevel: "advanced", region: "Bali, IDN" },
-      { name: "Trestles", latitude: "33.38", longitude: "-117.59", description: "High-performance A-frame peak with a cobblestone bottom.", difficultyLevel: "intermediate", region: "California, USA" },
+      { name: "The Rock", latitude: "33.20", longitude: "-117.38", description: "Consistent break near the harbor.", difficultyLevel: "intermediate", region: "Oceanside" },
+      { name: "Forster St.", latitude: "33.19", longitude: "-117.38", description: "Popular beach break for locals.", difficultyLevel: "intermediate", region: "Oceanside" },
+      { name: "Oceanside Pier", latitude: "33.19", longitude: "-117.39", description: "Iconic North County spot.", difficultyLevel: "advanced", region: "Oceanside" },
+      { name: "Oceanside Harbor", latitude: "33.21", longitude: "-117.40", description: "Best on NW swells.", difficultyLevel: "advanced", region: "Oceanside" },
+      { name: "Upper Trestles", latitude: "33.38", longitude: "-117.59", description: "World-class performance wave.", difficultyLevel: "intermediate", region: "San Clemente" },
     ];
 
     const today = new Date();
     for (const spot of spots) {
       const [loc] = await db.insert(locations).values(spot).returning();
-      
-      // Seed Reports for 14 days with more "pro" models
       for (let i = 0; i < 14; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
-        
-        // Pipeline/Teahupoo get bigger swell
-        const isBigWaveSpot = spot.name === "Pipeline" || spot.name === "Teahupoo";
-        const baseSize = isBigWaveSpot ? 6 : 2;
-        const waveHeightMin = Math.floor(Math.random() * 4) + baseSize;
-        const waveHeightMax = waveHeightMin + Math.floor(Math.random() * 6) + 2;
+        const waveHeightMin = Math.floor(Math.random() * 3) + 2;
+        const waveHeightMax = waveHeightMin + Math.floor(Math.random() * 3) + 1;
 
         await db.insert(surfReports).values({
           locationId: loc.id,
           date: date.toISOString().split('T')[0],
           waveHeightMin,
           waveHeightMax,
-          rating: waveHeightMax > 8 ? "epic" : waveHeightMax > 5 ? "good" : "fair",
+          rating: waveHeightMax > 4 ? "good" : "fair",
           windDirection: "Offshore",
-          windSpeed: Math.floor(Math.random() * 12) + 2,
+          windSpeed: Math.floor(Math.random() * 10) + 5,
         });
       }
     }

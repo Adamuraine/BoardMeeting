@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
 import { useUpdateProfile } from "@/hooks/use-profiles";
-import { insertProfileSchema, type InsertProfile } from "@shared/routes";
+import { insertProfileSchema } from "@shared/routes";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";

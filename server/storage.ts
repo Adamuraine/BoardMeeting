@@ -233,35 +233,189 @@ export class DatabaseStorage implements IStorage {
 
   async seedLocations(): Promise<void> {
     const existing = await this.getLocations();
-    if (existing.length > 0) return;
+    
+    if (existing.length === 0) {
+      const spots = [
+        { name: "The Rock", latitude: "33.20", longitude: "-117.38", description: "Consistent break near the harbor.", difficultyLevel: "intermediate", region: "Oceanside" },
+        { name: "Forster St.", latitude: "33.19", longitude: "-117.38", description: "Popular beach break for locals.", difficultyLevel: "intermediate", region: "Oceanside" },
+        { name: "Oceanside Pier", latitude: "33.19", longitude: "-117.39", description: "Iconic North County spot.", difficultyLevel: "advanced", region: "Oceanside" },
+        { name: "Oceanside Harbor", latitude: "33.21", longitude: "-117.40", description: "Best on NW swells.", difficultyLevel: "advanced", region: "Oceanside" },
+        { name: "Upper Trestles", latitude: "33.38", longitude: "-117.59", description: "World-class performance wave.", difficultyLevel: "intermediate", region: "San Clemente" },
+      ];
 
-    const spots = [
-      { name: "The Rock", latitude: "33.20", longitude: "-117.38", description: "Consistent break near the harbor.", difficultyLevel: "intermediate", region: "Oceanside" },
-      { name: "Forster St.", latitude: "33.19", longitude: "-117.38", description: "Popular beach break for locals.", difficultyLevel: "intermediate", region: "Oceanside" },
-      { name: "Oceanside Pier", latitude: "33.19", longitude: "-117.39", description: "Iconic North County spot.", difficultyLevel: "advanced", region: "Oceanside" },
-      { name: "Oceanside Harbor", latitude: "33.21", longitude: "-117.40", description: "Best on NW swells.", difficultyLevel: "advanced", region: "Oceanside" },
-      { name: "Upper Trestles", latitude: "33.38", longitude: "-117.59", description: "World-class performance wave.", difficultyLevel: "intermediate", region: "San Clemente" },
+      const today = new Date();
+      for (const spot of spots) {
+        const [loc] = await db.insert(locations).values(spot).returning();
+        for (let i = 0; i < 14; i++) {
+          const date = new Date(today);
+          date.setDate(today.getDate() + i);
+          const waveHeightMin = Math.floor(Math.random() * 3) + 2;
+          const waveHeightMax = waveHeightMin + Math.floor(Math.random() * 3) + 1;
+
+          await db.insert(surfReports).values({
+            locationId: loc.id,
+            date: date.toISOString().split('T')[0],
+            waveHeightMin,
+            waveHeightMax,
+            rating: waveHeightMax > 4 ? "good" : "fair",
+            windDirection: "Offshore",
+            windSpeed: Math.floor(Math.random() * 10) + 5,
+          });
+        }
+      }
+    }
+    
+    await this.seedMockProfiles();
+  }
+
+  async seedMockProfiles(): Promise<void> {
+    const existingMockProfiles = await db.select().from(profiles).where(sql`${profiles.userId} LIKE 'mock_user_%'`);
+    if (existingMockProfiles.length >= 20) return;
+
+    const surfActionPhotos = [
+      "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80",
+      "https://images.unsplash.com/photo-1455264745730-cb3b76250ae8?w=800&q=80",
+      "https://images.unsplash.com/photo-1509914398892-963f53e6e2f1?w=800&q=80",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80",
+      "https://images.unsplash.com/photo-1531722569936-825d3dd91b15?w=800&q=80",
+      "https://images.unsplash.com/photo-1527769929977-c341ee9f2e66?w=800&q=80",
+      "https://images.unsplash.com/photo-1600077106724-946750eeaf3c?w=800&q=80",
+      "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=80",
+      "https://images.unsplash.com/photo-1505459668311-8dfac7952bf0?w=800&q=80",
+      "https://images.unsplash.com/photo-1484264883846-5d0df33f3b67?w=800&q=80",
+      "https://images.unsplash.com/photo-1581610186406-5f6e9f9edbc1?w=800&q=80",
+      "https://images.unsplash.com/photo-1531859663742-44d8e2a61ad4?w=800&q=80",
+      "https://images.unsplash.com/photo-1502933691298-84fc14542831?w=800&q=80",
+      "https://images.unsplash.com/photo-1539857284950-98bea9b83e06?w=800&q=80",
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
+      "https://images.unsplash.com/photo-1462392246754-28dfa2df8e6b?w=800&q=80",
     ];
 
-    const today = new Date();
-    for (const spot of spots) {
-      const [loc] = await db.insert(locations).values(spot).returning();
-      for (let i = 0; i < 14; i++) {
-        const date = new Date(today);
-        date.setDate(today.getDate() + i);
-        const waveHeightMin = Math.floor(Math.random() * 3) + 2;
-        const waveHeightMax = waveHeightMin + Math.floor(Math.random() * 3) + 1;
+    const headshots = [
+      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80",
+      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
+      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80",
+      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80",
+      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80",
+      "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&q=80",
+      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&q=80",
+      "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400&q=80",
+      "https://images.unsplash.com/photo-1501196354995-cbb51c65adc6?w=400&q=80",
+      "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=400&q=80",
+      "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&q=80",
+      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80",
+      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80",
+      "https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=400&q=80",
+      "https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&q=80",
+      "https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=400&q=80",
+      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80",
+      "https://images.unsplash.com/photo-1548142813-c348350df52b?w=400&q=80",
+      "https://images.unsplash.com/photo-1521119989659-a83eee488004?w=400&q=80",
+      "https://images.unsplash.com/photo-1557862921-37829c790f19?w=400&q=80",
+    ];
 
-        await db.insert(surfReports).values({
-          locationId: loc.id,
-          date: date.toISOString().split('T')[0],
-          waveHeightMin,
-          waveHeightMax,
-          rating: waveHeightMax > 4 ? "good" : "fair",
-          windDirection: "Offshore",
-          windSpeed: Math.floor(Math.random() * 10) + 5,
-        });
-      }
+    const mockUsers = [
+      { name: "Jake", gender: "male", age: 28, skill: "advanced", bio: "Chasing barrels up and down the coast. Love early dawn sessions.", location: "Oceanside, CA", tricks: ["Tube Ride", "Cutback", "Floater"] },
+      { name: "Mia", gender: "female", age: 24, skill: "intermediate", bio: "Weekend warrior learning to shred. Looking for surf buddies!", location: "Encinitas, CA", tricks: ["Pop-up", "Bottom Turn"] },
+      { name: "Carlos", gender: "male", age: 32, skill: "pro", bio: "Former WSL competitor. Now coaching and free surfing.", location: "San Clemente, CA", tricks: ["Aerial", "Barrel Roll", "Carve"] },
+      { name: "Sophie", gender: "female", age: 26, skill: "advanced", bio: "Longboarder at heart. Cross-stepping is my jam.", location: "Cardiff, CA", tricks: ["Cross-step", "Hang Ten", "Nose Ride"] },
+      { name: "Kai", gender: "male", age: 22, skill: "intermediate", bio: "Just moved from Hawaii. Missing those reef breaks!", location: "Carlsbad, CA", tricks: ["Duck Dive", "Snap"] },
+      { name: "Emma", gender: "female", age: 29, skill: "advanced", bio: "Surf photographer who also rips. Catch me at Trestles.", location: "San Clemente, CA", tricks: ["Roundhouse Cutback", "Off the Lip"] },
+      { name: "Tyler", gender: "male", age: 35, skill: "pro", bio: "Big wave hunter. Mavericks regular when it's firing.", location: "Oceanside, CA", tricks: ["Big Wave Charging", "Gun Riding"] },
+      { name: "Luna", gender: "female", age: 23, skill: "beginner", bio: "New to surfing but totally hooked! Looking for patient surf partners.", location: "Del Mar, CA", tricks: ["Pop-up", "Paddling"] },
+      { name: "Bryce", gender: "male", age: 27, skill: "advanced", bio: "Dawn patrol every day before work. The stoke is real.", location: "Leucadia, CA", tricks: ["Floater", "Re-entry", "Carve"] },
+      { name: "Jade", gender: "female", age: 31, skill: "intermediate", bio: "Former competitive swimmer turned surfer. Water is my home.", location: "La Jolla, CA", tricks: ["Duck Dive", "Bottom Turn"] },
+      { name: "Marcus", gender: "male", age: 25, skill: "advanced", bio: "Shortboard shredder. Progressive airs are the goal.", location: "Oceanside, CA", tricks: ["Air Reverse", "Alley Oop"] },
+      { name: "Aria", gender: "female", age: 28, skill: "pro", bio: "Surf coach and yoga instructor. Balance is everything.", location: "Encinitas, CA", tricks: ["Tube Ride", "Soul Arch"] },
+      { name: "Diego", gender: "male", age: 30, skill: "intermediate", bio: "Weekend surfer, weekday engineer. Living the dream.", location: "Carlsbad, CA", tricks: ["Cutback", "Floater"] },
+      { name: "Sienna", gender: "female", age: 21, skill: "beginner", bio: "College student catching waves between classes.", location: "Pacific Beach, CA", tricks: ["Pop-up", "Turtle Roll"] },
+      { name: "Finn", gender: "male", age: 34, skill: "advanced", bio: "Fish board enthusiast. Small wave specialist.", location: "Cardiff, CA", tricks: ["Layback", "Trim"] },
+      { name: "Zara", gender: "female", age: 27, skill: "advanced", bio: "Traveled the world for waves. Indo is my happy place.", location: "Oceanside, CA", tricks: ["Barrel", "Frontside Snap"] },
+      { name: "Noah", gender: "male", age: 29, skill: "intermediate", bio: "Firefighter by day, surfer by...also day. Living the SoCal life.", location: "Solana Beach, CA", tricks: ["Bottom Turn", "Top Turn"] },
+      { name: "Ivy", gender: "female", age: 25, skill: "advanced", bio: "Competitive longboarder. Gliding is living.", location: "San Onofre, CA", tricks: ["Nose Ride", "Drop Knee Turn"] },
+      { name: "Ethan", gender: "male", age: 26, skill: "pro", bio: "Sponsored rider. Chasing swells from here to Bali.", location: "Huntington Beach, CA", tricks: ["Full Rotation", "Superman"] },
+      { name: "Chloe", gender: "female", age: 30, skill: "intermediate", bio: "Mom of two who escapes to the ocean whenever possible.", location: "Oceanside, CA", tricks: ["Cutback", "Floater"] },
+    ];
+
+    const locationIds = await db.select({ id: locations.id }).from(locations);
+    const locIds = locationIds.map(l => l.id);
+
+    for (let i = 0; i < mockUsers.length; i++) {
+      const u = mockUsers[i];
+      const fakeUserId = `mock_user_${i + 1}`;
+      
+      await db.insert(users).values({
+        id: fakeUserId,
+        email: `${u.name.toLowerCase()}@surftribe.mock`,
+        firstName: u.name,
+        lastName: "Surfer",
+      }).onConflictDoNothing();
+
+      const imageUrls = [
+        headshots[i % headshots.length],
+        surfActionPhotos[(i * 3) % surfActionPhotos.length],
+        surfActionPhotos[(i * 3 + 1) % surfActionPhotos.length],
+        surfActionPhotos[(i * 3 + 2) % surfActionPhotos.length],
+      ];
+
+      await db.insert(profiles).values({
+        userId: fakeUserId,
+        displayName: u.name,
+        bio: u.bio,
+        gender: u.gender,
+        age: u.age,
+        skillLevel: u.skill,
+        location: u.location,
+        imageUrls,
+        tricks: u.tricks,
+        fastestSpeed: Math.floor(Math.random() * 15) + 10,
+        longestWave: Math.floor(Math.random() * 200) + 50,
+        biggestWave: Math.floor(Math.random() * 8) + 3,
+        isPremium: Math.random() > 0.7,
+      }).onConflictDoNothing();
+    }
+
+    await this.seedMockPosts(locIds);
+  }
+
+  async seedMockPosts(locationIds: number[]): Promise<void> {
+    const existingPosts = await db.select().from(posts);
+    if (existingPosts.length > 0) return;
+
+    const surfPhotos = [
+      { url: "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80", caption: "Epic morning session at the pier!" },
+      { url: "https://images.unsplash.com/photo-1455264745730-cb3b76250ae8?w=800&q=80", caption: "Caught this beauty at sunrise" },
+      { url: "https://images.unsplash.com/photo-1509914398892-963f53e6e2f1?w=800&q=80", caption: "Glassy conditions all day" },
+      { url: "https://images.unsplash.com/photo-1531722569936-825d3dd91b15?w=800&q=80", caption: "Finally got my first barrel!" },
+      { url: "https://images.unsplash.com/photo-1527769929977-c341ee9f2e66?w=800&q=80", caption: "Perfect peelers today" },
+      { url: "https://images.unsplash.com/photo-1600077106724-946750eeaf3c?w=800&q=80", caption: "Dawn patrol never disappoints" },
+      { url: "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=80", caption: "Sunset session was magical" },
+      { url: "https://images.unsplash.com/photo-1505459668311-8dfac7952bf0?w=800&q=80", caption: "Clean lines at Trestles" },
+      { url: "https://images.unsplash.com/photo-1484264883846-5d0df33f3b67?w=800&q=80", caption: "Offshore winds making it perfect" },
+      { url: "https://images.unsplash.com/photo-1581610186406-5f6e9f9edbc1?w=800&q=80", caption: "Small but fun!" },
+      { url: "https://images.unsplash.com/photo-1531859663742-44d8e2a61ad4?w=800&q=80", caption: "Nothing like a late afternoon glass-off" },
+      { url: "https://images.unsplash.com/photo-1502933691298-84fc14542831?w=800&q=80", caption: "Stoked on this wave!" },
+      { url: "https://images.unsplash.com/photo-1539857284950-98bea9b83e06?w=800&q=80", caption: "The harbor was pumping" },
+      { url: "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80", caption: "Post-session vibes" },
+      { url: "https://images.unsplash.com/photo-1462392246754-28dfa2df8e6b?w=800&q=80", caption: "Crystal clear water today" },
+      { url: "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80", caption: "Beach day perfection" },
+      { url: "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80", caption: "Head high and hollow!" },
+      { url: "https://images.unsplash.com/photo-1506953823645-3a08c6f1b7a8?w=800&q=80", caption: "Surfed until my arms gave out" },
+      { url: "https://images.unsplash.com/photo-1535924472843-c6973e251cc3?w=800&q=80", caption: "Fun ones with friends" },
+      { url: "https://images.unsplash.com/photo-1497436072909-60f360e1d4b1?w=800&q=80", caption: "The coast never gets old" },
+    ];
+
+    for (let i = 0; i < 20; i++) {
+      const photo = surfPhotos[i % surfPhotos.length];
+      const userId = `mock_user_${(i % 20) + 1}`;
+      const locationId = locationIds[i % locationIds.length];
+
+      await db.insert(posts).values({
+        userId,
+        locationId,
+        imageUrl: photo.url,
+        caption: photo.caption,
+      });
     }
   }
 }

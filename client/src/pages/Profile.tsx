@@ -52,26 +52,6 @@ export default function Profile() {
             <p className="text-muted-foreground">{profile.location} • {profile.skillLevel} Surfer</p>
           </div>
 
-          {!profile.isPremium && (
-            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-5 text-white mb-8 shadow-xl shadow-gray-900/20 relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
-              <div className="relative z-10 flex justify-between items-center">
-                <div>
-                  <h3 className="font-bold font-display text-lg mb-1 flex items-center gap-2">
-                    <Crown className="w-5 h-5 text-accent" /> Premium
-                  </h3>
-                  <p className="text-sm text-gray-300">Unlimited Swipes & Forecasts</p>
-                </div>
-                <Button 
-                  onClick={() => setShowPremium(true)}
-                  className="bg-accent text-accent-foreground hover:bg-accent/90 font-bold"
-                >
-                  Upgrade
-                </Button>
-              </div>
-            </div>
-          )}
-
           <div className="space-y-6">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">About</h3>
@@ -108,6 +88,18 @@ export default function Profile() {
               </div>
             </div>
           </div>
+
+          {!profile.isPremium && (
+            <div className="mt-12 mb-8">
+              <Button 
+                onClick={() => setShowPremium(true)}
+                variant="outline"
+                className="w-full text-muted-foreground"
+              >
+                <Crown className="w-4 h-4 mr-2" /> Upgrade to Premium
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </Layout>

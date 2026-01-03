@@ -15,6 +15,7 @@ import { insertTripSchema, type CreateTripRequest } from "@shared/routes";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Switch } from "@/components/ui/switch";
+import treasureMapBg from "@assets/IMG_2639_1767484629952.jpeg";
 
 const LOCATIONS = [
   "Oceanside, CA",
@@ -48,8 +49,8 @@ export default function Trips() {
     if (!trips) return [];
     return trips.filter(trip => {
       if (!trip.isVisiting) {
-        if (startFilter && trip.startingLocation !== startFilter) return false;
-        if (destFilter && trip.destination !== destFilter) return false;
+        if (startFilter && startFilter !== "all" && trip.startingLocation !== startFilter) return false;
+        if (destFilter && destFilter !== "all" && trip.destination !== destFilter) return false;
       }
       return !trip.isVisiting;
     });
@@ -62,14 +63,24 @@ export default function Trips() {
 
   return (
     <Layout>
-      <div className="p-4 pb-20 h-full flex flex-col">
-        <header className="flex justify-between items-end mb-4 gap-2">
-          <div>
-            <h1 className="text-3xl font-display font-bold text-foreground">Surf Trips</h1>
-            <p className="text-muted-foreground text-sm">Find a ride or plan a journey</p>
-          </div>
-          <CreateTripDialog open={open} onOpenChange={setOpen} />
-        </header>
+      <div 
+        className="h-full flex flex-col relative"
+        style={{
+          backgroundImage: `url(${treasureMapBg})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+        }}
+      >
+        <div className="absolute inset-0 bg-background/85 dark:bg-background/90" />
+        
+        <div className="relative z-10 p-4 pb-20 h-full flex flex-col">
+          <header className="flex justify-between items-end mb-4 gap-2">
+            <div>
+              <h1 className="text-3xl font-display font-bold text-foreground">Surf Trips</h1>
+              <p className="text-muted-foreground text-sm">Find a ride or plan a journey</p>
+            </div>
+            <CreateTripDialog open={open} onOpenChange={setOpen} />
+          </header>
 
         <Tabs defaultValue="trips" className="flex-1 flex flex-col">
           <TabsList className="grid w-full grid-cols-2 mb-4">
@@ -92,7 +103,7 @@ export default function Trips() {
                     <SelectValue placeholder="Any location" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any location</SelectItem>
+                    <SelectItem value="all">Any location</SelectItem>
                     {LOCATIONS.map(loc => (
                       <SelectItem key={loc} value={loc}>{loc}</SelectItem>
                     ))}
@@ -106,7 +117,7 @@ export default function Trips() {
                     <SelectValue placeholder="Any destination" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Any destination</SelectItem>
+                    <SelectItem value="all">Any destination</SelectItem>
                     {LOCATIONS.map(loc => (
                       <SelectItem key={loc} value={loc}>{loc}</SelectItem>
                     ))}
@@ -170,6 +181,7 @@ export default function Trips() {
             )}
           </TabsContent>
         </Tabs>
+        </div>
       </div>
     </Layout>
   );

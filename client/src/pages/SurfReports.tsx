@@ -22,69 +22,96 @@ export default function SurfReports() {
 
   return (
     <Layout>
-      <div className="p-4 space-y-6">
+      <div className="p-4 space-y-8">
         <header className="space-y-1">
           <h1 className="text-3xl font-display font-bold text-foreground">Surf Reports</h1>
-          <p className="text-muted-foreground">Conditions for the next 3 days</p>
+          <p className="text-muted-foreground italic">Live swells & 3-day forecasts</p>
         </header>
 
-        <div className="grid gap-4">
-          {locations?.map((location) => (
-            <div 
-              key={location.id} 
-              onClick={() => setSelectedLocation(location)}
-              className="group relative overflow-hidden rounded-2xl bg-card border border-border/50 hover:border-primary/50 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-md"
+        {/* Selected Location Big Tile */}
+        {selectedLocation && (
+          <div className="space-y-4">
+            <h2 className="text-sm font-bold uppercase tracking-widest text-primary px-1">Selected Spot</h2>
+            <Card 
+              className="group relative overflow-hidden rounded-2xl bg-card border-none shadow-2xl h-64"
             >
-              {/* Background gradient based on rating */}
               <div className={cn(
-                "absolute inset-0 opacity-10 transition-opacity group-hover:opacity-20",
-                location.reports?.[0]?.rating === 'epic' ? "bg-purple-500" :
-                location.reports?.[0]?.rating === 'good' ? "bg-green-500" :
-                location.reports?.[0]?.rating === 'fair' ? "bg-blue-500" : "bg-gray-500"
+                "absolute inset-0 opacity-20",
+                selectedLocation.reports?.[0]?.rating === 'epic' ? "bg-purple-600" :
+                selectedLocation.reports?.[0]?.rating === 'good' ? "bg-emerald-600" :
+                selectedLocation.reports?.[0]?.rating === 'fair' ? "bg-sky-600" : "bg-slate-600"
               )} />
+              <div className="relative p-8 h-full flex flex-col justify-between">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-3xl font-black font-display tracking-tight leading-none">{selectedLocation.name}</h3>
+                    <p className="text-muted-foreground text-sm mt-1 font-medium">{selectedLocation.region}</p>
+                  </div>
+                  <Badge rating={selectedLocation.reports?.[0]?.rating || 'poor'} />
+                </div>
+                
+                <div className="flex items-end justify-between">
+                  <div className="space-y-1">
+                    <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground">Current Swell</span>
+                    <div className="text-5xl font-black font-display leading-none">
+                      {selectedLocation.reports?.[0]?.waveHeightMin}-{selectedLocation.reports?.[0]?.waveHeightMax}
+                      <span className="text-2xl font-normal ml-1">ft</span>
+                    </div>
+                  </div>
+                  <div className="flex gap-6 pb-1">
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">Wind</span>
+                      <span className="font-bold">{selectedLocation.reports?.[0]?.windSpeed}kts {selectedLocation.reports?.[0]?.windDirection}</span>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-[10px] uppercase font-bold tracking-widest text-muted-foreground block">Tide</span>
+                      <span className="font-bold italic">Rising</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
 
-              <div className="relative p-5">
-                <div className="flex justify-between items-start mb-3">
+        <div className="space-y-6">
+          <h2 className="text-sm font-bold uppercase tracking-widest text-primary px-1">Browse Locations</h2>
+          <div className="grid gap-6">
+            {locations?.map((location) => (
+              <div 
+                key={location.id} 
+                onClick={() => setSelectedLocation(location)}
+                className={cn(
+                  "p-5 rounded-2xl bg-card border border-border/50 hover:border-primary/50 transition-all duration-300 cursor-pointer shadow-sm hover:shadow-xl",
+                  selectedLocation?.id === location.id && "ring-2 ring-primary ring-offset-2 ring-offset-background"
+                )}
+              >
+                <div className="flex justify-between items-center mb-4">
                   <div>
                     <h3 className="text-xl font-bold font-display">{location.name}</h3>
-                    <div className="flex items-center text-muted-foreground text-xs mt-1">
-                      <MapPin className="w-3 h-3 mr-1" />
-                      {location.region}
-                    </div>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{location.region}</p>
                   </div>
                   <Badge rating={location.reports?.[0]?.rating || 'poor'} />
                 </div>
 
-                <div className="grid grid-cols-3 gap-4 mt-4">
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground mb-1">Wave</span>
-                    <span className="text-lg font-bold font-display">
-                      {location.reports?.[0]?.waveHeightMin}-{location.reports?.[0]?.waveHeightMax}ft
-                    </span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground mb-1">Wind</span>
-                    <div className="flex items-center">
-                      <Wind className="w-4 h-4 mr-1 text-primary" />
-                      <span className="font-semibold">{location.reports?.[0]?.windSpeed}kts</span>
+                {/* 3-Day Forecast Summary */}
+                <div className="grid grid-cols-3 gap-3">
+                  {location.reports?.slice(0, 3).map((report: any, idx: number) => (
+                    <div key={idx} className="bg-secondary/20 p-2.5 rounded-xl border border-border/10 text-center">
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                        {idx === 0 ? "Today" : format(addDays(new Date(), idx), 'EEE')}
+                      </p>
+                      <p className="text-sm font-black font-display leading-none">
+                        {report.waveHeightMin}-{report.waveHeightMax}ft
+                      </p>
                     </div>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-xs text-muted-foreground mb-1">Tide</span>
-                    <span className="font-semibold">Rising</span>
-                  </div>
+                  ))}
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
-
-      <LocationDetail 
-        location={selectedLocation} 
-        open={!!selectedLocation} 
-        onOpenChange={(open) => !open && setSelectedLocation(null)} 
-      />
     </Layout>
   );
 }

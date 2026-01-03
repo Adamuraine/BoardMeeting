@@ -205,32 +205,38 @@ export class DatabaseStorage implements IStorage {
     const existing = await this.getLocations();
     if (existing.length > 0) return;
 
-    // Seed Locations
+    // Seed Locations with realistic Surfline/Swellwatch style data
     const spots = [
-      { name: "Pipeline", latitude: "21.66", longitude: "-158.05", description: "World famous reef break.", difficultyLevel: "pro", region: "Hawaii" },
-      { name: "Superbank", latitude: "-28.16", longitude: "153.55", description: "Longest hollow wave.", difficultyLevel: "advanced", region: "Australia" },
-      { name: "Teahupoo", latitude: "-17.84", longitude: "-149.26", description: "Heaviest wave in the world.", difficultyLevel: "pro", region: "Tahiti" },
-      { name: "Uluwatu", latitude: "-8.81", longitude: "115.08", description: "Iconic Balinese reef break.", difficultyLevel: "advanced", region: "Bali" },
-      { name: "Trestles", latitude: "33.38", longitude: "-117.59", description: "Performance wave.", difficultyLevel: "intermediate", region: "California" },
+      { name: "Pipeline", latitude: "21.66", longitude: "-158.05", description: "The world's most famous reef break. Powerful, hollow, and intense.", difficultyLevel: "pro", region: "Oahu, HI" },
+      { name: "Superbank", latitude: "-28.16", longitude: "153.55", description: "Incredible right-hand point break that can peel for hundreds of yards.", difficultyLevel: "advanced", region: "Gold Coast, AUS" },
+      { name: "Teahupoo", latitude: "-17.84", longitude: "-149.26", description: "A thick, heavy left-hander that breaks over a shallow reef.", difficultyLevel: "pro", region: "Tahiti, PF" },
+      { name: "Uluwatu", latitude: "-8.81", longitude: "115.08", description: "Consistent and world-class left-hand reef break.", difficultyLevel: "advanced", region: "Bali, IDN" },
+      { name: "Trestles", latitude: "33.38", longitude: "-117.59", description: "High-performance A-frame peak with a cobblestone bottom.", difficultyLevel: "intermediate", region: "California, USA" },
     ];
 
+    const today = new Date();
     for (const spot of spots) {
       const [loc] = await db.insert(locations).values(spot).returning();
       
-      // Seed Reports for 14 days
-      const today = new Date();
+      // Seed Reports for 14 days with more "pro" models
       for (let i = 0; i < 14; i++) {
         const date = new Date(today);
         date.setDate(today.getDate() + i);
         
+        // Pipeline/Teahupoo get bigger swell
+        const isBigWaveSpot = spot.name === "Pipeline" || spot.name === "Teahupoo";
+        const baseSize = isBigWaveSpot ? 6 : 2;
+        const waveHeightMin = Math.floor(Math.random() * 4) + baseSize;
+        const waveHeightMax = waveHeightMin + Math.floor(Math.random() * 6) + 2;
+
         await db.insert(surfReports).values({
           locationId: loc.id,
           date: date.toISOString().split('T')[0],
-          waveHeightMin: Math.floor(Math.random() * 5) + 2,
-          waveHeightMax: Math.floor(Math.random() * 5) + 6,
-          rating: ["poor", "fair", "good", "epic"][Math.floor(Math.random() * 4)],
+          waveHeightMin,
+          waveHeightMax,
+          rating: waveHeightMax > 8 ? "epic" : waveHeightMax > 5 ? "good" : "fair",
           windDirection: "Offshore",
-          windSpeed: Math.floor(Math.random() * 15),
+          windSpeed: Math.floor(Math.random() * 12) + 2,
         });
       }
     }

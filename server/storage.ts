@@ -1,10 +1,11 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips,
+  profiles, swipes, locations, surfReports, trips, posts,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport,
   type Trip, type InsertTrip,
+  type Post, type InsertPost,
   users
 } from "@shared/schema";
 import { eq, and, desc, sql, notInArray } from "drizzle-orm";
@@ -31,6 +32,11 @@ export interface IStorage {
   getTrips(): Promise<(Trip & { organizer: Profile })[]>;
   createTrip(trip: InsertTrip): Promise<Trip>;
 
+  // Posts
+  createPost(post: InsertPost): Promise<Post>;
+  getPosts(): Promise<(Post & { user: Profile, location: Location })[]>;
+  getPostsByLocation(locationId: number): Promise<(Post & { user: Profile })[]>;
+
   // Premium
   setPremium(userId: string, status: boolean): Promise<void>;
   
@@ -39,6 +45,39 @@ export interface IStorage {
 }
 
 export class DatabaseStorage implements IStorage {
+  // ... existing methods
+
+  async createPost(post: InsertPost): Promise<Post> {
+    const [newPost] = await db.insert(posts).values(post).returning();
+    return newPost;
+  }
+
+  async getPosts(): Promise<(Post & { user: Profile, location: Location })[]> {
+    const results = await db.select({
+      post: posts,
+      user: profiles,
+      location: locations
+    })
+    .from(posts)
+    .innerJoin(profiles, eq(posts.userId, profiles.userId))
+    .innerJoin(locations, eq(posts.locationId, locations.id))
+    .orderBy(desc(posts.createdAt));
+    
+    return results.map(r => ({ ...r.post, user: r.user, location: r.location }));
+  }
+
+  async getPostsByLocation(locationId: number): Promise<(Post & { user: Profile })[]> {
+    const results = await db.select({
+      post: posts,
+      user: profiles
+    })
+    .from(posts)
+    .where(eq(posts.locationId, locationId))
+    .innerJoin(profiles, eq(posts.userId, profiles.userId))
+    .orderBy(desc(posts.createdAt));
+    
+    return results.map(r => ({ ...r.post, user: r.user }));
+  }
   async getProfile(userId: string): Promise<Profile | undefined> {
     const [profile] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     return profile;

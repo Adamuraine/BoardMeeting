@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { insertProfileSchema, insertSwipeSchema, insertTripSchema, profiles, locations, trips, surfReports } from './schema';
+import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, profiles, locations, trips, surfReports, posts } from './schema';
 
-export { insertProfileSchema, insertSwipeSchema, insertTripSchema, profiles, locations, trips, surfReports };
+export { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, profiles, locations, trips, surfReports, posts };
 
 export const errorSchemas = {
   validation: z.object({
@@ -20,6 +20,31 @@ export const errorSchemas = {
 };
 
 export const api = {
+  posts: {
+    list: {
+      method: 'GET' as const,
+      path: '/api/posts',
+      responses: {
+        200: z.array(z.custom<typeof posts.$inferSelect & { user: typeof profiles.$inferSelect, location: typeof locations.$inferSelect }>()),
+      },
+    },
+    create: {
+      method: 'POST' as const,
+      path: '/api/posts',
+      input: insertPostSchema,
+      responses: {
+        201: z.custom<typeof posts.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    byLocation: {
+      method: 'GET' as const,
+      path: '/api/locations/:id/posts',
+      responses: {
+        200: z.array(z.custom<typeof posts.$inferSelect & { user: typeof profiles.$inferSelect }>()),
+      },
+    },
+  },
   profiles: {
     me: {
       method: 'GET' as const,

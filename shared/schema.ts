@@ -68,10 +68,21 @@ export const trips = pgTable("trips", {
   isGuide: boolean("is_guide").default(false),
 });
 
+// === POSTS (Surf Photos) ===
+export const posts = pgTable("posts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  locationId: integer("location_id").notNull().references(() => locations.id),
+  imageUrl: text("image_url").notNull(),
+  caption: text("caption"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === SCHEMAS ===
 export const insertProfileSchema = createInsertSchema(profiles).omit({ id: true });
 export const insertSwipeSchema = createInsertSchema(swipes).omit({ id: true, createdAt: true });
 export const insertTripSchema = createInsertSchema(trips).omit({ id: true });
+export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true });
 
 // === TYPES ===
 export type Profile = typeof profiles.$inferSelect;
@@ -82,13 +93,17 @@ export type Location = typeof locations.$inferSelect;
 export type SurfReport = typeof surfReports.$inferSelect;
 export type Trip = typeof trips.$inferSelect;
 export type InsertTrip = z.infer<typeof insertTripSchema>;
+export type Post = typeof posts.$inferSelect;
+export type InsertPost = z.infer<typeof insertPostSchema>;
 
 // Request Types
 export type CreateProfileRequest = InsertProfile;
 export type UpdateProfileRequest = Partial<InsertProfile>;
 export type CreateSwipeRequest = InsertSwipe;
 export type CreateTripRequest = InsertTrip;
+export type CreatePostRequest = InsertPost;
 
 // Response Types
 export type ProfileResponse = Profile;
 export type LocationResponse = Location & { currentReport?: SurfReport }; // Enriched location
+export type PostWithUser = Post & { user: Profile };

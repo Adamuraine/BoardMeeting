@@ -3,11 +3,16 @@ import { Layout } from "@/components/Layout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { MapPin, Wind, TrendingUp, Lock, Calendar } from "lucide-react";
+import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useMyProfile } from "@/hooks/use-profiles";
+import { useQuery } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Link } from "wouter";
+import { Card } from "@/components/ui/card";
+import type { PostWithUser } from "@shared/schema";
 
 export default function SurfReports() {
   const { data: locations, isLoading } = useLocations();
@@ -102,6 +107,10 @@ function Badge({ rating }: { rating: string }) {
 function LocationDetail({ location, open, onOpenChange }: { location: any, open: boolean, onOpenChange: (o: boolean) => void }) {
   const { data: profile } = useMyProfile();
   const [showPremium, setShowPremium] = useState(false);
+  const { data: posts, isLoading: postsLoading } = useQuery<PostWithUser[]>({
+    queryKey: [location ? `/api/locations/${location.id}/posts` : null],
+    enabled: !!location,
+  });
 
   if (!location) return null;
 
@@ -113,7 +122,7 @@ function LocationDetail({ location, open, onOpenChange }: { location: any, open:
     <>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md h-[80vh] flex flex-col p-0 gap-0 overflow-hidden bg-background">
+        <DialogContent className="max-w-md h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background">
           {/* Header Image */}
           <div className="h-48 relative w-full shrink-0">
              <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10" />
@@ -132,7 +141,7 @@ function LocationDetail({ location, open, onOpenChange }: { location: any, open:
              </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+          <div className="flex-1 overflow-y-auto p-6 space-y-8">
             <div>
               <h3 className="font-bold text-lg mb-2">Description</h3>
               <p className="text-muted-foreground text-sm leading-relaxed">
@@ -195,6 +204,52 @@ function LocationDetail({ location, open, onOpenChange }: { location: any, open:
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* User Photos Section at bottom of report */}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="flex items-center justify-between">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  <Camera className="h-5 w-5 text-primary" />
+                  User Photos
+                </h3>
+                <Button size="sm" variant="ghost" className="text-xs text-primary">
+                  Share Photo
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pb-8">
+                {posts?.map((post) => (
+                  <Card key={post.id} className="group relative aspect-square overflow-hidden border-none shadow-md">
+                    <img 
+                      src={post.imageUrl} 
+                      alt="Surf session" 
+                      className="w-full h-full object-cover transition-transform group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="absolute bottom-2 left-2 right-2">
+                        <Link href={`/profile/${post.user.userId}`}>
+                          <Button size="sm" className="w-full h-8 text-[10px] bg-white/20 backdrop-blur-md border-white/10 text-white hover:bg-white/40">
+                            <ExternalLink className="mr-1 h-3 w-3" />
+                            User Profile
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                {!posts?.length && !postsLoading && (
+                  <div className="col-span-2 py-8 text-center bg-secondary/30 rounded-xl border border-dashed">
+                    <p className="text-xs text-muted-foreground italic">Be the first to share a photo from this spot!</p>
+                  </div>
+                )}
+                {postsLoading && (
+                  <>
+                    <Skeleton className="aspect-square rounded-xl" />
+                    <Skeleton className="aspect-square rounded-xl" />
+                  </>
+                )}
               </div>
             </div>
           </div>

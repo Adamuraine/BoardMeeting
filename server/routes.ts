@@ -4,7 +4,7 @@ import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertProfileSchema, insertSwipeSchema, insertTripSchema } from "@shared/schema";
+import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema } from "@shared/schema";
 import { authStorage } from "./replit_integrations/auth"; // Need this for user creation in seed
 import { db } from "./db";
 import { users } from "@shared/models/auth";
@@ -20,6 +20,30 @@ export async function registerRoutes(
 
   // Helper to get userId from req.user
   const getUserId = (req: any) => req.user?.claims?.sub;
+
+  // === POSTS ===
+  app.get(api.posts.list.path, async (req, res) => {
+    const posts = await storage.getPosts();
+    res.json(posts);
+  });
+
+  app.post(api.posts.create.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const input = insertPostSchema.parse({ ...req.body, userId });
+      const post = await storage.createPost(input);
+      res.status(201).json(post);
+    } catch (err) {
+      if (err instanceof z.ZodError) return res.status(400).json({ message: err.errors });
+      throw err;
+    }
+  });
+
+  app.get(api.posts.byLocation.path, async (req, res) => {
+    const posts = await storage.getPostsByLocation(Number(req.params.id));
+    res.json(posts);
+  });
 
   // === PROFILES ===
   app.get(api.profiles.me.path, async (req, res) => {

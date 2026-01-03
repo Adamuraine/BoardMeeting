@@ -15,6 +15,7 @@ import SurfReports from "@/pages/SurfReports";
 import Trips from "@/pages/Trips";
 import Profile from "@/pages/Profile";
 import Stats from "@/pages/Stats";
+import Home from "@/pages/Home";
 import NotFound from "@/pages/not-found";
 
 // Protected Route Wrapper
@@ -49,11 +50,14 @@ function Router() {
     <Switch>
       <Route path="/" component={() => {
         const { user } = useAuth();
-        if (user) return <Redirect to="/stats" />;
+        if (user) return <Redirect to="/home" />;
         return <Landing />;
       }} />
       
       {/* Protected Routes */}
+      <Route path="/home">
+        <ProtectedRoute component={Home} />
+      </Route>
       <Route path="/stats">
         <ProtectedRoute component={Stats} />
       </Route>

@@ -3,7 +3,7 @@ import { Waves } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import tribalLogo from "@assets/generated_images/surftribe_app_logo_design.png";
+import tribalLogo from "@assets/IMG_2619_1767474700755.jpeg";
 
 export default function Landing() {
   const { user, isLoading } = useAuth();

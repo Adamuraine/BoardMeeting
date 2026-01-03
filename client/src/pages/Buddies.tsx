@@ -3,7 +3,7 @@ import { useProfiles, useSwipe } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { AnimatePresence, motion, PanInfo, useAnimation } from "framer-motion";
 import { X, MapPin, Info, Users } from "lucide-react";
-import { FaHandPeace } from "react-icons/fa6";
+import shakaImg from "@assets/IMG_2633_1767477747154.png";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -148,9 +148,9 @@ export default function Buddies() {
               controls.start({ x: 500, opacity: 0, rotate: 20 });
               handleSwipe("right");
             }}
-            className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-cyan-500 shadow-lg shadow-primary/25 flex items-center justify-center text-white hover:scale-110 transition-all"
+            className="w-16 h-16 rounded-full bg-white shadow-lg shadow-primary/25 flex items-center justify-center p-3 hover:scale-110 transition-all border border-primary/20"
           >
-            <FaHandPeace className="w-8 h-8 fill-current" />
+            <img src={shakaImg} alt="Hang Loose" className="w-full h-full object-contain" />
           </button>
         </div>
       </div>

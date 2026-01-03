@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { setupAuth, registerAuthRoutes } from "./replit_integrations/auth";
+import { registerObjectStorageRoutes } from "./replit_integrations/object_storage";
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
@@ -17,6 +18,9 @@ export async function registerRoutes(
   // Auth setup MUST happen first
   await setupAuth(app);
   registerAuthRoutes(app);
+  
+  // Object Storage routes for file uploads
+  registerObjectStorageRoutes(app);
 
   // Helper to get userId from req.user
   const getUserId = (req: any) => req.user?.claims?.sub;

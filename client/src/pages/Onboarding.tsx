@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
@@ -10,8 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { z } from "zod";
-import { Loader2, Camera } from "lucide-react";
+import { Loader2, Camera, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
+import { useUpload } from "@/hooks/use-upload";
 
 const schema = insertProfileSchema.pick({
   displayName: true,
@@ -28,6 +29,14 @@ export default function Onboarding() {
   const [, setLocation] = useLocation();
   const { mutate: updateProfile, isPending } = useUpdateProfile();
   const { user } = useAuth();
+  const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  const { uploadFile, isUploading } = useUpload({
+    onSuccess: (response) => {
+      setUploadedPhotos(prev => [...prev, response.objectPath]);
+    },
+  });
   
   const form = useForm<FormData>({
     resolver: zodResolver(schema),
@@ -39,16 +48,27 @@ export default function Onboarding() {
     }
   });
 
+  const handlePhotoSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      await uploadFile(file);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const removePhoto = (index: number) => {
+    setUploadedPhotos(prev => prev.filter((_, i) => i !== index));
+  };
+
   const onSubmit = (data: FormData) => {
-    // Coerce age to number
     const payload = {
       ...data,
       userId: user?.id,
       age: Number(data.age),
-      imageUrls: [
-        // Random surf portraits for demo
-        "https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=800&q=80",
-        "https://images.unsplash.com/photo-1588775225218-c5299496732d?w=800&q=80"
+      imageUrls: uploadedPhotos.length > 0 ? uploadedPhotos : [
+        "https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=800&q=80"
       ]
     };
 
@@ -68,30 +88,60 @@ export default function Onboarding() {
         </div>
 
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="flex justify-center mb-6">
-             <div className="w-32 h-32 rounded-full bg-secondary flex items-center justify-center border-4 border-background shadow-lg relative cursor-pointer hover:bg-secondary/80 transition-colors">
-               <Camera className="w-10 h-10 text-primary/50" />
-               <div className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center border-2 border-background">
-                 <span className="text-white text-lg font-bold">+</span>
-               </div>
-             </div>
+          <div className="space-y-3">
+            <Label>Profile Photos</Label>
+            <div className="flex gap-3 flex-wrap">
+              {uploadedPhotos.map((photo, index) => (
+                <div key={index} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-primary/30">
+                  <img src={photo} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removePhoto(index)}
+                    className="absolute top-1 right-1 w-5 h-5 bg-red-500 rounded-full flex items-center justify-center"
+                  >
+                    <X className="w-3 h-3 text-white" />
+                  </button>
+                </div>
+              ))}
+              
+              <label className="w-20 h-20 rounded-xl bg-secondary border-2 border-dashed border-primary/50 flex flex-col items-center justify-center cursor-pointer hover:bg-secondary/80 transition-colors">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handlePhotoSelect}
+                  className="hidden"
+                  disabled={isUploading}
+                  data-testid="input-photo"
+                />
+                {isUploading ? (
+                  <Loader2 className="w-6 h-6 text-primary/50 animate-spin" />
+                ) : (
+                  <>
+                    <Camera className="w-6 h-6 text-primary/50" />
+                    <span className="text-[10px] text-primary/50 mt-1">Add</span>
+                  </>
+                )}
+              </label>
+            </div>
+            <p className="text-xs text-muted-foreground">Add up to 4 photos to show off your surf skills</p>
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="displayName">Display Name</Label>
-            <Input id="displayName" {...form.register("displayName")} className="bg-secondary/50 border-0 h-12 rounded-xl" placeholder="Nickname" />
+            <Input id="displayName" {...form.register("displayName")} className="bg-secondary/50 border-2 border-primary/50 focus:border-primary h-12 rounded-xl" placeholder="Nickname" data-testid="input-displayName" />
             {form.formState.errors.displayName && <p className="text-red-500 text-sm">{form.formState.errors.displayName.message}</p>}
           </div>
 
           <div className="grid grid-cols-2 gap-4">
              <div className="space-y-2">
                <Label htmlFor="age">Age</Label>
-               <Input id="age" type="number" {...form.register("age", { valueAsNumber: true })} className="bg-secondary/50 border-0 h-12 rounded-xl" />
+               <Input id="age" type="number" {...form.register("age", { valueAsNumber: true })} className="bg-secondary/50 border-2 border-primary/50 focus:border-primary h-12 rounded-xl" data-testid="input-age" />
              </div>
              <div className="space-y-2">
                <Label htmlFor="gender">Gender</Label>
                <Select onValueChange={(val) => form.setValue("gender", val)}>
-                 <SelectTrigger className="bg-secondary/50 border-0 h-12 rounded-xl">
+                 <SelectTrigger className="bg-secondary/50 border-2 border-primary/50 focus:border-primary h-12 rounded-xl" data-testid="select-gender">
                    <SelectValue placeholder="Select" />
                  </SelectTrigger>
                  <SelectContent>
@@ -105,7 +155,7 @@ export default function Onboarding() {
 
           <div className="space-y-2">
             <Label htmlFor="location">Home Break / Location</Label>
-            <Input id="location" {...form.register("location")} className="bg-secondary/50 border-0 h-12 rounded-xl" placeholder="San Diego, CA" />
+            <Input id="location" {...form.register("location")} className="bg-secondary/50 border-2 border-primary/50 focus:border-primary h-12 rounded-xl" placeholder="San Diego, CA" data-testid="input-location" />
           </div>
 
           <div className="space-y-2">

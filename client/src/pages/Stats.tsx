@@ -1,10 +1,59 @@
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Waves, Gauge, TrendingUp } from "lucide-react";
+import { Activity, Waves, Gauge, TrendingUp, Plus, Check } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { useMutation } from "@tanstack/react-query";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+
+const ALL_TRICKS = [
+  "Duck Dive",
+  "Bottom Turn",
+  "Cutback",
+  "Snap",
+  "Floater",
+  "Re-entry",
+  "Roundhouse Cutback",
+  "Tube Ride",
+  "Aerial",
+  "360",
+  "Alley-oop",
+  "Superman",
+  "Kerrupt Flip",
+];
 
 export default function Stats() {
   const { data: profile, isLoading } = useMyProfile();
+  const { toast } = useToast();
+
+  const mutation = useMutation({
+    mutationFn: async (tricks: string[]) => {
+      const res = await apiRequest("PATCH", "/api/profiles/me", { tricks });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
+      toast({
+        title: "Profile Updated",
+        description: "Your tricks have been updated successfully.",
+      });
+    },
+  });
+
+  const toggleTrick = (trick: string) => {
+    const currentTricks = profile?.tricks || [];
+    const newTricks = currentTricks.includes(trick)
+      ? currentTricks.filter((t: string) => t !== trick)
+      : [...currentTricks, trick];
+    mutation.mutate(newTricks);
+  };
 
   if (isLoading) {
     return (
@@ -69,11 +118,33 @@ export default function Stats() {
 
       {/* Progression / Skill Level */}
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
           <CardTitle className="flex items-center gap-2">
             <TrendingUp className="h-5 w-5 text-primary" />
             Skill Progression
           </CardTitle>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" variant="outline" className="h-8 gap-1">
+                <Plus className="h-4 w-4" />
+                Add Tricks
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-48 max-h-64 overflow-y-auto">
+              {ALL_TRICKS.map((trick) => (
+                <DropdownMenuItem
+                  key={trick}
+                  onClick={() => toggleTrick(trick)}
+                  className="flex items-center justify-between"
+                >
+                  {trick}
+                  {profile?.tricks?.includes(trick) && (
+                    <Check className="h-4 w-4 text-primary" />
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">

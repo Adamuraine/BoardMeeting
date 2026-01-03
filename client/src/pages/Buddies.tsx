@@ -61,15 +61,15 @@ export default function Buddies() {
     <Layout>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
-      <div className="h-full flex flex-col p-4 relative">
-        <header className="flex justify-between items-center mb-4 pt-2">
+      <div className="h-full flex flex-col relative">
+        <header className="flex justify-between items-center px-4 py-3 gap-2">
            <h1 className="text-2xl font-display font-bold text-foreground">Discover</h1>
            <div className="bg-secondary/50 px-3 py-1 rounded-full text-xs font-medium text-muted-foreground">
              San Diego, CA
            </div>
         </header>
 
-        <div className="flex-1 relative flex items-center justify-center">
+        <div className="flex-1 relative flex items-center justify-center px-4 pb-2">
           <AnimatePresence>
             <motion.div
               key={currentProfile.id}
@@ -81,7 +81,7 @@ export default function Buddies() {
               whileInView={{ scale: 1, opacity: 1 }}
               exit={{ scale: 1.05, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="absolute w-full h-[70vh] rounded-3xl overflow-hidden shadow-2xl bg-white border border-border/50 select-none cursor-grab active:cursor-grabbing flex flex-col"
+              className="absolute inset-x-4 top-0 bottom-0 rounded-3xl overflow-hidden shadow-2xl bg-card border border-border/50 select-none cursor-grab active:cursor-grabbing flex flex-col"
             >
               {/* Profile Image - Headshot */}
               <div className="relative h-3/5 shrink-0">
@@ -152,7 +152,7 @@ export default function Buddies() {
         </div>
 
         {/* Action Buttons */}
-        <div className="h-24 flex items-center justify-center gap-6 mt-4">
+        <div className="h-20 flex items-center justify-center gap-6 shrink-0">
           <button 
             onClick={() => {
               controls.start({ x: -500, opacity: 0, rotate: -20 });

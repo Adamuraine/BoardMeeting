@@ -2,8 +2,8 @@ import { useState } from "react";
 import { useProfiles, useSwipe } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { AnimatePresence, motion, PanInfo, useAnimation } from "framer-motion";
-import { X, MapPin, Info, Users } from "lucide-react";
-import shakaImg from "@assets/IMG_2633_1767477747154.png";
+import { X, MapPin, Info, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import shakaImg from "@assets/image_1767482724996.png";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -81,43 +81,67 @@ export default function Buddies() {
               whileInView={{ scale: 1, opacity: 1 }}
               exit={{ scale: 1.05, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
-              className="absolute w-full h-[65vh] rounded-3xl overflow-hidden shadow-2xl bg-white border border-border/50 select-none cursor-grab active:cursor-grabbing"
+              className="absolute w-full h-[70vh] rounded-3xl overflow-hidden shadow-2xl bg-white border border-border/50 select-none cursor-grab active:cursor-grabbing flex flex-col"
             >
-              {/* Profile Image */}
-              <div className="absolute inset-0">
+              {/* Profile Image - Headshot */}
+              <div className="relative h-3/5 shrink-0">
                  <img 
                    src={currentProfile.imageUrls?.[0] || "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80"} 
                    alt={currentProfile.displayName} 
                    className="w-full h-full object-cover"
                  />
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                 <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                 
+                 {/* Profile Info Overlay on Image */}
+                 <div className="absolute bottom-0 left-0 right-0 p-4 text-white">
+                    <div className="flex items-end justify-between mb-1">
+                      <div>
+                        <h2 className="text-2xl font-display font-bold">
+                          {currentProfile.displayName}, {currentProfile.age}
+                        </h2>
+                        <div className="flex items-center text-white/80 mt-0.5">
+                          <MapPin className="w-3 h-3 mr-1" />
+                          <span className="text-xs">{currentProfile.location || "Oceanside, CA"}</span>
+                        </div>
+                      </div>
+                      <div className="bg-primary/90 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">
+                        {currentProfile.skillLevel}
+                      </div>
+                    </div>
+                 </div>
               </div>
 
-              {/* Profile Info */}
-              <div className="absolute bottom-0 left-0 right-0 p-6 text-white">
-                <div className="flex items-end justify-between mb-2">
-                  <div>
-                    <h2 className="text-3xl font-display font-bold">
-                      {currentProfile.displayName}, {currentProfile.age}
-                    </h2>
-                    <div className="flex items-center text-white/80 mt-1">
-                      <MapPin className="w-4 h-4 mr-1" />
-                      <span className="text-sm">{currentProfile.location || "Unknown Location"}</span>
-                    </div>
-                  </div>
-                  <div className="bg-primary px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider">
-                    {currentProfile.skillLevel}
-                  </div>
-                </div>
-                
-                <p className="text-sm text-white/70 line-clamp-2 mb-4">
-                  {currentProfile.bio || "No bio yet. Just here for the waves!"}
+              {/* Additional Content Below */}
+              <div className="flex-1 bg-background p-4 flex flex-col overflow-hidden">
+                <p className="text-xs text-muted-foreground line-clamp-2 mb-3 italic">
+                  "{currentProfile.bio || "Just here for the waves!"}"
                 </p>
 
+                {/* Additional Photos / Action Shots */}
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <span className="text-[10px] font-bold uppercase text-muted-foreground mb-1.5 tracking-tighter">Action Shots</span>
+                  <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                    {(currentProfile.imageUrls?.length || 0) > 1 ? (
+                      currentProfile.imageUrls?.slice(1).map((url, i) => (
+                        <div key={i} className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-border shadow-sm">
+                          <img src={url} alt="Surf action" className="w-full h-full object-cover" />
+                        </div>
+                      ))
+                    ) : (
+                      // Fallback placeholders if no action shots
+                      [1, 2].map((_, i) => (
+                        <div key={i} className="flex-shrink-0 w-24 h-24 rounded-lg bg-secondary/30 flex items-center justify-center border border-dashed border-border">
+                          <Users className="w-6 h-6 text-muted-foreground/20" />
+                        </div>
+                      ))
+                    )}
+                  </div>
+                </div>
+
                 {/* Tricks / Tags */}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap gap-1.5 mt-2">
                   {currentProfile.tricks?.slice(0, 3).map((trick, i) => (
-                    <span key={i} className="px-2 py-1 bg-white/10 backdrop-blur-md rounded-md text-xs border border-white/10">
+                    <span key={i} className="px-1.5 py-0.5 bg-secondary text-secondary-foreground rounded text-[10px] font-medium">
                       {trick}
                     </span>
                   ))}

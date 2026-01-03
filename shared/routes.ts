@@ -1,7 +1,8 @@
 import { z } from 'zod';
-import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, profiles, locations, trips, surfReports, posts } from './schema';
+import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, profiles, locations, trips, surfReports, posts, type InsertTrip } from './schema';
 
 export { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, profiles, locations, trips, surfReports, posts };
+export type CreateTripRequest = InsertTrip;
 
 export const errorSchemas = {
   validation: z.object({

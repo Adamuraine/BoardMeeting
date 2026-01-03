@@ -59,6 +59,7 @@ export const surfReports = pgTable("surf_reports", {
 export const trips = pgTable("trips", {
   id: serial("id").primaryKey(),
   organizerId: varchar("organizer_id").notNull().references(() => users.id),
+  startingLocation: text("starting_location"),
   destination: text("destination").notNull(),
   startDate: date("start_date").notNull(),
   endDate: date("end_date").notNull(),
@@ -66,6 +67,7 @@ export const trips = pgTable("trips", {
   cost: integer("cost"),
   tripType: text("trip_type"), // carpool, boat, resort, taxi
   isGuide: boolean("is_guide").default(false),
+  isVisiting: boolean("is_visiting").default(false), // Solo traveler looking to meet locals
 });
 
 // === POSTS (Surf Photos) ===

@@ -2,7 +2,8 @@ import { useState } from "react";
 import { useProfiles, useSwipe } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { AnimatePresence, motion, PanInfo, useAnimation } from "framer-motion";
-import { X, Heart, MapPin, Info } from "lucide-react";
+import { X, MapPin, Info, Users } from "lucide-react";
+import { FaHandPeace } from "react-icons/fa6";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -149,7 +150,7 @@ export default function Buddies() {
             }}
             className="w-16 h-16 rounded-full bg-gradient-to-r from-primary to-cyan-500 shadow-lg shadow-primary/25 flex items-center justify-center text-white hover:scale-110 transition-all"
           >
-            <Heart className="w-8 h-8 fill-current" />
+            <FaHandPeace className="w-8 h-8 fill-current" />
           </button>
         </div>
       </div>

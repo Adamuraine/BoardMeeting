@@ -1,0 +1,136 @@
+import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
+import { useAuth } from "@/hooks/use-auth";
+import { Layout } from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Crown, LogOut, Settings, Camera } from "lucide-react";
+import { PremiumModal } from "@/components/PremiumModal";
+import { useState } from "react";
+import { Skeleton } from "@/components/ui/skeleton";
+
+export default function Profile() {
+  const { data: profile, isLoading } = useMyProfile();
+  const { logout } = useAuth();
+  const [showPremium, setShowPremium] = useState(false);
+
+  if (isLoading) return <ProfileSkeleton />;
+  if (!profile) return null;
+
+  return (
+    <Layout>
+      <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
+      
+      <div className="relative">
+        {/* Header Background */}
+        <div className="h-40 bg-gradient-to-r from-primary to-cyan-400" />
+        
+        {/* Profile Content */}
+        <div className="px-6 pb-20 -mt-16">
+          <div className="flex justify-between items-end mb-6">
+            <div className="relative">
+              <div className="w-32 h-32 rounded-full border-4 border-background bg-secondary overflow-hidden shadow-xl">
+                 <img 
+                   src={profile.imageUrls?.[0] || "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80"} 
+                   alt={profile.displayName} 
+                   className="w-full h-full object-cover"
+                 />
+              </div>
+              <button className="absolute bottom-0 right-0 w-8 h-8 bg-foreground text-background rounded-full flex items-center justify-center border-2 border-background">
+                <Camera className="w-4 h-4" />
+              </button>
+            </div>
+
+            <Button variant="ghost" size="icon" className="mb-2" onClick={() => logout()}>
+              <LogOut className="w-5 h-5 text-muted-foreground" />
+            </Button>
+          </div>
+
+          <div className="mb-8">
+            <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-2">
+              {profile.displayName}
+              {profile.isPremium && <Crown className="w-5 h-5 text-accent fill-current" />}
+            </h1>
+            <p className="text-muted-foreground">{profile.location} • {profile.skillLevel} Surfer</p>
+          </div>
+
+          {!profile.isPremium && (
+            <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-2xl p-5 text-white mb-8 shadow-xl shadow-gray-900/20 relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-full blur-2xl transform translate-x-10 -translate-y-10" />
+              <div className="relative z-10 flex justify-between items-center">
+                <div>
+                  <h3 className="font-bold font-display text-lg mb-1 flex items-center gap-2">
+                    <Crown className="w-5 h-5 text-accent" /> Premium
+                  </h3>
+                  <p className="text-sm text-gray-300">Unlimited Swipes & Forecasts</p>
+                </div>
+                <Button 
+                  onClick={() => setShowPremium(true)}
+                  className="bg-accent text-accent-foreground hover:bg-accent/90 font-bold"
+                >
+                  Upgrade
+                </Button>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-6">
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">About</h3>
+              <p className="text-foreground/80 leading-relaxed">
+                {profile.bio || "No bio yet."}
+              </p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Stats</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
+                  <div className="text-2xl font-bold font-display text-primary">{profile.age}</div>
+                  <div className="text-xs text-muted-foreground">Age</div>
+                </div>
+                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
+                  <div className="text-2xl font-bold font-display text-primary capitalize">{profile.gender}</div>
+                  <div className="text-xs text-muted-foreground">Gender</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Gallery</h3>
+              <div className="grid grid-cols-3 gap-2">
+                {profile.imageUrls?.map((url, i) => (
+                  <div key={i} className="aspect-square rounded-lg overflow-hidden bg-secondary">
+                    <img src={url} alt="Gallery" className="w-full h-full object-cover" />
+                  </div>
+                ))}
+                <div className="aspect-square rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:bg-secondary/50 cursor-pointer transition-colors">
+                  <Plus className="w-6 h-6" />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </Layout>
+  );
+}
+
+import { Plus } from "lucide-react";
+
+function ProfileSkeleton() {
+  return (
+    <Layout>
+      <div className="h-40 bg-muted animate-pulse" />
+      <div className="px-6 -mt-16">
+        <Skeleton className="w-32 h-32 rounded-full border-4 border-background mb-4" />
+        <Skeleton className="w-48 h-8 mb-2" />
+        <Skeleton className="w-32 h-4 mb-8" />
+        <Skeleton className="w-full h-24 rounded-2xl mb-8" />
+        <div className="space-y-4">
+          <Skeleton className="w-full h-4" />
+          <Skeleton className="w-full h-4" />
+          <Skeleton className="w-2/3 h-4" />
+        </div>
+      </div>
+    </Layout>
+  );
+}

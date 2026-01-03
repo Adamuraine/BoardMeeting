@@ -3,6 +3,7 @@ import { Waves } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
+import tribalLogo from "@assets/generated_images/surftribe_app_logo_design.png";
 
 export default function Landing() {
   const { user, isLoading } = useAuth();
@@ -10,7 +11,7 @@ export default function Landing() {
 
   useEffect(() => {
     if (user) {
-      setLocation("/buddies");
+      setLocation("/home");
     }
   }, [user, setLocation]);
 
@@ -28,8 +29,8 @@ export default function Landing() {
       </div>
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
-        <div className="w-20 h-20 bg-gradient-to-tr from-primary to-cyan-400 rounded-3xl flex items-center justify-center shadow-xl shadow-primary/30 mb-8 transform rotate-3">
-          <Waves className="w-10 h-10 text-white" />
+        <div className="w-32 h-32 rounded-3xl overflow-hidden shadow-2xl shadow-primary/20 mb-8 transform rotate-3">
+          <img src={tribalLogo} alt="SurfTribe Logo" className="w-full h-full object-cover" />
         </div>
 
         <h1 className="text-4xl md:text-6xl font-display font-bold text-foreground mb-4 leading-tight">

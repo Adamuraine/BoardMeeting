@@ -1,8 +1,8 @@
-# Surf Buddy - Replit Agent Guide
+# SurfTribe - Replit Agent Guide
 
 ## Overview
 
-Surf Buddy is a social mobile-first web application for surfers to connect with each other, check surf conditions, and plan trips together. The app features a Tinder-style buddy matching system, surf report viewing, trip planning, and a social feed. Built as a full-stack TypeScript application with React frontend and Express backend, using PostgreSQL for data persistence.
+SurfTribe is a social mobile-first web application for surfers to connect with each other, check surf conditions, and plan trips together. The app features a Tinder-style buddy matching system, surf report viewing, trip planning, and a social feed. Built as a full-stack TypeScript application with React frontend and Express backend, using PostgreSQL for data persistence.
 
 ## User Preferences
 

@@ -22,7 +22,7 @@ export default function Home() {
   return (
     <div className="max-w-md mx-auto pb-20">
       <header className="p-4 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
-        <h1 className="text-2xl font-display font-bold text-primary italic">SurfShare</h1>
+        <h1 className="text-2xl font-display font-bold text-primary italic">SurfTribe</h1>
         <Button size="icon" variant="ghost">
           <Camera className="h-6 w-6" />
         </Button>

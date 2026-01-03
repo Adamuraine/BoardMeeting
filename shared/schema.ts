@@ -17,6 +17,9 @@ export const profiles = pgTable("profiles", {
   location: text("location"),
   imageUrls: text("image_urls").array(),
   tricks: text("tricks").array(),
+  fastestSpeed: integer("fastest_speed").default(0), // mph
+  longestWave: integer("longest_wave").default(0), // yards
+  biggestWave: integer("biggest_wave").default(0), // feet
   isPremium: boolean("is_premium").default(false),
 });
 

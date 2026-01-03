@@ -1,4 +1,4 @@
-import { Switch, Route, Redirect } from "wouter";
+import { Switch, Route, Redirect, useLocation } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Loader2 } from "lucide-react";
+import BottomNav from "@/components/ui/bottom-nav";
 
 import Landing from "@/pages/Landing";
 import Onboarding from "@/pages/Onboarding";
@@ -13,6 +14,7 @@ import Buddies from "@/pages/Buddies";
 import SurfReports from "@/pages/SurfReports";
 import Trips from "@/pages/Trips";
 import Profile from "@/pages/Profile";
+import Stats from "@/pages/Stats";
 import NotFound from "@/pages/not-found";
 
 // Protected Route Wrapper
@@ -30,19 +32,31 @@ function ProtectedRoute({ component: Component }: { component: React.ComponentTy
 
   if (!user) return <Redirect to="/" />;
   
-  // If user has no profile, redirect to onboarding (unless they are already there)
-  // We handle this check inside specific routes or just rely on Onboarding being accessible
   if (!profile && Component !== Onboarding) return <Redirect to="/onboarding" />;
 
-  return <Component />;
+  return (
+    <div className="pb-16 min-h-screen bg-background">
+      <Component />
+      <BottomNav />
+    </div>
+  );
 }
 
 function Router() {
+  const [location] = useLocation();
+
   return (
     <Switch>
-      <Route path="/" component={Landing} />
+      <Route path="/" component={() => {
+        const { user } = useAuth();
+        if (user) return <Redirect to="/stats" />;
+        return <Landing />;
+      }} />
       
       {/* Protected Routes */}
+      <Route path="/stats">
+        <ProtectedRoute component={Stats} />
+      </Route>
       <Route path="/onboarding">
         <ProtectedRoute component={Onboarding} />
       </Route>

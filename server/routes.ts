@@ -6,6 +6,9 @@ import { api } from "@shared/routes";
 import { z } from "zod";
 import { insertProfileSchema, insertSwipeSchema, insertTripSchema } from "@shared/schema";
 import { authStorage } from "./replit_integrations/auth"; // Need this for user creation in seed
+import { db } from "./db";
+import { users } from "@shared/models/auth";
+import { eq } from "drizzle-orm";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -167,20 +170,26 @@ async function seedFakeProfiles() {
   ];
 
   for (const fake of fakeUsers) {
-    // We need to insert into auth users first to get an ID
-    // We can use authStorage.upsertUser
-    const user = await authStorage.upsertUser({
-      email: fake.email,
-      firstName: fake.firstName,
-      lastName: fake.lastName,
-      profileImageUrl: fake.profileImageUrl,
-    });
+    const existingUser = await db.select().from(users).where(eq(users.email, fake.email));
+    
+    let userId;
+    if (existingUser.length > 0) {
+      userId = existingUser[0].id;
+    } else {
+      const user = await authStorage.upsertUser({
+        email: fake.email,
+        firstName: fake.firstName,
+        lastName: fake.lastName,
+        profileImageUrl: fake.profileImageUrl,
+      });
+      userId = user.id;
+    }
 
     // Check if profile exists
-    const existing = await storage.getProfile(user.id);
+    const existing = await storage.getProfile(userId);
     if (!existing) {
       await storage.createProfile({
-        userId: user.id,
+        userId: userId,
         displayName: fake.firstName,
         bio: "Love surfing and good vibes! 🤙",
         gender: "other",

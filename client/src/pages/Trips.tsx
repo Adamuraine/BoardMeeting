@@ -71,7 +71,7 @@ export default function Trips() {
           backgroundPosition: 'center',
         }}
       >
-        <div className="absolute inset-0 bg-background/85 dark:bg-background/90" />
+        <div className="absolute inset-0 bg-background/70 dark:bg-background/80" />
         
         <div className="relative z-10 p-4 pb-20 h-full flex flex-col">
           <header className="mb-4">
@@ -79,7 +79,7 @@ export default function Trips() {
               <h1 className="text-3xl font-display font-bold text-foreground">Surf Trips</h1>
               <CreateTripDialog open={open} onOpenChange={setOpen} />
             </div>
-            <div className="bg-card/80 backdrop-blur-sm rounded-xl p-3 border border-border/50">
+            <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 dark:from-cyan-600/30 dark:to-blue-600/30 backdrop-blur-sm rounded-xl p-3 border border-cyan-400/30 dark:border-cyan-500/40">
               <p className="text-sm text-foreground leading-relaxed">
                 Save money by traveling with a buddy, or explore new surf destinations without the worry of going alone. Team up with someone who knows the ins and outs, the lefts and rights.
               </p>
@@ -151,10 +151,10 @@ export default function Trips() {
           </TabsContent>
 
           <TabsContent value="visiting" className="flex-1 space-y-4 mt-0">
-            <div className="bg-secondary/30 rounded-xl p-4 border border-border/50">
+            <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 dark:from-amber-600/30 dark:to-orange-600/30 rounded-xl p-4 border border-amber-400/30 dark:border-amber-500/40">
               <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                  <Users className="w-5 h-5 text-primary" />
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 dark:bg-amber-500/30 flex items-center justify-center shrink-0">
+                  <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Solo Travelers</h3>

@@ -3,7 +3,7 @@ import { Layout } from "@/components/Layout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star } from "lucide-react";
+import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 import { PremiumModal } from "@/components/PremiumModal";
@@ -14,6 +14,28 @@ import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import type { PostWithUser } from "@shared/schema";
 
+function WaveIcon({ height, rating }: { height: number; rating: string }) {
+  const color = rating === 'epic' ? '#8b5cf6' : rating === 'good' ? '#10b981' : rating === 'fair' ? '#06b6d4' : '#94a3b8';
+  const scale = Math.min(1, Math.max(0.4, height / 8));
+  
+  return (
+    <svg viewBox="0 0 40 30" className="w-full h-8" style={{ transform: `scaleY(${scale})` }}>
+      <path
+        d="M0 25 Q10 15, 20 20 T40 15 L40 30 L0 30 Z"
+        fill={color}
+        opacity="0.8"
+      />
+      <path
+        d="M0 22 Q8 12, 18 18 T38 12"
+        stroke={color}
+        strokeWidth="2"
+        fill="none"
+        opacity="0.6"
+      />
+    </svg>
+  );
+}
+
 export default function SurfReports() {
   const { data: allLocations, isLoading: loadingAll } = useLocations();
   const { data: favorites, isLoading: loadingFavs } = useFavoriteLocations();
@@ -23,92 +45,101 @@ export default function SurfReports() {
   if (loadingAll || loadingFavs) return <ReportsSkeleton />;
 
   const today = new Date();
-  const dates = Array.from({ length: 6 }).map((_, i) => addDays(today, i));
 
   return (
     <Layout>
-      <div className="flex flex-col h-full bg-[#f8f9fa] dark:bg-background">
-        <header className="p-6 pb-2 space-y-4">
-          <div className="flex items-center justify-between">
-            <h1 className="text-2xl font-black tracking-tight">Good afternoon, adam</h1>
-            <div className="flex gap-2">
-              <Button size="icon" variant="ghost" className="rounded-full bg-white dark:bg-secondary shadow-sm">
-                <Plus className="h-5 w-5" />
-              </Button>
-              <Button size="icon" variant="ghost" className="rounded-full bg-white dark:bg-secondary shadow-sm">
-                <Search className="h-5 w-5" />
-              </Button>
+      <div className="flex flex-col h-full bg-gradient-to-b from-sky-50 via-cyan-50/30 to-background dark:from-slate-900 dark:via-slate-900 dark:to-background">
+        <header className="px-4 pt-4 pb-3">
+          <div className="flex items-center justify-between gap-2 mb-1">
+            <div className="flex items-center gap-2">
+              <Waves className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+              <h1 className="text-xl font-bold text-foreground">Surf Forecast</h1>
+            </div>
+            <div className="text-xs text-muted-foreground font-medium">
+              {format(today, 'EEEE, MMM d')}
             </div>
           </div>
-
-          {/* Horizontal Date Header */}
-          <div className="flex justify-between px-2">
-            {dates.map((date, i) => (
-              <div key={i} className="flex flex-col items-center gap-1">
-                <span className="text-[10px] uppercase font-bold text-muted-foreground/60">
-                  {format(date, 'eee')}
-                </span>
-                <span className="text-sm font-bold">
-                  {format(date, 'd')}
-                </span>
-              </div>
-            ))}
-          </div>
+          <p className="text-sm text-muted-foreground">Live conditions for San Diego County</p>
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 pb-24 space-y-4">
+        <main className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
           {allLocations?.map((location) => {
             const isFav = favorites?.some(f => f.id === location.id);
+            const todayReport = location.reports?.[0];
+            const nextDays = location.reports?.slice(1, 5) || [];
+            
             return (
-              <Card 
+              <div 
                 key={location.id}
                 onClick={() => setSelectedLocation(location)}
-                className="p-5 rounded-[20px] bg-white dark:bg-card border-none shadow-sm hover:shadow-md transition-shadow cursor-pointer relative group"
+                className="rounded-2xl overflow-hidden cursor-pointer group"
               >
-                <div className="flex justify-between items-start mb-6">
-                  <h3 className="text-lg font-bold tracking-tight text-[#333] dark:text-foreground">
-                    {location.name}, {location.region}
-                  </h3>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className={cn("h-8 w-8 rounded-full", isFav && "text-yellow-500")}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleFavorite(location.id);
-                    }}
-                  >
-                    <Star className={cn("h-4 w-4", isFav && "fill-current")} />
-                  </Button>
-                </div>
-
-                <div className="grid grid-cols-6 gap-2">
-                  {location.reports?.slice(0, 6).map((report, idx) => (
-                    <div key={idx} className="flex flex-col items-center gap-3">
-                      <span className="text-xs font-bold text-[#333] dark:text-foreground">
-                        {report.waveHeightMin}-{report.waveHeightMax ?? 0}{report.waveHeightMax && report.waveHeightMax > 3 ? "+" : ""}
+                {/* Main spot card with gradient based on conditions */}
+                <div className={cn(
+                  "p-4 relative",
+                  todayReport?.rating === 'epic' ? "bg-gradient-to-r from-violet-500 to-purple-600" :
+                  todayReport?.rating === 'good' ? "bg-gradient-to-r from-emerald-500 to-teal-600" :
+                  todayReport?.rating === 'fair' ? "bg-gradient-to-r from-cyan-500 to-sky-600" :
+                  "bg-gradient-to-r from-slate-400 to-slate-500"
+                )}>
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="text-lg font-bold text-white drop-shadow-sm">
+                        {location.name}
+                      </h3>
+                      <p className="text-white/80 text-xs">{location.region}</p>
+                    </div>
+                    <Button 
+                      size="icon" 
+                      variant="ghost" 
+                      className={cn("h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 text-white", isFav && "text-yellow-300")}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        toggleFavorite(location.id);
+                      }}
+                    >
+                      <Star className={cn("h-4 w-4", isFav && "fill-current")} />
+                    </Button>
+                  </div>
+                  
+                  {/* Today's conditions - big and bold */}
+                  <div className="flex items-end justify-between">
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-4xl font-black text-white drop-shadow-md">
+                        {todayReport?.waveHeightMin || 0}-{todayReport?.waveHeightMax || 0}
                       </span>
-                      <div className="flex gap-0.5 w-full">
-                        <div className={cn("h-1 flex-1 rounded-full", 
-                          report.rating === 'epic' ? "bg-purple-500" :
-                          report.rating === 'good' ? "bg-emerald-500" :
-                          "bg-sky-400"
-                        )} />
-                        <div className={cn("h-1 flex-1 rounded-full", 
-                          report.rating === 'epic' ? "bg-purple-500" :
-                          report.rating === 'good' ? "bg-emerald-500" :
-                          "bg-sky-400"
-                        )} />
-                        <div className={cn("h-1 flex-1 rounded-full", 
-                          report.rating === 'epic' ? "bg-purple-500" :
-                          report.rating === 'good' ? "bg-emerald-500" :
-                          "bg-sky-400 opacity-30"
-                        )} />
-                      </div>
+                      <span className="text-lg font-bold text-white/90">ft</span>
+                    </div>
+                    <div className="text-right">
+                      <span className={cn(
+                        "inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide",
+                        "bg-white/25 text-white backdrop-blur-sm"
+                      )}>
+                        {todayReport?.rating || 'fair'}
+                      </span>
+                      <p className="text-white/70 text-[10px] mt-1 flex items-center justify-end gap-1">
+                        <Compass className="h-3 w-3" />
+                        {todayReport?.windDirection || 'SW'} swell
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* 4-day mini forecast strip */}
+                <div className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3 flex justify-between gap-2">
+                  {nextDays.map((report, idx) => (
+                    <div key={idx} className="flex-1 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase font-medium mb-1">
+                        {format(addDays(today, idx + 1), 'EEE')}
+                      </p>
+                      <WaveIcon height={report.waveHeightMax || 2} rating={report.rating || 'fair'} />
+                      <p className="text-xs font-bold text-foreground mt-1">
+                        {report.waveHeightMin}-{report.waveHeightMax}
+                      </p>
                     </div>
                   ))}
                 </div>
-              </Card>
+              </div>
             );
           })}
         </main>

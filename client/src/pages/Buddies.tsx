@@ -55,20 +55,21 @@ export default function Buddies() {
   const handleSwipe = (direction: 'left' | 'right') => {
     if (!currentProfile) return;
     
+    // Advance to next profile immediately for smooth UX
+    setTimeout(() => {
+      setCurrentIndex(prev => prev + 1);
+      controls.set({ x: 0, opacity: 1, rotate: 0 });
+    }, 200);
+    
+    // Record swipe in background (non-blocking)
     swipe({ swipedId: currentProfile.userId, direction }, {
       onError: (err) => {
         if (err.message === 'LIMIT_REACHED') {
           setShowPremium(true);
-          // Reset card position since swipe failed
+          // Go back to previous profile since limit reached
+          setCurrentIndex(prev => Math.max(0, prev - 1));
           controls.set({ x: 0, opacity: 1, rotate: 0 });
         }
-      },
-      onSuccess: () => {
-        // Wait for animation to finish visually before changing index
-        setTimeout(() => {
-          setCurrentIndex(prev => prev + 1);
-          controls.set({ x: 0, opacity: 1, rotate: 0 });
-        }, 200);
       }
     });
   };

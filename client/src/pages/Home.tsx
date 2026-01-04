@@ -33,7 +33,7 @@ export default function Home() {
         {posts?.map((post) => (
           <Card key={post.id} className="overflow-hidden border-none shadow-lg">
             <div className="relative aspect-square bg-muted">
-              <SafeImage 
+              <img 
                 src={post.imageUrl} 
                 alt="Surf session" 
                 className="w-full h-full object-cover"

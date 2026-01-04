@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
 import { ImageOff } from "lucide-react";
 
@@ -13,18 +13,14 @@ export function SafeImage({ src, alt, className, fallbackClassName }: SafeImageP
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  const handleError = () => {
-    setHasError(true);
-    setIsLoading(false);
-  };
-
-  const handleLoad = () => {
-    setIsLoading(false);
-  };
-
   const normalizedSrc = src?.startsWith('/objects') || src?.startsWith('objects') 
     ? (src.startsWith('/') ? src : `/${src}`)
     : src;
+
+  useEffect(() => {
+    setHasError(false);
+    setIsLoading(true);
+  }, [normalizedSrc]);
 
   if (hasError || !normalizedSrc) {
     return (
@@ -41,16 +37,19 @@ export function SafeImage({ src, alt, className, fallbackClassName }: SafeImageP
     <>
       {isLoading && (
         <div className={cn(
-          "absolute inset-0 bg-muted animate-pulse",
+          "absolute inset-0 bg-muted animate-pulse z-0",
           className
         )} />
       )}
       <img
         src={normalizedSrc}
         alt={alt}
-        className={cn(className, isLoading && "opacity-0")}
-        onError={handleError}
-        onLoad={handleLoad}
+        className={cn(className, isLoading && "opacity-0", "relative z-10")}
+        onError={() => {
+          setHasError(true);
+          setIsLoading(false);
+        }}
+        onLoad={() => setIsLoading(false)}
       />
     </>
   );

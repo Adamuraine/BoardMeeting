@@ -17,7 +17,7 @@ export function useMyProfile() {
 export function useUpdateProfile() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: UpdateProfileRequest) => {
+    mutationFn: async (data: Record<string, unknown>) => {
       const validated = api.profiles.update.input.parse(data);
       const res = await fetch(api.profiles.update.path, {
         method: api.profiles.update.method,

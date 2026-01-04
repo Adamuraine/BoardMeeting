@@ -8,13 +8,31 @@ import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
 
 export default function Buddies() {
-  const { data: profiles, isLoading } = useProfiles();
+  const { data: profiles, isLoading, error } = useProfiles();
   const { mutate: swipe } = useSwipe();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
   const controls = useAnimation();
 
   if (isLoading) return <BuddiesSkeleton />;
+  if (error) {
+    return (
+      <Layout>
+        <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+          <div className="w-24 h-24 bg-red-100 dark:bg-red-900/20 rounded-full flex items-center justify-center mb-6">
+            <X className="w-12 h-12 text-red-500" />
+          </div>
+          <h2 className="text-2xl font-bold font-display mb-2">Oops!</h2>
+          <p className="text-muted-foreground mb-8">
+            Failed to load surfers. Please try again.
+          </p>
+          <button onClick={() => window.location.reload()} className="text-primary font-medium hover:underline">
+            Refresh
+          </button>
+        </div>
+      </Layout>
+    );
+  }
   if (!profiles || profiles.length === 0) return <NoBuddies />;
 
   // Filter out profiles already swiped locally (naive approach for MVP)

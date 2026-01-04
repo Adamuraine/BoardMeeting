@@ -16,46 +16,100 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PostWithUser } from "@shared/schema";
 
-// Worldwide surf spots database
-const WORLDWIDE_SPOTS = [
-  // California
-  { name: "Pipeline", region: "Oahu, Hawaii", lat: 21.6650, lng: -158.0539, country: "USA" },
-  { name: "Mavericks", region: "Half Moon Bay, CA", lat: 37.4950, lng: -122.4960, country: "USA" },
-  { name: "Rincon", region: "Santa Barbara, CA", lat: 34.3736, lng: -119.4765, country: "USA" },
-  { name: "Steamer Lane", region: "Santa Cruz, CA", lat: 36.9514, lng: -122.0264, country: "USA" },
-  { name: "Huntington Pier", region: "Huntington Beach, CA", lat: 33.6556, lng: -117.9993, country: "USA" },
-  // Australia
-  { name: "Snapper Rocks", region: "Gold Coast", lat: -28.1658, lng: 153.5500, country: "Australia" },
-  { name: "Bells Beach", region: "Victoria", lat: -38.3686, lng: 144.2811, country: "Australia" },
-  { name: "Margaret River", region: "Western Australia", lat: -33.9556, lng: 114.9931, country: "Australia" },
-  // Indonesia
-  { name: "Uluwatu", region: "Bali", lat: -8.8291, lng: 115.0849, country: "Indonesia" },
-  { name: "Padang Padang", region: "Bali", lat: -8.8150, lng: 115.1019, country: "Indonesia" },
-  { name: "G-Land", region: "Java", lat: -8.4214, lng: 114.3542, country: "Indonesia" },
-  // Portugal
-  { name: "Nazare", region: "Leiria", lat: 39.6017, lng: -9.0714, country: "Portugal" },
-  { name: "Peniche", region: "Leiria", lat: 39.3558, lng: -9.3808, country: "Portugal" },
-  { name: "Ericeira", region: "Lisbon", lat: 38.9631, lng: -9.4194, country: "Portugal" },
-  // France
-  { name: "Hossegor", region: "Landes", lat: 43.6667, lng: -1.4000, country: "France" },
-  { name: "Lacanau", region: "Gironde", lat: 45.0000, lng: -1.2000, country: "France" },
-  // South Africa
-  { name: "Jeffreys Bay", region: "Eastern Cape", lat: -34.0500, lng: 24.9333, country: "South Africa" },
-  // Fiji
-  { name: "Cloudbreak", region: "Tavarua", lat: -17.8667, lng: 177.1833, country: "Fiji" },
-  // Tahiti
-  { name: "Teahupoo", region: "Tahiti", lat: -17.8500, lng: -149.2667, country: "French Polynesia" },
-  // Costa Rica
-  { name: "Playa Hermosa", region: "Puntarenas", lat: 9.5556, lng: -84.5806, country: "Costa Rica" },
-  { name: "Witch's Rock", region: "Guanacaste", lat: 10.9167, lng: -85.7833, country: "Costa Rica" },
-  // Mexico
-  { name: "Puerto Escondido", region: "Oaxaca", lat: 15.8611, lng: -97.0667, country: "Mexico" },
-  // Morocco
-  { name: "Taghazout", region: "Agadir", lat: 30.5456, lng: -9.7089, country: "Morocco" },
-  // Japan
-  { name: "Shonan", region: "Kanagawa", lat: 35.3167, lng: 139.4833, country: "Japan" },
-  // Brazil
-  { name: "Florianopolis", region: "Santa Catarina", lat: -27.5954, lng: -48.5480, country: "Brazil" },
+// Worldwide surf spots database with hierarchical location data
+type SurfSpot = {
+  name: string;
+  continent: string;
+  country: string;
+  state: string;
+  area: string;
+  lat: number;
+  lng: number;
+};
+
+const WORLDWIDE_SPOTS: SurfSpot[] = [
+  // North America - USA - California
+  { name: "Mavericks", continent: "North America", country: "USA", state: "California", area: "Half Moon Bay", lat: 37.4950, lng: -122.4960 },
+  { name: "Steamer Lane", continent: "North America", country: "USA", state: "California", area: "Santa Cruz", lat: 36.9514, lng: -122.0264 },
+  { name: "Rincon", continent: "North America", country: "USA", state: "California", area: "Santa Barbara County", lat: 34.3736, lng: -119.4765 },
+  { name: "Huntington Pier", continent: "North America", country: "USA", state: "California", area: "Huntington Beach", lat: 33.6556, lng: -117.9993 },
+  { name: "Trestles", continent: "North America", country: "USA", state: "California", area: "San Clemente", lat: 33.3825, lng: -117.5889 },
+  { name: "Oceanside Pier", continent: "North America", country: "USA", state: "California", area: "Oceanside", lat: 33.1936, lng: -117.3831 },
+  { name: "Black's Beach", continent: "North America", country: "USA", state: "California", area: "La Jolla", lat: 32.8894, lng: -117.2528 },
+  { name: "Swami's", continent: "North America", country: "USA", state: "California", area: "Encinitas", lat: 33.0347, lng: -117.2931 },
+  // North America - USA - Hawaii
+  { name: "Pipeline", continent: "North America", country: "USA", state: "Hawaii", area: "North Shore, Oahu", lat: 21.6650, lng: -158.0539 },
+  { name: "Sunset Beach", continent: "North America", country: "USA", state: "Hawaii", area: "North Shore, Oahu", lat: 21.6781, lng: -158.0417 },
+  { name: "Waimea Bay", continent: "North America", country: "USA", state: "Hawaii", area: "North Shore, Oahu", lat: 21.6417, lng: -158.0656 },
+  { name: "Jaws (Peahi)", continent: "North America", country: "USA", state: "Hawaii", area: "Maui", lat: 20.9425, lng: -156.2997 },
+  // North America - USA - East Coast
+  { name: "Cape Hatteras", continent: "North America", country: "USA", state: "North Carolina", area: "Outer Banks", lat: 35.2236, lng: -75.5347 },
+  { name: "Sebastian Inlet", continent: "North America", country: "USA", state: "Florida", area: "Melbourne Beach", lat: 27.8583, lng: -80.4481 },
+  { name: "Montauk", continent: "North America", country: "USA", state: "New York", area: "Long Island", lat: 41.0361, lng: -71.9431 },
+  // North America - Mexico
+  { name: "Puerto Escondido", continent: "North America", country: "Mexico", state: "Oaxaca", area: "Playa Zicatela", lat: 15.8611, lng: -97.0667 },
+  { name: "Todos Santos", continent: "North America", country: "Mexico", state: "Baja California", area: "Ensenada", lat: 31.8167, lng: -116.8000 },
+  { name: "Sayulita", continent: "North America", country: "Mexico", state: "Nayarit", area: "Riviera Nayarit", lat: 20.8692, lng: -105.4361 },
+  // Central America - Costa Rica
+  { name: "Playa Hermosa", continent: "Central America", country: "Costa Rica", state: "Puntarenas", area: "Jaco", lat: 9.5556, lng: -84.5806 },
+  { name: "Witch's Rock", continent: "Central America", country: "Costa Rica", state: "Guanacaste", area: "Santa Rosa", lat: 10.9167, lng: -85.7833 },
+  { name: "Pavones", continent: "Central America", country: "Costa Rica", state: "Puntarenas", area: "Golfo Dulce", lat: 8.3833, lng: -83.1500 },
+  // Central America - Nicaragua
+  { name: "Popoyo", continent: "Central America", country: "Nicaragua", state: "Rivas", area: "Tola", lat: 11.4833, lng: -85.8833 },
+  // Central America - Panama
+  { name: "Santa Catalina", continent: "Central America", country: "Panama", state: "Veraguas", area: "Sona", lat: 7.6333, lng: -81.2500 },
+  // South America - Brazil
+  { name: "Florianopolis", continent: "South America", country: "Brazil", state: "Santa Catarina", area: "Joaquina Beach", lat: -27.5954, lng: -48.5480 },
+  { name: "Itacare", continent: "South America", country: "Brazil", state: "Bahia", area: "Costa do Cacau", lat: -14.2833, lng: -38.9833 },
+  // South America - Peru
+  { name: "Chicama", continent: "South America", country: "Peru", state: "La Libertad", area: "Puerto Malabrigo", lat: -7.7000, lng: -79.4500 },
+  { name: "Punta Rocas", continent: "South America", country: "Peru", state: "Lima", area: "Punta Negra", lat: -12.3667, lng: -76.8167 },
+  // South America - Chile
+  { name: "Punta de Lobos", continent: "South America", country: "Chile", state: "O'Higgins", area: "Pichilemu", lat: -34.4333, lng: -72.0500 },
+  // Europe - Portugal
+  { name: "Nazare", continent: "Europe", country: "Portugal", state: "Leiria", area: "Praia do Norte", lat: 39.6017, lng: -9.0714 },
+  { name: "Peniche", continent: "Europe", country: "Portugal", state: "Leiria", area: "Supertubos", lat: 39.3558, lng: -9.3808 },
+  { name: "Ericeira", continent: "Europe", country: "Portugal", state: "Lisbon", area: "Ribeira d'Ilhas", lat: 38.9631, lng: -9.4194 },
+  // Europe - France
+  { name: "Hossegor", continent: "Europe", country: "France", state: "Landes", area: "La Graviere", lat: 43.6667, lng: -1.4000 },
+  { name: "Lacanau", continent: "Europe", country: "France", state: "Gironde", area: "Lacanau-Ocean", lat: 45.0000, lng: -1.2000 },
+  { name: "Biarritz", continent: "Europe", country: "France", state: "Pyrenees-Atlantiques", area: "Grande Plage", lat: 43.4833, lng: -1.5583 },
+  // Europe - Spain
+  { name: "Mundaka", continent: "Europe", country: "Spain", state: "Basque Country", area: "Urdaibai", lat: 43.4078, lng: -2.6981 },
+  { name: "Zarautz", continent: "Europe", country: "Spain", state: "Basque Country", area: "Gipuzkoa", lat: 43.2833, lng: -2.1667 },
+  // Europe - UK & Ireland
+  { name: "Bundoran", continent: "Europe", country: "Ireland", state: "Donegal", area: "The Peak", lat: 54.4833, lng: -8.2833 },
+  { name: "Newquay", continent: "Europe", country: "UK", state: "Cornwall", area: "Fistral Beach", lat: 50.4167, lng: -5.1000 },
+  // Africa - Morocco
+  { name: "Taghazout", continent: "Africa", country: "Morocco", state: "Agadir-Ida-Ou-Tanane", area: "Anchor Point", lat: 30.5456, lng: -9.7089 },
+  { name: "Imsouane", continent: "Africa", country: "Morocco", state: "Agadir-Ida-Ou-Tanane", area: "Cathedral", lat: 30.8500, lng: -9.8167 },
+  // Africa - South Africa
+  { name: "Jeffreys Bay", continent: "Africa", country: "South Africa", state: "Eastern Cape", area: "Supertubes", lat: -34.0500, lng: 24.9333 },
+  { name: "Durban", continent: "Africa", country: "South Africa", state: "KwaZulu-Natal", area: "North Beach", lat: -29.8500, lng: 31.0333 },
+  // Asia - Indonesia
+  { name: "Uluwatu", continent: "Asia", country: "Indonesia", state: "Bali", area: "Bukit Peninsula", lat: -8.8291, lng: 115.0849 },
+  { name: "Padang Padang", continent: "Asia", country: "Indonesia", state: "Bali", area: "Bukit Peninsula", lat: -8.8150, lng: 115.1019 },
+  { name: "G-Land", continent: "Asia", country: "Indonesia", state: "Java", area: "Plengkung", lat: -8.4214, lng: 114.3542 },
+  { name: "Desert Point", continent: "Asia", country: "Indonesia", state: "Lombok", area: "Bangko-Bangko", lat: -8.7500, lng: 115.8500 },
+  // Asia - Japan
+  { name: "Shonan", continent: "Asia", country: "Japan", state: "Kanagawa", area: "Kamakura", lat: 35.3167, lng: 139.4833 },
+  { name: "Chiba", continent: "Asia", country: "Japan", state: "Chiba", area: "Ichinomiya", lat: 35.3833, lng: 140.3833 },
+  // Asia - Philippines
+  { name: "Siargao", continent: "Asia", country: "Philippines", state: "Surigao del Norte", area: "Cloud 9", lat: 9.8500, lng: 126.1500 },
+  // Asia - Maldives
+  { name: "Pasta Point", continent: "Asia", country: "Maldives", state: "North Male Atoll", area: "Thulusdhoo", lat: 4.3833, lng: 73.6333 },
+  // Oceania - Australia
+  { name: "Snapper Rocks", continent: "Oceania", country: "Australia", state: "Queensland", area: "Gold Coast", lat: -28.1658, lng: 153.5500 },
+  { name: "Bells Beach", continent: "Oceania", country: "Australia", state: "Victoria", area: "Torquay", lat: -38.3686, lng: 144.2811 },
+  { name: "Margaret River", continent: "Oceania", country: "Australia", state: "Western Australia", area: "Main Break", lat: -33.9556, lng: 114.9931 },
+  { name: "Noosa Heads", continent: "Oceania", country: "Australia", state: "Queensland", area: "Sunshine Coast", lat: -26.3833, lng: 153.0833 },
+  // Oceania - Fiji
+  { name: "Cloudbreak", continent: "Oceania", country: "Fiji", state: "Western Division", area: "Tavarua", lat: -17.8667, lng: 177.1833 },
+  { name: "Restaurants", continent: "Oceania", country: "Fiji", state: "Western Division", area: "Tavarua", lat: -17.8500, lng: 177.2000 },
+  // Oceania - French Polynesia
+  { name: "Teahupoo", continent: "Oceania", country: "French Polynesia", state: "Tahiti", area: "Teahupoo Village", lat: -17.8500, lng: -149.2667 },
+  // Oceania - New Zealand
+  { name: "Raglan", continent: "Oceania", country: "New Zealand", state: "Waikato", area: "Manu Bay", lat: -37.8000, lng: 174.8667 },
 ];
 
 function WaveIcon({ height, rating }: { height: number; rating: string }) {
@@ -121,11 +175,11 @@ async function fetchSurfData(lat: number, lng: number) {
 }
 
 function SpotCard({ spot, onRemove, allSpots }: { 
-  spot: typeof WORLDWIDE_SPOTS[0]; 
+  spot: SurfSpot; 
   onRemove: () => void;
-  allSpots: typeof WORLDWIDE_SPOTS;
+  allSpots: SurfSpot[];
 }) {
-  const [selectedSpot, setSelectedSpot] = useState(spot);
+  const [selectedSpot, setSelectedSpot] = useState<SurfSpot>(spot);
   const [showSpotSelector, setShowSpotSelector] = useState(false);
   const today = new Date();
   
@@ -205,7 +259,7 @@ function SpotCard({ spot, onRemove, allSpots }: {
                 >
                   <div>
                     <p className="font-medium">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">{s.region}</p>
+                    <p className="text-xs text-muted-foreground">{s.area}, {s.state}</p>
                   </div>
                   {selectedSpot.name === s.name && <Check className="h-4 w-4" />}
                 </button>
@@ -228,7 +282,7 @@ function SpotCard({ spot, onRemove, allSpots }: {
             <h3 className="text-lg font-bold text-white drop-shadow-sm">
               {selectedSpot.name}
             </h3>
-            <p className="text-white/80 text-xs">{selectedSpot.region}, {selectedSpot.country}</p>
+            <p className="text-white/80 text-xs">{selectedSpot.area}, {selectedSpot.state}, {selectedSpot.country}</p>
           </div>
         </div>
         
@@ -273,31 +327,205 @@ function SpotCard({ spot, onRemove, allSpots }: {
   );
 }
 
+// Hierarchical spot picker component
+function SpotPicker({ 
+  addedSpots, 
+  onToggleSpot 
+}: { 
+  addedSpots: string[]; 
+  onToggleSpot: (spotName: string) => void;
+}) {
+  const [selectedContinent, setSelectedContinent] = useState<string | null>(null);
+  const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
+  const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  
+  // Get unique continents
+  const continents = Array.from(new Set(WORLDWIDE_SPOTS.map(s => s.continent)));
+  
+  // Get countries for selected continent
+  const countries = selectedContinent 
+    ? Array.from(new Set(WORLDWIDE_SPOTS.filter(s => s.continent === selectedContinent).map(s => s.country)))
+    : [];
+    
+  // Get states for selected country
+  const states = selectedCountry
+    ? Array.from(new Set(WORLDWIDE_SPOTS.filter(s => s.country === selectedCountry).map(s => s.state)))
+    : [];
+    
+  // Get spots for selected state
+  const spots = selectedState
+    ? WORLDWIDE_SPOTS.filter(s => s.state === selectedState)
+    : [];
+    
+  // Search results
+  const searchResults = searchQuery.length >= 2
+    ? WORLDWIDE_SPOTS.filter(s => 
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.area.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.state.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.country.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : [];
+  
+  const goBack = () => {
+    if (selectedState) {
+      setSelectedState(null);
+    } else if (selectedCountry) {
+      setSelectedCountry(null);
+    } else if (selectedContinent) {
+      setSelectedContinent(null);
+    }
+  };
+  
+  const currentLevel = selectedState ? 'spots' : selectedCountry ? 'states' : selectedContinent ? 'countries' : 'continents';
+  const breadcrumb = [
+    selectedContinent,
+    selectedCountry,
+    selectedState
+  ].filter(Boolean).join(' / ');
+
+  return (
+    <>
+      <div className="p-3 border-b">
+        <input
+          type="text"
+          placeholder="Search spots, regions, countries..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          className="w-full px-3 py-2 text-sm rounded-lg bg-secondary/50 border-0 focus:ring-2 focus:ring-primary/20 outline-none"
+          data-testid="input-search-spots"
+        />
+      </div>
+      
+      {searchQuery.length >= 2 ? (
+        <ScrollArea className="h-[300px]">
+          <div className="p-2">
+            {searchResults.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-4">No spots found</p>
+            ) : (
+              searchResults.map((spot) => {
+                const isAdded = addedSpots.includes(spot.name);
+                return (
+                  <button
+                    key={spot.name}
+                    onClick={() => onToggleSpot(spot.name)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
+                      isAdded ? "bg-primary/10 text-primary" : "hover:bg-secondary/80"
+                    )}
+                  >
+                    <div>
+                      <p className="font-medium">{spot.name}</p>
+                      <p className="text-xs text-muted-foreground">{spot.area}, {spot.state}, {spot.country}</p>
+                    </div>
+                    {isAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4 text-muted-foreground" />}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        </ScrollArea>
+      ) : (
+        <>
+          {breadcrumb && (
+            <div className="px-3 py-2 border-b flex items-center gap-2">
+              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={goBack}>
+                <ChevronDown className="h-4 w-4 rotate-90" />
+              </Button>
+              <span className="text-xs text-muted-foreground truncate">{breadcrumb}</span>
+            </div>
+          )}
+          
+          <ScrollArea className="h-[260px]">
+            <div className="p-2">
+              {currentLevel === 'continents' && continents.map(continent => (
+                <button
+                  key={continent}
+                  onClick={() => setSelectedContinent(continent)}
+                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg text-left text-sm hover:bg-secondary/80 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <Globe className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">{continent}</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
+                </button>
+              ))}
+              
+              {currentLevel === 'countries' && countries.map(country => (
+                <button
+                  key={country}
+                  onClick={() => setSelectedCountry(country)}
+                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg text-left text-sm hover:bg-secondary/80 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-5 w-5 text-muted-foreground" />
+                    <span className="font-medium">{country}</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
+                </button>
+              ))}
+              
+              {currentLevel === 'states' && states.map(state => (
+                <button
+                  key={state}
+                  onClick={() => setSelectedState(state)}
+                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg text-left text-sm hover:bg-secondary/80 transition-colors"
+                >
+                  <div className="flex items-center gap-3">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span className="font-medium">{state}</span>
+                  </div>
+                  <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
+                </button>
+              ))}
+              
+              {currentLevel === 'spots' && spots.map(spot => {
+                const isAdded = addedSpots.includes(spot.name);
+                return (
+                  <button
+                    key={spot.name}
+                    onClick={() => onToggleSpot(spot.name)}
+                    className={cn(
+                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
+                      isAdded ? "bg-primary/10 text-primary" : "hover:bg-secondary/80"
+                    )}
+                    data-testid={`button-spot-${spot.name.toLowerCase().replace(/\s/g, '-')}`}
+                  >
+                    <div>
+                      <p className="font-medium">{spot.name}</p>
+                      <p className="text-xs text-muted-foreground">{spot.area}</p>
+                    </div>
+                    {isAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4 text-muted-foreground" />}
+                  </button>
+                );
+              })}
+            </div>
+          </ScrollArea>
+        </>
+      )}
+    </>
+  );
+}
+
 export default function SurfReports() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [showAddSpots, setShowAddSpots] = useState(false);
   const [addedSpots, setAddedSpots] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState("");
 
   const today = new Date();
-  
-  // Group worldwide spots by country
-  const spotsByCountry = WORLDWIDE_SPOTS.reduce((acc, spot) => {
-    if (!acc[spot.country]) acc[spot.country] = [];
-    acc[spot.country].push(spot);
-    return acc;
-  }, {} as Record<string, typeof WORLDWIDE_SPOTS>);
-  
-  const filteredSpots = searchQuery 
-    ? WORLDWIDE_SPOTS.filter(s => 
-        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        s.country.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : WORLDWIDE_SPOTS;
     
   // Get the actual spot objects for added spots
-  const userSpots = addedSpots.map(name => WORLDWIDE_SPOTS.find(s => s.name === name)).filter(Boolean) as typeof WORLDWIDE_SPOTS;
+  const userSpots = addedSpots.map(name => WORLDWIDE_SPOTS.find(s => s.name === name)).filter(Boolean) as SurfSpot[];
+  
+  const toggleSpot = (spotName: string) => {
+    if (addedSpots.includes(spotName)) {
+      setAddedSpots(prev => prev.filter(s => s !== spotName));
+    } else {
+      setAddedSpots(prev => [...prev, spotName]);
+    }
+  };
 
   return (
     <Layout>
@@ -322,66 +550,7 @@ export default function SurfReports() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="end">
-                <div className="p-3 border-b">
-                  <input
-                    type="text"
-                    placeholder="Search worldwide spots..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full px-3 py-2 text-sm rounded-lg bg-secondary/50 border-0 focus:ring-2 focus:ring-primary/20 outline-none"
-                    data-testid="input-search-spots"
-                  />
-                </div>
-                <ScrollArea className="h-[300px]">
-                  <div className="p-2">
-                    {Object.entries(spotsByCountry).map(([country, spots]) => {
-                      const countrySpots = spots.filter(s => 
-                        !searchQuery || filteredSpots.includes(s)
-                      );
-                      if (countrySpots.length === 0) return null;
-                      
-                      return (
-                        <div key={country} className="mb-3">
-                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 mb-1">
-                            {country}
-                          </p>
-                          {countrySpots.map((spot) => {
-                            const isAdded = addedSpots.includes(spot.name);
-                            return (
-                              <button
-                                key={spot.name}
-                                onClick={() => {
-                                  if (isAdded) {
-                                    setAddedSpots(prev => prev.filter(s => s !== spot.name));
-                                  } else {
-                                    setAddedSpots(prev => [...prev, spot.name]);
-                                  }
-                                }}
-                                className={cn(
-                                  "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
-                                  isAdded 
-                                    ? "bg-primary/10 text-primary" 
-                                    : "hover:bg-secondary/80"
-                                )}
-                                data-testid={`button-spot-${spot.name.toLowerCase().replace(/\s/g, '-')}`}
-                              >
-                                <div>
-                                  <p className="font-medium">{spot.name}</p>
-                                  <p className="text-xs text-muted-foreground">{spot.region}</p>
-                                </div>
-                                {isAdded ? (
-                                  <Check className="h-4 w-4 text-primary" />
-                                ) : (
-                                  <Plus className="h-4 w-4 text-muted-foreground" />
-                                )}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      );
-                    })}
-                  </div>
-                </ScrollArea>
+                <SpotPicker addedSpots={addedSpots} onToggleSpot={toggleSpot} />
               </PopoverContent>
             </Popover>
           </div>

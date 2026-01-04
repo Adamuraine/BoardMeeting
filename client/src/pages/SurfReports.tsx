@@ -331,7 +331,7 @@ function SpotCard({ spot, onRemove, onAddSpot, allSpots }: {
   );
 }
 
-// Hierarchical spot picker component
+// Hierarchical spot picker component - 5 levels like Surfline
 function SpotPicker({ 
   addedSpots, 
   onToggleSpot,
@@ -344,6 +344,7 @@ function SpotPicker({
   const [selectedContinent, setSelectedContinent] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
   const [selectedState, setSelectedState] = useState<string | null>(null);
+  const [selectedArea, setSelectedArea] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   
   // Get unique continents
@@ -358,10 +359,15 @@ function SpotPicker({
   const states = selectedCountry
     ? Array.from(new Set(WORLDWIDE_SPOTS.filter(s => s.country === selectedCountry).map(s => s.state)))
     : [];
+  
+  // Get areas for selected state
+  const areas = selectedState
+    ? Array.from(new Set(WORLDWIDE_SPOTS.filter(s => s.state === selectedState).map(s => s.area)))
+    : [];
     
-  // Get spots for selected state
-  const spots = selectedState
-    ? WORLDWIDE_SPOTS.filter(s => s.state === selectedState)
+  // Get spots for selected area
+  const spots = selectedArea
+    ? WORLDWIDE_SPOTS.filter(s => s.area === selectedArea)
     : [];
     
   // Search results
@@ -375,7 +381,9 @@ function SpotPicker({
     : [];
   
   const goBack = () => {
-    if (selectedState) {
+    if (selectedArea) {
+      setSelectedArea(null);
+    } else if (selectedState) {
       setSelectedState(null);
     } else if (selectedCountry) {
       setSelectedCountry(null);
@@ -384,31 +392,87 @@ function SpotPicker({
     }
   };
   
-  const currentLevel = selectedState ? 'spots' : selectedCountry ? 'states' : selectedContinent ? 'countries' : 'continents';
-  const breadcrumb = [
-    selectedContinent,
-    selectedCountry,
-    selectedState
-  ].filter(Boolean).join(' / ');
+  const currentLevel = selectedArea ? 'spots' : selectedState ? 'areas' : selectedCountry ? 'states' : selectedContinent ? 'countries' : 'continents';
+  
+  // Step labels for visual hierarchy
+  const stepLabels: Record<string, string> = {
+    continents: 'Select Region',
+    countries: 'Select Country',
+    states: 'Select State/Province',
+    areas: 'Select City/Area',
+    spots: 'Select Spot'
+  };
 
   return (
-    <>
-      <div className="p-3 border-b">
-        <input
-          type="text"
-          placeholder="Search spots, regions, countries..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full px-3 py-2 text-sm rounded-lg bg-secondary/50 border-0 focus:ring-2 focus:ring-primary/20 outline-none"
-          data-testid="input-search-spots"
-        />
+    <div className="bg-card">
+      {/* Header with step indicator */}
+      <div className="bg-primary/5 dark:bg-primary/10 px-4 py-3 border-b">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-semibold text-foreground text-sm">Add Surf Spot</h3>
+          {selectedContinent && (
+            <Button 
+              size="sm" 
+              variant="ghost" 
+              className="h-7 text-xs gap-1"
+              onClick={goBack}
+            >
+              <ChevronDown className="h-3 w-3 rotate-90" />
+              Back
+            </Button>
+          )}
+        </div>
+        
+        {/* Progress steps */}
+        <div className="flex items-center gap-1">
+          {['continents', 'countries', 'states', 'areas', 'spots'].map((step, idx) => {
+            const stepOrder = ['continents', 'countries', 'states', 'areas', 'spots'];
+            const currentIdx = stepOrder.indexOf(currentLevel);
+            const isActive = idx === currentIdx;
+            const isCompleted = idx < currentIdx;
+            return (
+              <div 
+                key={step}
+                className={cn(
+                  "h-1.5 flex-1 rounded-full transition-colors",
+                  isActive ? "bg-primary" : isCompleted ? "bg-primary/60" : "bg-muted"
+                )}
+              />
+            );
+          })}
+        </div>
+        <p className="text-xs text-muted-foreground mt-2">{stepLabels[currentLevel]}</p>
       </div>
       
+      {/* Search bar */}
+      <div className="p-3 border-b bg-background">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search all spots..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-3 py-2.5 text-sm rounded-lg bg-muted/50 border border-border focus:ring-2 focus:ring-primary/20 focus:border-primary/50 outline-none"
+            data-testid="input-search-spots"
+          />
+        </div>
+      </div>
+      
+      {/* Breadcrumb */}
+      {selectedContinent && !searchQuery && (
+        <div className="px-4 py-2 bg-muted/30 border-b">
+          <p className="text-xs text-muted-foreground truncate flex items-center gap-1">
+            <MapPin className="h-3 w-3" />
+            {[selectedContinent, selectedCountry, selectedState, selectedArea].filter(Boolean).join(' › ')}
+          </p>
+        </div>
+      )}
+      
       {searchQuery.length >= 2 ? (
-        <ScrollArea className="h-[300px]">
+        <ScrollArea className="h-[280px]">
           <div className="p-2">
             {searchResults.length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-4">No spots found</p>
+              <p className="text-sm text-muted-foreground text-center py-8">No spots found</p>
             ) : (
               searchResults.map((spot) => {
                 const isAdded = addedSpots.includes(spot.name);
@@ -420,15 +484,17 @@ function SpotPicker({
                       if (!isAdded) onClose();
                     }}
                     className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
-                      isAdded ? "bg-primary/10 text-primary" : "hover:bg-secondary/80"
+                      "w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-colors border mb-1",
+                      isAdded 
+                        ? "bg-primary/10 border-primary/30 text-primary" 
+                        : "bg-background border-transparent hover:bg-muted/50 hover:border-border"
                     )}
                   >
                     <div>
-                      <p className="font-medium">{spot.name}</p>
+                      <p className="font-semibold text-sm">{spot.name}</p>
                       <p className="text-xs text-muted-foreground">{spot.area}, {spot.state}, {spot.country}</p>
                     </div>
-                    {isAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4 text-muted-foreground" />}
+                    {isAdded ? <Check className="h-5 w-5" /> : <Plus className="h-5 w-5 text-muted-foreground" />}
                   </button>
                 );
               })
@@ -436,88 +502,112 @@ function SpotPicker({
           </div>
         </ScrollArea>
       ) : (
-        <>
-          {breadcrumb && (
-            <div className="px-3 py-2 border-b flex items-center gap-2">
-              <Button size="icon" variant="ghost" className="h-6 w-6" onClick={goBack}>
-                <ChevronDown className="h-4 w-4 rotate-90" />
-              </Button>
-              <span className="text-xs text-muted-foreground truncate">{breadcrumb}</span>
-            </div>
-          )}
-          
-          <ScrollArea className="h-[260px]">
-            <div className="p-2">
-              {currentLevel === 'continents' && continents.map(continent => (
+        <ScrollArea className="h-[280px]">
+          <div className="p-2">
+            {currentLevel === 'continents' && continents.map(continent => (
+              <button
+                key={continent}
+                onClick={() => setSelectedContinent(continent)}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-lg text-left bg-background hover:bg-muted/50 border border-transparent hover:border-border transition-colors mb-1"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-cyan-100 dark:bg-cyan-900/50 flex items-center justify-center">
+                    <Globe className="h-4 w-4 text-cyan-600 dark:text-cyan-400" />
+                  </div>
+                  <span className="font-semibold text-foreground">{continent}</span>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground -rotate-90" />
+              </button>
+            ))}
+            
+            {currentLevel === 'countries' && countries.map(country => (
+              <button
+                key={country}
+                onClick={() => setSelectedCountry(country)}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-lg text-left bg-background hover:bg-muted/50 border border-transparent hover:border-border transition-colors mb-1"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/50 flex items-center justify-center">
+                    <MapPin className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                  </div>
+                  <span className="font-semibold text-foreground">{country}</span>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground -rotate-90" />
+              </button>
+            ))}
+            
+            {currentLevel === 'states' && states.map(state => (
+              <button
+                key={state}
+                onClick={() => setSelectedState(state)}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-lg text-left bg-background hover:bg-muted/50 border border-transparent hover:border-border transition-colors mb-1"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-violet-100 dark:bg-violet-900/50 flex items-center justify-center">
+                    <MapPin className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  </div>
+                  <span className="font-semibold text-foreground">{state}</span>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground -rotate-90" />
+              </button>
+            ))}
+            
+            {currentLevel === 'areas' && areas.map(area => (
+              <button
+                key={area}
+                onClick={() => setSelectedArea(area)}
+                className="w-full flex items-center justify-between px-4 py-3.5 rounded-lg text-left bg-background hover:bg-muted/50 border border-transparent hover:border-border transition-colors mb-1"
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/50 flex items-center justify-center">
+                    <Waves className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                  </div>
+                  <span className="font-semibold text-foreground">{area}</span>
+                </div>
+                <ChevronDown className="h-5 w-5 text-muted-foreground -rotate-90" />
+              </button>
+            ))}
+            
+            {currentLevel === 'spots' && spots.map(spot => {
+              const isAdded = addedSpots.includes(spot.name);
+              return (
                 <button
-                  key={continent}
-                  onClick={() => setSelectedContinent(continent)}
-                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg text-left text-sm hover:bg-secondary/80 transition-colors"
+                  key={spot.name}
+                  onClick={() => {
+                    onToggleSpot(spot.name);
+                    if (!isAdded) onClose();
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between px-4 py-3.5 rounded-lg text-left transition-colors border mb-1",
+                    isAdded 
+                      ? "bg-primary/10 border-primary/30" 
+                      : "bg-background border-transparent hover:bg-muted/50 hover:border-border"
+                  )}
+                  data-testid={`button-spot-${spot.name.toLowerCase().replace(/\s/g, '-')}`}
                 >
                   <div className="flex items-center gap-3">
-                    <Globe className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">{continent}</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
-                </button>
-              ))}
-              
-              {currentLevel === 'countries' && countries.map(country => (
-                <button
-                  key={country}
-                  onClick={() => setSelectedCountry(country)}
-                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg text-left text-sm hover:bg-secondary/80 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-5 w-5 text-muted-foreground" />
-                    <span className="font-medium">{country}</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
-                </button>
-              ))}
-              
-              {currentLevel === 'states' && states.map(state => (
-                <button
-                  key={state}
-                  onClick={() => setSelectedState(state)}
-                  className="w-full flex items-center justify-between px-3 py-3 rounded-lg text-left text-sm hover:bg-secondary/80 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span className="font-medium">{state}</span>
-                  </div>
-                  <ChevronDown className="h-4 w-4 text-muted-foreground -rotate-90" />
-                </button>
-              ))}
-              
-              {currentLevel === 'spots' && spots.map(spot => {
-                const isAdded = addedSpots.includes(spot.name);
-                return (
-                  <button
-                    key={spot.name}
-                    onClick={() => {
-                      onToggleSpot(spot.name);
-                      if (!isAdded) onClose();
-                    }}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
-                      isAdded ? "bg-primary/10 text-primary" : "hover:bg-secondary/80"
-                    )}
-                    data-testid={`button-spot-${spot.name.toLowerCase().replace(/\s/g, '-')}`}
-                  >
+                    <div className={cn(
+                      "w-8 h-8 rounded-full flex items-center justify-center",
+                      isAdded ? "bg-primary/20" : "bg-sky-100 dark:bg-sky-900/50"
+                    )}>
+                      <Waves className={cn(
+                        "h-4 w-4",
+                        isAdded ? "text-primary" : "text-sky-600 dark:text-sky-400"
+                      )} />
+                    </div>
                     <div>
-                      <p className="font-medium">{spot.name}</p>
+                      <p className={cn("font-semibold", isAdded && "text-primary")}>{spot.name}</p>
                       <p className="text-xs text-muted-foreground">{spot.area}</p>
                     </div>
-                    {isAdded ? <Check className="h-4 w-4" /> : <Plus className="h-4 w-4 text-muted-foreground" />}
-                  </button>
-                );
-              })}
-            </div>
-          </ScrollArea>
-        </>
+                  </div>
+                  {isAdded ? <Check className="h-5 w-5 text-primary" /> : <Plus className="h-5 w-5 text-muted-foreground" />}
+                </button>
+              );
+            })}
+          </div>
+        </ScrollArea>
       )}
-    </>
+    </div>
   );
 }
 
@@ -561,7 +651,7 @@ export default function SurfReports() {
                   <ChevronDown className="h-3 w-3" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-80 p-0" align="end">
+              <PopoverContent className="w-[340px] p-0" align="end">
                 <SpotPicker addedSpots={addedSpots} onToggleSpot={toggleSpot} onClose={() => setShowAddSpots(false)} />
               </PopoverContent>
             </Popover>

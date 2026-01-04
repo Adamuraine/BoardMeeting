@@ -5,11 +5,64 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema } from "@shared/schema";
+import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, type SurfReport } from "@shared/schema";
 import { authStorage } from "./replit_integrations/auth"; // Need this for user creation in seed
 import { db } from "./db";
 import { users } from "@shared/models/auth";
 import { eq } from "drizzle-orm";
+
+// Fetch live surf forecast from Open-Meteo Marine API (free, no key required)
+async function fetchLiveSurfForecast(lat: number, lng: number): Promise<Partial<SurfReport>[]> {
+  const url = `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&hourly=wave_height,wave_period,wave_direction&daily=wave_height_max,wave_period_max,wave_direction_dominant&forecast_days=14&timezone=America/Los_Angeles`;
+  
+  const response = await fetch(url);
+  if (!response.ok) {
+    throw new Error(`Open-Meteo API error: ${response.status}`);
+  }
+  
+  const data = await response.json();
+  
+  // Convert meters to feet (1 meter = 3.28 feet)
+  const metersToFeet = (m: number) => Math.round(m * 3.28);
+  
+  // Process daily data into our SurfReport format
+  const reports: Partial<SurfReport>[] = [];
+  
+  if (data.daily?.time) {
+    for (let i = 0; i < data.daily.time.length; i++) {
+      const waveHeightMax = data.daily.wave_height_max?.[i] || 0;
+      const waveHeightFeet = metersToFeet(waveHeightMax);
+      const wavePeriod = data.daily.wave_period_max?.[i] || 0;
+      
+      // Calculate rating based on wave height and period
+      let rating = "poor";
+      if (waveHeightFeet >= 6 && wavePeriod >= 10) {
+        rating = "epic";
+      } else if (waveHeightFeet >= 3 && wavePeriod >= 8) {
+        rating = "good";
+      } else if (waveHeightFeet >= 2) {
+        rating = "fair";
+      }
+      
+      reports.push({
+        date: data.daily.time[i],
+        waveHeightMin: Math.max(1, waveHeightFeet - 1),
+        waveHeightMax: Math.max(1, waveHeightFeet),
+        rating,
+        windDirection: getWindDirection(data.daily.wave_direction_dominant?.[i] || 0),
+        windSpeed: Math.round(wavePeriod), // Using period as proxy for energy
+      });
+    }
+  }
+  
+  return reports;
+}
+
+function getWindDirection(degrees: number): string {
+  const directions = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"];
+  const index = Math.round(degrees / 45) % 8;
+  return directions[index];
+}
 
 export async function registerRoutes(
   httpServer: Server,
@@ -152,7 +205,24 @@ export async function registerRoutes(
 
   app.get(api.locations.list.path, async (req, res) => {
     const locations = await storage.getLocations();
-    res.json(locations);
+    
+    // Fetch live surf data from Open-Meteo for each location
+    const locationsWithLiveForecast = await Promise.all(
+      locations.map(async (loc) => {
+        try {
+          const forecast = await fetchLiveSurfForecast(
+            parseFloat(loc.latitude),
+            parseFloat(loc.longitude)
+          );
+          return { ...loc, reports: forecast };
+        } catch (err) {
+          console.error(`Failed to fetch forecast for ${loc.name}:`, err);
+          return loc; // Return with existing mock reports as fallback
+        }
+      })
+    );
+    
+    res.json(locationsWithLiveForecast);
   });
 
   app.get(api.locations.get.path, async (req, res) => {

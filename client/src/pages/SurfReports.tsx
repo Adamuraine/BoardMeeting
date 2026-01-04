@@ -3,7 +3,7 @@ import { Layout } from "@/components/Layout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState } from "react";
-import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer } from "lucide-react";
+import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 import { PremiumModal } from "@/components/PremiumModal";
@@ -12,7 +12,51 @@ import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PostWithUser } from "@shared/schema";
+
+// Worldwide surf spots database
+const WORLDWIDE_SPOTS = [
+  // California
+  { name: "Pipeline", region: "Oahu, Hawaii", lat: 21.6650, lng: -158.0539, country: "USA" },
+  { name: "Mavericks", region: "Half Moon Bay, CA", lat: 37.4950, lng: -122.4960, country: "USA" },
+  { name: "Rincon", region: "Santa Barbara, CA", lat: 34.3736, lng: -119.4765, country: "USA" },
+  { name: "Steamer Lane", region: "Santa Cruz, CA", lat: 36.9514, lng: -122.0264, country: "USA" },
+  { name: "Huntington Pier", region: "Huntington Beach, CA", lat: 33.6556, lng: -117.9993, country: "USA" },
+  // Australia
+  { name: "Snapper Rocks", region: "Gold Coast", lat: -28.1658, lng: 153.5500, country: "Australia" },
+  { name: "Bells Beach", region: "Victoria", lat: -38.3686, lng: 144.2811, country: "Australia" },
+  { name: "Margaret River", region: "Western Australia", lat: -33.9556, lng: 114.9931, country: "Australia" },
+  // Indonesia
+  { name: "Uluwatu", region: "Bali", lat: -8.8291, lng: 115.0849, country: "Indonesia" },
+  { name: "Padang Padang", region: "Bali", lat: -8.8150, lng: 115.1019, country: "Indonesia" },
+  { name: "G-Land", region: "Java", lat: -8.4214, lng: 114.3542, country: "Indonesia" },
+  // Portugal
+  { name: "Nazare", region: "Leiria", lat: 39.6017, lng: -9.0714, country: "Portugal" },
+  { name: "Peniche", region: "Leiria", lat: 39.3558, lng: -9.3808, country: "Portugal" },
+  { name: "Ericeira", region: "Lisbon", lat: 38.9631, lng: -9.4194, country: "Portugal" },
+  // France
+  { name: "Hossegor", region: "Landes", lat: 43.6667, lng: -1.4000, country: "France" },
+  { name: "Lacanau", region: "Gironde", lat: 45.0000, lng: -1.2000, country: "France" },
+  // South Africa
+  { name: "Jeffreys Bay", region: "Eastern Cape", lat: -34.0500, lng: 24.9333, country: "South Africa" },
+  // Fiji
+  { name: "Cloudbreak", region: "Tavarua", lat: -17.8667, lng: 177.1833, country: "Fiji" },
+  // Tahiti
+  { name: "Teahupoo", region: "Tahiti", lat: -17.8500, lng: -149.2667, country: "French Polynesia" },
+  // Costa Rica
+  { name: "Playa Hermosa", region: "Puntarenas", lat: 9.5556, lng: -84.5806, country: "Costa Rica" },
+  { name: "Witch's Rock", region: "Guanacaste", lat: 10.9167, lng: -85.7833, country: "Costa Rica" },
+  // Mexico
+  { name: "Puerto Escondido", region: "Oaxaca", lat: 15.8611, lng: -97.0667, country: "Mexico" },
+  // Morocco
+  { name: "Taghazout", region: "Agadir", lat: 30.5456, lng: -9.7089, country: "Morocco" },
+  // Japan
+  { name: "Shonan", region: "Kanagawa", lat: 35.3167, lng: 139.4833, country: "Japan" },
+  // Brazil
+  { name: "Florianopolis", region: "Santa Catarina", lat: -27.5954, lng: -48.5480, country: "Brazil" },
+];
 
 function WaveIcon({ height, rating }: { height: number; rating: string }) {
   const color = rating === 'epic' ? '#8b5cf6' : rating === 'good' ? '#10b981' : rating === 'fair' ? '#06b6d4' : '#94a3b8';
@@ -41,25 +85,116 @@ export default function SurfReports() {
   const { data: favorites, isLoading: loadingFavs } = useFavoriteLocations();
   const { mutate: toggleFavorite } = useToggleFavorite();
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
+  const [showAddSpots, setShowAddSpots] = useState(false);
+  const [addedSpots, setAddedSpots] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
 
   if (loadingAll || loadingFavs) return <ReportsSkeleton />;
 
   const today = new Date();
+  
+  // Group worldwide spots by country
+  const spotsByCountry = WORLDWIDE_SPOTS.reduce((acc, spot) => {
+    if (!acc[spot.country]) acc[spot.country] = [];
+    acc[spot.country].push(spot);
+    return acc;
+  }, {} as Record<string, typeof WORLDWIDE_SPOTS>);
+  
+  const filteredSpots = searchQuery 
+    ? WORLDWIDE_SPOTS.filter(s => 
+        s.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.region.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        s.country.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    : WORLDWIDE_SPOTS;
 
   return (
     <Layout>
       <div className="flex flex-col h-full bg-gradient-to-b from-sky-50 via-cyan-50/30 to-background dark:from-slate-900 dark:via-slate-900 dark:to-background">
         <header className="px-4 pt-4 pb-3">
-          <div className="flex items-center justify-between gap-2 mb-1">
+          <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-2">
               <Waves className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
               <h1 className="text-xl font-bold text-foreground">Surf Forecast</h1>
             </div>
-            <div className="text-xs text-muted-foreground font-medium">
-              {format(today, 'EEEE, MMM d')}
-            </div>
+            <Popover open={showAddSpots} onOpenChange={setShowAddSpots}>
+              <PopoverTrigger asChild>
+                <Button 
+                  size="sm" 
+                  variant="outline"
+                  className="gap-1.5 rounded-full"
+                  data-testid="button-add-spots"
+                >
+                  <Globe className="h-4 w-4" />
+                  Add Spots
+                  <ChevronDown className="h-3 w-3" />
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-80 p-0" align="end">
+                <div className="p-3 border-b">
+                  <input
+                    type="text"
+                    placeholder="Search worldwide spots..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg bg-secondary/50 border-0 focus:ring-2 focus:ring-primary/20 outline-none"
+                    data-testid="input-search-spots"
+                  />
+                </div>
+                <ScrollArea className="h-[300px]">
+                  <div className="p-2">
+                    {Object.entries(spotsByCountry).map(([country, spots]) => {
+                      const countrySpots = spots.filter(s => 
+                        !searchQuery || filteredSpots.includes(s)
+                      );
+                      if (countrySpots.length === 0) return null;
+                      
+                      return (
+                        <div key={country} className="mb-3">
+                          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide px-2 mb-1">
+                            {country}
+                          </p>
+                          {countrySpots.map((spot) => {
+                            const isAdded = addedSpots.includes(spot.name);
+                            return (
+                              <button
+                                key={spot.name}
+                                onClick={() => {
+                                  if (isAdded) {
+                                    setAddedSpots(prev => prev.filter(s => s !== spot.name));
+                                  } else {
+                                    setAddedSpots(prev => [...prev, spot.name]);
+                                  }
+                                }}
+                                className={cn(
+                                  "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
+                                  isAdded 
+                                    ? "bg-primary/10 text-primary" 
+                                    : "hover:bg-secondary/80"
+                                )}
+                                data-testid={`button-spot-${spot.name.toLowerCase().replace(/\s/g, '-')}`}
+                              >
+                                <div>
+                                  <p className="font-medium">{spot.name}</p>
+                                  <p className="text-xs text-muted-foreground">{spot.region}</p>
+                                </div>
+                                {isAdded ? (
+                                  <Check className="h-4 w-4 text-primary" />
+                                ) : (
+                                  <Plus className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </ScrollArea>
+              </PopoverContent>
+            </Popover>
           </div>
-          <p className="text-sm text-muted-foreground">Live conditions for San Diego County</p>
+          <p className="text-sm text-muted-foreground">Live conditions worldwide</p>
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
@@ -71,35 +206,40 @@ export default function SurfReports() {
             return (
               <div 
                 key={location.id}
-                onClick={() => setSelectedLocation(location)}
-                className="rounded-2xl overflow-hidden cursor-pointer group"
+                className="rounded-2xl overflow-hidden cursor-pointer group relative"
               >
+                {/* Remove button */}
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-black/30 hover:bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    toggleFavorite(location.id);
+                  }}
+                  data-testid={`button-remove-${location.id}`}
+                >
+                  <X className="h-3.5 w-3.5" />
+                </Button>
+                
                 {/* Main spot card with gradient based on conditions */}
-                <div className={cn(
-                  "p-4 relative",
-                  todayReport?.rating === 'epic' ? "bg-gradient-to-r from-violet-500 to-purple-600" :
-                  todayReport?.rating === 'good' ? "bg-gradient-to-r from-emerald-500 to-teal-600" :
-                  todayReport?.rating === 'fair' ? "bg-gradient-to-r from-cyan-500 to-sky-600" :
-                  "bg-gradient-to-r from-slate-400 to-slate-500"
-                )}>
-                  <div className="flex justify-between items-start mb-3">
+                <div 
+                  onClick={() => setSelectedLocation(location)}
+                  className={cn(
+                    "p-4 relative",
+                    todayReport?.rating === 'epic' ? "bg-gradient-to-r from-violet-500 to-purple-600" :
+                    todayReport?.rating === 'good' ? "bg-gradient-to-r from-emerald-500 to-teal-600" :
+                    todayReport?.rating === 'fair' ? "bg-gradient-to-r from-cyan-500 to-sky-600" :
+                    "bg-gradient-to-r from-slate-400 to-slate-500"
+                  )}
+                >
+                  <div className="flex justify-between items-start mb-3 pr-8">
                     <div>
                       <h3 className="text-lg font-bold text-white drop-shadow-sm">
                         {location.name}
                       </h3>
                       <p className="text-white/80 text-xs">{location.region}</p>
                     </div>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
-                      className={cn("h-8 w-8 rounded-full bg-white/20 hover:bg-white/30 text-white", isFav && "text-yellow-300")}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        toggleFavorite(location.id);
-                      }}
-                    >
-                      <Star className={cn("h-4 w-4", isFav && "fill-current")} />
-                    </Button>
                   </div>
                   
                   {/* Today's conditions - big and bold */}
@@ -126,7 +266,10 @@ export default function SurfReports() {
                 </div>
                 
                 {/* 4-day mini forecast strip */}
-                <div className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3 flex justify-between gap-2">
+                <div 
+                  onClick={() => setSelectedLocation(location)}
+                  className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3 flex justify-between gap-2"
+                >
                   {nextDays.map((report, idx) => (
                     <div key={idx} className="flex-1 text-center">
                       <p className="text-[10px] text-muted-foreground uppercase font-medium mb-1">

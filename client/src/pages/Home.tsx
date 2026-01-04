@@ -37,6 +37,7 @@ export default function Home() {
                 src={post.imageUrl} 
                 alt="Surf session" 
                 className="w-full h-full object-cover"
+                loading="lazy"
               />
               <div className="absolute top-4 left-4">
                 <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs border border-white/20">

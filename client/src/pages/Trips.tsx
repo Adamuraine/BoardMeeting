@@ -39,22 +39,62 @@ const LOCATIONS = [
   "Australia",
 ];
 
+const REGIONS: Record<string, string[]> = {
+  "San Diego County": ["Oceanside, CA", "Carlsbad, CA", "Encinitas, CA", "San Diego, CA", "La Jolla, CA", "Del Mar, CA", "Pacific Beach, CA", "Mission Beach, CA", "Imperial Beach, CA"],
+  "Orange County": ["Huntington Beach, CA", "Newport Beach, CA", "Trestles, CA"],
+  "Los Angeles": ["Malibu, CA"],
+  "Northern California": ["Santa Cruz, CA"],
+  "International": ["Hawaii", "Bali, Indonesia", "Costa Rica", "Portugal", "Australia"],
+};
+
 export default function Trips() {
   const { data: trips, isLoading } = useTrips();
   const [open, setOpen] = useState(false);
   const [startFilter, setStartFilter] = useState<string>("");
   const [destFilter, setDestFilter] = useState<string>("");
+  const [dateFrom, setDateFrom] = useState<string>("");
+  const [dateTo, setDateTo] = useState<string>("");
+  const [flexibleDates, setFlexibleDates] = useState(false);
+  const [flexibleLocation, setFlexibleLocation] = useState(false);
+
+  const getRegionLocations = (location: string): string[] => {
+    for (const [region, locs] of Object.entries(REGIONS)) {
+      if (locs.includes(location)) return locs;
+    }
+    return [location];
+  };
 
   const filteredTrips = useMemo(() => {
     if (!trips) return [];
     return trips.filter(trip => {
-      if (!trip.isVisiting) {
-        if (startFilter && startFilter !== "all" && trip.startingLocation !== startFilter) return false;
-        if (destFilter && destFilter !== "all" && trip.destination !== destFilter) return false;
+      if (trip.isVisiting) return false;
+      
+      if (startFilter && startFilter !== "all") {
+        if (flexibleLocation) {
+          const regionLocs = getRegionLocations(startFilter);
+          if (!regionLocs.includes(trip.startingLocation || "")) return false;
+        } else {
+          if (trip.startingLocation !== startFilter) return false;
+        }
       }
-      return !trip.isVisiting;
+      
+      if (destFilter && destFilter !== "all") {
+        if (flexibleLocation) {
+          const regionLocs = getRegionLocations(destFilter);
+          if (!regionLocs.includes(trip.destination)) return false;
+        } else {
+          if (trip.destination !== destFilter) return false;
+        }
+      }
+      
+      if (!flexibleDates) {
+        if (dateFrom && new Date(trip.startDate) < new Date(dateFrom)) return false;
+        if (dateTo && new Date(trip.endDate) > new Date(dateTo)) return false;
+      }
+      
+      return true;
     });
-  }, [trips, startFilter, destFilter]);
+  }, [trips, startFilter, destFilter, dateFrom, dateTo, flexibleDates, flexibleLocation]);
 
   const visitingTrips = useMemo(() => {
     if (!trips) return [];
@@ -98,35 +138,85 @@ export default function Trips() {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="trips" className="flex-1 space-y-4 mt-0">
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Starting From</Label>
-                <Select value={startFilter} onValueChange={setStartFilter}>
-                  <SelectTrigger className="h-10" data-testid="select-start-location">
-                    <SelectValue placeholder="Any location" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any location</SelectItem>
-                    {LOCATIONS.map(loc => (
-                      <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+          <TabsContent value="trips" className="flex-1 space-y-4 mt-0 overflow-y-auto">
+            <div className="bg-card/90 backdrop-blur-sm rounded-xl p-3 border border-border/50 space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Starting From</Label>
+                  <Select value={startFilter} onValueChange={setStartFilter}>
+                    <SelectTrigger className="h-10" data-testid="select-start-location">
+                      <SelectValue placeholder="Any location" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any location</SelectItem>
+                      {LOCATIONS.map(loc => (
+                        <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Destination</Label>
+                  <Select value={destFilter} onValueChange={setDestFilter}>
+                    <SelectTrigger className="h-10" data-testid="select-destination">
+                      <SelectValue placeholder="Any destination" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Any destination</SelectItem>
+                      {LOCATIONS.map(loc => (
+                        <SelectItem key={loc} value={loc}>{loc}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Destination</Label>
-                <Select value={destFilter} onValueChange={setDestFilter}>
-                  <SelectTrigger className="h-10" data-testid="select-destination">
-                    <SelectValue placeholder="Any destination" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Any destination</SelectItem>
-                    {LOCATIONS.map(loc => (
-                      <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">From Date</Label>
+                  <Input 
+                    type="date" 
+                    value={dateFrom} 
+                    onChange={(e) => setDateFrom(e.target.value)}
+                    className="h-10"
+                    disabled={flexibleDates}
+                    data-testid="input-date-from"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">To Date</Label>
+                  <Input 
+                    type="date" 
+                    value={dateTo} 
+                    onChange={(e) => setDateTo(e.target.value)}
+                    className="h-10"
+                    disabled={flexibleDates}
+                    data-testid="input-date-to"
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center gap-4 pt-1">
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={flexibleDates} 
+                    onCheckedChange={setFlexibleDates}
+                    data-testid="switch-flexible-dates"
+                  />
+                  <Label className="text-xs cursor-pointer" onClick={() => setFlexibleDates(!flexibleDates)}>
+                    Flexible on dates
+                  </Label>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch 
+                    checked={flexibleLocation} 
+                    onCheckedChange={setFlexibleLocation}
+                    data-testid="switch-flexible-location"
+                  />
+                  <Label className="text-xs cursor-pointer" onClick={() => setFlexibleLocation(!flexibleLocation)}>
+                    Nearby areas OK
+                  </Label>
+                </div>
               </div>
             </div>
 

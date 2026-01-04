@@ -111,7 +111,7 @@ export async function registerRoutes(
     res.json(profile);
   });
 
-  app.put(api.profiles.update.path, async (req, res) => {
+  app.patch(api.profiles.update.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     

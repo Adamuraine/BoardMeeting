@@ -174,9 +174,10 @@ async function fetchSurfData(lat: number, lng: number) {
   }
 }
 
-function SpotCard({ spot, onRemove, allSpots }: { 
+function SpotCard({ spot, onRemove, onAddSpot, allSpots }: { 
   spot: SurfSpot; 
   onRemove: () => void;
+  onAddSpot: (spotName: string) => void;
   allSpots: SurfSpot[];
 }) {
   const [selectedSpot, setSelectedSpot] = useState<SurfSpot>(spot);
@@ -225,7 +226,7 @@ function SpotCard({ spot, onRemove, allSpots }: {
         <X className="h-3.5 w-3.5" />
       </Button>
       
-      {/* Spot selector tab */}
+      {/* Nearby spots selector */}
       <Popover open={showSpotSelector} onOpenChange={setShowSpotSelector}>
         <PopoverTrigger asChild>
           <Button
@@ -233,37 +234,40 @@ function SpotCard({ spot, onRemove, allSpots }: {
             variant="ghost"
             className="absolute top-2 left-2 z-10 h-7 px-2 rounded-full bg-black/30 hover:bg-black/50 text-white text-xs gap-1"
             onClick={(e) => e.stopPropagation()}
-            data-testid={`button-change-spot-${spot.name}`}
+            data-testid={`button-nearby-spots-${spot.name}`}
           >
-            <MapPin className="h-3 w-3" />
-            Change
+            <Search className="h-3 w-3" />
+            Nearby Spots
             <ChevronDown className="h-3 w-3" />
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-64 p-0" align="start">
+          <div className="p-2 border-b">
+            <p className="text-xs font-medium text-muted-foreground">Spots near {selectedSpot.area}</p>
+          </div>
           <ScrollArea className="h-[200px]">
             <div className="p-2">
-              {allSpots.map((s) => (
+              {allSpots
+                .filter(s => s.state === selectedSpot.state && s.name !== selectedSpot.name)
+                .map((s) => (
                 <button
                   key={s.name}
                   onClick={() => {
-                    setSelectedSpot(s);
+                    onAddSpot(s.name);
                     setShowSpotSelector(false);
                   }}
-                  className={cn(
-                    "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
-                    selectedSpot.name === s.name 
-                      ? "bg-primary/10 text-primary" 
-                      : "hover:bg-secondary/80"
-                  )}
+                  className="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm hover:bg-secondary/80 transition-colors"
                 >
                   <div>
                     <p className="font-medium">{s.name}</p>
-                    <p className="text-xs text-muted-foreground">{s.area}, {s.state}</p>
+                    <p className="text-xs text-muted-foreground">{s.area}</p>
                   </div>
-                  {selectedSpot.name === s.name && <Check className="h-4 w-4" />}
+                  <Plus className="h-4 w-4 text-muted-foreground" />
                 </button>
               ))}
+              {allSpots.filter(s => s.state === selectedSpot.state && s.name !== selectedSpot.name).length === 0 && (
+                <p className="text-sm text-muted-foreground text-center py-4">No other spots in this area</p>
+              )}
             </div>
           </ScrollArea>
         </PopoverContent>
@@ -330,10 +334,12 @@ function SpotCard({ spot, onRemove, allSpots }: {
 // Hierarchical spot picker component
 function SpotPicker({ 
   addedSpots, 
-  onToggleSpot 
+  onToggleSpot,
+  onClose 
 }: { 
   addedSpots: string[]; 
   onToggleSpot: (spotName: string) => void;
+  onClose: () => void;
 }) {
   const [selectedContinent, setSelectedContinent] = useState<string | null>(null);
   const [selectedCountry, setSelectedCountry] = useState<string | null>(null);
@@ -409,7 +415,10 @@ function SpotPicker({
                 return (
                   <button
                     key={spot.name}
-                    onClick={() => onToggleSpot(spot.name)}
+                    onClick={() => {
+                      onToggleSpot(spot.name);
+                      if (!isAdded) onClose();
+                    }}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
                       isAdded ? "bg-primary/10 text-primary" : "hover:bg-secondary/80"
@@ -486,7 +495,10 @@ function SpotPicker({
                 return (
                   <button
                     key={spot.name}
-                    onClick={() => onToggleSpot(spot.name)}
+                    onClick={() => {
+                      onToggleSpot(spot.name);
+                      if (!isAdded) onClose();
+                    }}
                     className={cn(
                       "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
                       isAdded ? "bg-primary/10 text-primary" : "hover:bg-secondary/80"
@@ -550,7 +562,7 @@ export default function SurfReports() {
                 </Button>
               </PopoverTrigger>
               <PopoverContent className="w-80 p-0" align="end">
-                <SpotPicker addedSpots={addedSpots} onToggleSpot={toggleSpot} />
+                <SpotPicker addedSpots={addedSpots} onToggleSpot={toggleSpot} onClose={() => setShowAddSpots(false)} />
               </PopoverContent>
             </Popover>
           </div>
@@ -585,6 +597,11 @@ export default function SurfReports() {
                 spot={spot}
                 allSpots={WORLDWIDE_SPOTS}
                 onRemove={() => setAddedSpots(prev => prev.filter(s => s !== spot.name))}
+                onAddSpot={(spotName) => {
+                  if (!addedSpots.includes(spotName)) {
+                    setAddedSpots(prev => [...prev, spotName]);
+                  }
+                }}
               />
             ))
           )}

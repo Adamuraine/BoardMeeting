@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X } from "lucide-react";
+import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,6 +14,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuLabel,
 } from "@/components/ui/dropdown-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -63,16 +70,16 @@ const TRICK_CATEGORIES = {
   ],
 };
 
+const WAVE_SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50];
+
 export default function Stats() {
   const { data: profile, isLoading } = useMyProfile();
   const { toast } = useToast();
   
   const [editingSpeed, setEditingSpeed] = useState(false);
   const [editingLongestWave, setEditingLongestWave] = useState(false);
-  const [editingBiggestWave, setEditingBiggestWave] = useState(false);
   const [tempSpeed, setTempSpeed] = useState("");
   const [tempLongestWave, setTempLongestWave] = useState("");
-  const [tempBiggestWave, setTempBiggestWave] = useState("");
 
   const tricksMutation = useMutation({
     mutationFn: async (tricks: string[]) => {
@@ -82,8 +89,8 @@ export default function Stats() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
       toast({
-        title: "Trick Added",
-        description: "Your trick has been saved to your profile!",
+        title: "Trick Updated",
+        description: "Your tricks have been saved to your profile!",
       });
     },
   });
@@ -130,13 +137,10 @@ export default function Stats() {
     }
   };
 
-  const saveBiggestWave = () => {
-    const value = parseInt(tempBiggestWave);
-    if (!isNaN(value) && value >= 0) {
-      statsMutation.mutate({ biggestWave: value });
-      setEditingBiggestWave(false);
-    } else {
-      toast({ title: "Invalid value", description: "Please enter a valid number", variant: "destructive" });
+  const handleBiggestWaveChange = (value: string) => {
+    const numValue = parseInt(value);
+    if (!isNaN(numValue)) {
+      statsMutation.mutate({ biggestWave: numValue });
     }
   };
 
@@ -228,51 +232,28 @@ export default function Stats() {
 
         <Card className="hover-elevate bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-200/20">
           <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2">
-                <Waves className="h-4 w-4 text-indigo-500" />
-                Biggest Wave
-              </span>
-              {!editingBiggestWave && (
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-6 w-6"
-                  onClick={() => {
-                    setTempBiggestWave(String(profile?.biggestWave || 0));
-                    setEditingBiggestWave(true);
-                  }}
-                  data-testid="button-edit-biggest-wave"
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              )}
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+              <Waves className="h-4 w-4 text-indigo-500" />
+              Biggest Wave
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {editingBiggestWave ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={tempBiggestWave}
-                  onChange={(e) => setTempBiggestWave(e.target.value)}
-                  className="h-8 w-16 text-lg font-bold"
-                  autoFocus
-                  data-testid="input-biggest-wave"
-                />
-                <span className="text-sm text-muted-foreground">ft</span>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={saveBiggestWave} data-testid="button-save-biggest-wave">
-                  <Save className="h-3 w-3 text-green-500" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingBiggestWave(false)} data-testid="button-cancel-biggest-wave">
-                  <X className="h-3 w-3 text-red-500" />
-                </Button>
-              </div>
-            ) : (
-              <div className="text-2xl font-bold font-display" data-testid="text-biggest-wave-value">
-                {profile?.biggestWave || 0} <span className="text-sm font-normal text-muted-foreground">ft</span>
-              </div>
-            )}
+            <Select 
+              value={profile?.biggestWave ? String(profile.biggestWave) : undefined} 
+              onValueChange={handleBiggestWaveChange}
+            >
+              <SelectTrigger className="w-full h-10 text-xl font-bold font-display" data-testid="select-biggest-wave">
+                <SelectValue placeholder="Select size" />
+                <span className="text-sm font-normal text-muted-foreground ml-1">ft</span>
+              </SelectTrigger>
+              <SelectContent className="bg-background border">
+                {WAVE_SIZES.map((size) => (
+                  <SelectItem key={size} value={String(size)} data-testid={`option-wave-${size}`}>
+                    {size} ft
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardContent>
         </Card>
 
@@ -340,24 +321,24 @@ export default function Stats() {
                 Add Tricks
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-56 max-h-80 overflow-y-auto">
-              {Object.entries(TRICK_CATEGORIES).map(([category, tricks]) => (
+            <DropdownMenuContent align="end" className="w-56 max-h-80 overflow-y-auto bg-background border shadow-lg">
+              {Object.entries(TRICK_CATEGORIES).map(([category, tricks], catIndex) => (
                 <div key={category}>
-                  <DropdownMenuLabel className="text-xs text-muted-foreground">{category}</DropdownMenuLabel>
+                  <DropdownMenuLabel className="text-xs text-muted-foreground bg-muted/50 py-2">{category}</DropdownMenuLabel>
                   {tricks.map((trick) => (
                     <DropdownMenuItem
                       key={trick}
                       onClick={() => toggleTrick(trick)}
-                      className="flex items-center justify-between"
+                      className="flex items-center justify-between cursor-pointer bg-background hover:bg-accent"
                       data-testid={`menuitem-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
                     >
-                      {trick}
+                      <span>{trick}</span>
                       {profile?.tricks?.includes(trick) && (
                         <Check className="h-4 w-4 text-primary" />
                       )}
                     </DropdownMenuItem>
                   ))}
-                  <DropdownMenuSeparator />
+                  {catIndex < Object.keys(TRICK_CATEGORIES).length - 1 && <DropdownMenuSeparator />}
                 </div>
               ))}
             </DropdownMenuContent>

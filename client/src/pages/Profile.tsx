@@ -2,11 +2,12 @@ import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Settings, Camera } from "lucide-react";
+import { Crown, LogOut, Settings, Camera, TrendingUp } from "lucide-react";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
+import { Badge } from "@/components/ui/badge";
 
 export default function Profile() {
   const { data: profile, isLoading } = useMyProfile();
@@ -65,13 +66,43 @@ export default function Profile() {
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Stats</h3>
               <div className="grid grid-cols-2 gap-4">
                 <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary">{profile.age}</div>
-                  <div className="text-xs text-muted-foreground">Age</div>
+                  <div className="text-2xl font-bold font-display text-primary">{profile.fastestSpeed || 0}</div>
+                  <div className="text-xs text-muted-foreground">Top Speed (mph)</div>
                 </div>
                 <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary capitalize">{profile.gender}</div>
-                  <div className="text-xs text-muted-foreground">Gender</div>
+                  <div className="text-2xl font-bold font-display text-primary">{profile.biggestWave || 0}</div>
+                  <div className="text-xs text-muted-foreground">Biggest Wave (ft)</div>
                 </div>
+                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
+                  <div className="text-2xl font-bold font-display text-primary">{profile.longestWave || 0}</div>
+                  <div className="text-xs text-muted-foreground">Longest Ride (yds)</div>
+                </div>
+                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
+                  <div className="text-2xl font-bold font-display text-primary capitalize">{profile.skillLevel}</div>
+                  <div className="text-xs text-muted-foreground">Skill Level</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Tricks Mastered ({profile.tricks?.length || 0})
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.tricks?.length ? (
+                  profile.tricks.map((trick: string) => (
+                    <Badge 
+                      key={trick} 
+                      variant="secondary"
+                      data-testid={`profile-badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {trick}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No tricks logged yet. Add tricks from the Stats page!</p>
+                )}
               </div>
             </div>
 

@@ -2,7 +2,7 @@ import { useLocations, useFavoriteLocations, useToggleFavorite } from "@/hooks/u
 import { Layout } from "@/components/Layout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
@@ -611,10 +611,30 @@ function SpotPicker({
   );
 }
 
+const STORAGE_KEY = 'surftribe_saved_spots';
+
 export default function SurfReports() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [showAddSpots, setShowAddSpots] = useState(false);
-  const [addedSpots, setAddedSpots] = useState<string[]>([]);
+  const [addedSpots, setAddedSpots] = useState<string[]>(() => {
+    // Load saved spots from localStorage on initial render
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        try {
+          return JSON.parse(saved);
+        } catch {
+          return [];
+        }
+      }
+    }
+    return [];
+  });
+
+  // Save spots to localStorage whenever they change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(addedSpots));
+  }, [addedSpots]);
 
   const today = new Date();
     

@@ -74,12 +74,16 @@ export default function Trips() {
         <div className="absolute inset-0 bg-background/85 dark:bg-background/90" />
         
         <div className="relative z-10 p-4 pb-20 h-full flex flex-col">
-          <header className="flex justify-between items-end mb-4 gap-2">
-            <div>
+          <header className="mb-4">
+            <div className="flex justify-between items-start gap-2 mb-3">
               <h1 className="text-3xl font-display font-bold text-foreground">Surf Trips</h1>
-              <p className="text-muted-foreground text-sm">Find a ride or plan a journey</p>
+              <CreateTripDialog open={open} onOpenChange={setOpen} />
             </div>
-            <CreateTripDialog open={open} onOpenChange={setOpen} />
+            <div className="bg-card/80 backdrop-blur-sm rounded-xl p-3 border border-border/50">
+              <p className="text-sm text-foreground leading-relaxed">
+                Save money by traveling with a buddy, or explore new surf destinations without the worry of going alone. Team up with someone who knows the ins and outs, the lefts and rights.
+              </p>
+            </div>
           </header>
 
         <Tabs defaultValue="trips" className="flex-1 flex flex-col">

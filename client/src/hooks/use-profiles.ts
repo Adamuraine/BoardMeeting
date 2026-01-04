@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { api, buildUrl, type CreateProfileRequest, type UpdateProfileRequest } from "@shared/routes";
+import { api, buildUrl } from "@shared/routes";
 
 export function useMyProfile() {
   return useQuery({

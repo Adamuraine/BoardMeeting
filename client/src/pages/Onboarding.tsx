@@ -93,7 +93,7 @@ export default function Onboarding() {
             <div className="flex gap-3 flex-wrap">
               {uploadedPhotos.map((photo, index) => (
                 <div key={index} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-primary/30">
-                  <img src={photo} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
+                  <img src={photo.startsWith('/') ? photo : `/${photo}`} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removePhoto(index)}

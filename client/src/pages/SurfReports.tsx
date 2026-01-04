@@ -80,16 +80,204 @@ function WaveIcon({ height, rating }: { height: number; rating: string }) {
   );
 }
 
+// Fetch live surf data from Open-Meteo Marine API
+async function fetchSurfData(lat: number, lng: number) {
+  try {
+    const response = await fetch(
+      `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&daily=wave_height_max,wave_period_max,wave_direction_dominant&timezone=auto&forecast_days=7`
+    );
+    const data = await response.json();
+    
+    if (!data.daily) return null;
+    
+    return data.daily.time.map((date: string, i: number) => {
+      const waveHeightM = data.daily.wave_height_max[i] || 0;
+      const waveHeightFt = Math.round(waveHeightM * 3.28084);
+      const period = data.daily.wave_period_max[i] || 0;
+      const direction = data.daily.wave_direction_dominant[i] || 0;
+      
+      // Calculate rating based on wave height and period
+      let rating = 'poor';
+      if (waveHeightFt >= 6 && period >= 12) rating = 'epic';
+      else if (waveHeightFt >= 4 && period >= 10) rating = 'good';
+      else if (waveHeightFt >= 2 && period >= 8) rating = 'fair';
+      
+      // Convert direction degrees to compass
+      const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+      const windDirection = directions[Math.round(direction / 45) % 8];
+      
+      return {
+        date,
+        waveHeightMin: Math.max(1, waveHeightFt - 1),
+        waveHeightMax: waveHeightFt,
+        rating,
+        windDirection,
+        period,
+      };
+    });
+  } catch (error) {
+    return null;
+  }
+}
+
+function SpotCard({ spot, onRemove, allSpots }: { 
+  spot: typeof WORLDWIDE_SPOTS[0]; 
+  onRemove: () => void;
+  allSpots: typeof WORLDWIDE_SPOTS;
+}) {
+  const [selectedSpot, setSelectedSpot] = useState(spot);
+  const [showSpotSelector, setShowSpotSelector] = useState(false);
+  const today = new Date();
+  
+  const { data: reports, isLoading } = useQuery({
+    queryKey: ['surf-data', selectedSpot.lat, selectedSpot.lng],
+    queryFn: () => fetchSurfData(selectedSpot.lat, selectedSpot.lng),
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+  
+  const todayReport = reports?.[0];
+  const nextDays = reports?.slice(1, 5) || [];
+  
+  if (isLoading) {
+    return (
+      <div className="rounded-2xl overflow-hidden">
+        <div className="p-4 bg-gradient-to-r from-slate-400 to-slate-500 animate-pulse">
+          <Skeleton className="h-6 w-32 bg-white/20 mb-2" />
+          <Skeleton className="h-4 w-24 bg-white/20 mb-4" />
+          <Skeleton className="h-10 w-20 bg-white/20" />
+        </div>
+        <div className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3">
+          <div className="flex gap-2">
+            {[1,2,3,4].map(i => <Skeleton key={i} className="flex-1 h-12" />)}
+          </div>
+        </div>
+      </div>
+    );
+  }
+  
+  return (
+    <div className="rounded-2xl overflow-hidden cursor-pointer group relative">
+      {/* Remove button */}
+      <Button
+        size="icon"
+        variant="ghost"
+        className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-black/30 hover:bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={(e) => {
+          e.stopPropagation();
+          onRemove();
+        }}
+        data-testid={`button-remove-${spot.name}`}
+      >
+        <X className="h-3.5 w-3.5" />
+      </Button>
+      
+      {/* Spot selector tab */}
+      <Popover open={showSpotSelector} onOpenChange={setShowSpotSelector}>
+        <PopoverTrigger asChild>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="absolute top-2 left-2 z-10 h-7 px-2 rounded-full bg-black/30 hover:bg-black/50 text-white text-xs gap-1"
+            onClick={(e) => e.stopPropagation()}
+            data-testid={`button-change-spot-${spot.name}`}
+          >
+            <MapPin className="h-3 w-3" />
+            Change
+            <ChevronDown className="h-3 w-3" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-64 p-0" align="start">
+          <ScrollArea className="h-[200px]">
+            <div className="p-2">
+              {allSpots.map((s) => (
+                <button
+                  key={s.name}
+                  onClick={() => {
+                    setSelectedSpot(s);
+                    setShowSpotSelector(false);
+                  }}
+                  className={cn(
+                    "w-full flex items-center justify-between px-3 py-2 rounded-lg text-left text-sm transition-colors",
+                    selectedSpot.name === s.name 
+                      ? "bg-primary/10 text-primary" 
+                      : "hover:bg-secondary/80"
+                  )}
+                >
+                  <div>
+                    <p className="font-medium">{s.name}</p>
+                    <p className="text-xs text-muted-foreground">{s.region}</p>
+                  </div>
+                  {selectedSpot.name === s.name && <Check className="h-4 w-4" />}
+                </button>
+              ))}
+            </div>
+          </ScrollArea>
+        </PopoverContent>
+      </Popover>
+      
+      {/* Main spot card with gradient based on conditions */}
+      <div className={cn(
+        "p-4 pt-12 relative",
+        todayReport?.rating === 'epic' ? "bg-gradient-to-r from-violet-500 to-purple-600" :
+        todayReport?.rating === 'good' ? "bg-gradient-to-r from-emerald-500 to-teal-600" :
+        todayReport?.rating === 'fair' ? "bg-gradient-to-r from-cyan-500 to-sky-600" :
+        "bg-gradient-to-r from-slate-400 to-slate-500"
+      )}>
+        <div className="flex justify-between items-start mb-3">
+          <div>
+            <h3 className="text-lg font-bold text-white drop-shadow-sm">
+              {selectedSpot.name}
+            </h3>
+            <p className="text-white/80 text-xs">{selectedSpot.region}, {selectedSpot.country}</p>
+          </div>
+        </div>
+        
+        {/* Today's conditions - big and bold */}
+        <div className="flex items-end justify-between">
+          <div className="flex items-baseline gap-1">
+            <span className="text-4xl font-black text-white drop-shadow-md">
+              {todayReport?.waveHeightMin || 0}-{todayReport?.waveHeightMax || 0}
+            </span>
+            <span className="text-lg font-bold text-white/90">ft</span>
+          </div>
+          <div className="text-right">
+            <span className={cn(
+              "inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide",
+              "bg-white/25 text-white backdrop-blur-sm"
+            )}>
+              {todayReport?.rating || 'fair'}
+            </span>
+            <p className="text-white/70 text-[10px] mt-1 flex items-center justify-end gap-1">
+              <Compass className="h-3 w-3" />
+              {todayReport?.windDirection || 'SW'} swell
+            </p>
+          </div>
+        </div>
+      </div>
+      
+      {/* 4-day mini forecast strip */}
+      <div className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3 flex justify-between gap-2">
+        {nextDays.map((report: { waveHeightMin: number; waveHeightMax: number; rating: string }, idx: number) => (
+          <div key={idx} className="flex-1 text-center">
+            <p className="text-[10px] text-muted-foreground uppercase font-medium mb-1">
+              {format(addDays(today, idx + 1), 'EEE')}
+            </p>
+            <WaveIcon height={report.waveHeightMax || 2} rating={report.rating || 'fair'} />
+            <p className="text-xs font-bold text-foreground mt-1">
+              {report.waveHeightMin}-{report.waveHeightMax}
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function SurfReports() {
-  const { data: allLocations, isLoading: loadingAll } = useLocations();
-  const { data: favorites, isLoading: loadingFavs } = useFavoriteLocations();
-  const { mutate: toggleFavorite } = useToggleFavorite();
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [showAddSpots, setShowAddSpots] = useState(false);
   const [addedSpots, setAddedSpots] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-
-  if (loadingAll || loadingFavs) return <ReportsSkeleton />;
 
   const today = new Date();
   
@@ -107,6 +295,9 @@ export default function SurfReports() {
         s.country.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : WORLDWIDE_SPOTS;
+    
+  // Get the actual spot objects for added spots
+  const userSpots = addedSpots.map(name => WORLDWIDE_SPOTS.find(s => s.name === name)).filter(Boolean) as typeof WORLDWIDE_SPOTS;
 
   return (
     <Layout>
@@ -194,97 +385,40 @@ export default function SurfReports() {
               </PopoverContent>
             </Popover>
           </div>
-          <p className="text-sm text-muted-foreground">Live conditions worldwide</p>
+          <p className="text-sm text-muted-foreground">
+            {userSpots.length > 0 ? `Tracking ${userSpots.length} spot${userSpots.length > 1 ? 's' : ''}` : 'Add spots to see live conditions'}
+          </p>
         </header>
 
         <main className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
-          {allLocations?.map((location) => {
-            const isFav = favorites?.some(f => f.id === location.id);
-            const todayReport = location.reports?.[0];
-            const nextDays = location.reports?.slice(1, 5) || [];
-            
-            return (
-              <div 
-                key={location.id}
-                className="rounded-2xl overflow-hidden cursor-pointer group relative"
-              >
-                {/* Remove button */}
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="absolute top-2 right-2 z-10 h-7 w-7 rounded-full bg-black/30 hover:bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    toggleFavorite(location.id);
-                  }}
-                  data-testid={`button-remove-${location.id}`}
-                >
-                  <X className="h-3.5 w-3.5" />
-                </Button>
-                
-                {/* Main spot card with gradient based on conditions */}
-                <div 
-                  onClick={() => setSelectedLocation(location)}
-                  className={cn(
-                    "p-4 relative",
-                    todayReport?.rating === 'epic' ? "bg-gradient-to-r from-violet-500 to-purple-600" :
-                    todayReport?.rating === 'good' ? "bg-gradient-to-r from-emerald-500 to-teal-600" :
-                    todayReport?.rating === 'fair' ? "bg-gradient-to-r from-cyan-500 to-sky-600" :
-                    "bg-gradient-to-r from-slate-400 to-slate-500"
-                  )}
-                >
-                  <div className="flex justify-between items-start mb-3 pr-8">
-                    <div>
-                      <h3 className="text-lg font-bold text-white drop-shadow-sm">
-                        {location.name}
-                      </h3>
-                      <p className="text-white/80 text-xs">{location.region}</p>
-                    </div>
-                  </div>
-                  
-                  {/* Today's conditions - big and bold */}
-                  <div className="flex items-end justify-between">
-                    <div className="flex items-baseline gap-1">
-                      <span className="text-4xl font-black text-white drop-shadow-md">
-                        {todayReport?.waveHeightMin || 0}-{todayReport?.waveHeightMax || 0}
-                      </span>
-                      <span className="text-lg font-bold text-white/90">ft</span>
-                    </div>
-                    <div className="text-right">
-                      <span className={cn(
-                        "inline-block px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide",
-                        "bg-white/25 text-white backdrop-blur-sm"
-                      )}>
-                        {todayReport?.rating || 'fair'}
-                      </span>
-                      <p className="text-white/70 text-[10px] mt-1 flex items-center justify-end gap-1">
-                        <Compass className="h-3 w-3" />
-                        {todayReport?.windDirection || 'SW'} swell
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* 4-day mini forecast strip */}
-                <div 
-                  onClick={() => setSelectedLocation(location)}
-                  className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3 flex justify-between gap-2"
-                >
-                  {nextDays.map((report, idx) => (
-                    <div key={idx} className="flex-1 text-center">
-                      <p className="text-[10px] text-muted-foreground uppercase font-medium mb-1">
-                        {format(addDays(today, idx + 1), 'EEE')}
-                      </p>
-                      <WaveIcon height={report.waveHeightMax || 2} rating={report.rating || 'fair'} />
-                      <p className="text-xs font-bold text-foreground mt-1">
-                        {report.waveHeightMin}-{report.waveHeightMax}
-                      </p>
-                    </div>
-                  ))}
-                </div>
+          {userSpots.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="w-20 h-20 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center mb-4">
+                <Waves className="h-10 w-10 text-cyan-600 dark:text-cyan-400" />
               </div>
-            );
-          })}
+              <h3 className="text-lg font-semibold text-foreground mb-2">No spots added yet</h3>
+              <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+                Add your favorite surf spots to track live wave conditions from around the world
+              </p>
+              <Button 
+                onClick={() => setShowAddSpots(true)}
+                className="gap-2"
+                data-testid="button-add-first-spot"
+              >
+                <Plus className="h-4 w-4" />
+                Add Your First Spot
+              </Button>
+            </div>
+          ) : (
+            userSpots.map((spot) => (
+              <SpotCard 
+                key={spot.name}
+                spot={spot}
+                allSpots={WORLDWIDE_SPOTS}
+                onRemove={() => setAddedSpots(prev => prev.filter(s => s !== spot.name))}
+              />
+            ))
+          )}
         </main>
       </div>
 

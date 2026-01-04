@@ -6,6 +6,7 @@ import { Crown, LogOut, Settings, Camera } from "lucide-react";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SafeImage } from "@/components/SafeImage";
 
 export default function Profile() {
   const { data: profile, isLoading } = useMyProfile();
@@ -28,7 +29,7 @@ export default function Profile() {
           <div className="flex justify-between items-end mb-6">
             <div className="relative">
               <div className="w-32 h-32 rounded-full border-4 border-background bg-secondary overflow-hidden shadow-xl">
-                 <img 
+                 <SafeImage 
                    src={profile.imageUrls?.[0] || "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80"} 
                    alt={profile.displayName} 
                    className="w-full h-full object-cover"
@@ -79,7 +80,7 @@ export default function Profile() {
               <div className="grid grid-cols-3 gap-2">
                 {profile.imageUrls?.map((url, i) => (
                   <div key={i} className="aspect-square rounded-lg overflow-hidden bg-secondary">
-                    <img src={url} alt="Gallery" className="w-full h-full object-cover" />
+                    <SafeImage src={url} alt="Gallery" className="w-full h-full object-cover" />
                   </div>
                 ))}
                 <div className="aspect-square rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:bg-secondary/50 cursor-pointer transition-colors">

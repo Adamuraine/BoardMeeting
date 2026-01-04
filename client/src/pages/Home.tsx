@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Camera, MapPin, ExternalLink, Loader2 } from "lucide-react";
 import type { PostWithUser } from "@shared/schema";
+import { SafeImage } from "@/components/SafeImage";
 
 export default function Home() {
   const { data: posts, isLoading } = useQuery<(PostWithUser & { location: { name: string } })[]>({
@@ -31,8 +32,8 @@ export default function Home() {
       <div className="space-y-4 p-4">
         {posts?.map((post) => (
           <Card key={post.id} className="overflow-hidden border-none shadow-lg">
-            <div className="relative aspect-square">
-              <img 
+            <div className="relative aspect-square bg-muted">
+              <SafeImage 
                 src={post.imageUrl} 
                 alt="Surf session" 
                 className="w-full h-full object-cover"

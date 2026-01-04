@@ -6,6 +6,7 @@ import { X, MapPin, Info, Users, ChevronLeft, ChevronRight } from "lucide-react"
 import shakaImg from "@assets/image_1767482724996.png";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
+import { SafeImage } from "@/components/SafeImage";
 
 export default function Buddies() {
   const { data: profiles, isLoading, error } = useProfiles();
@@ -103,8 +104,8 @@ export default function Buddies() {
               className="absolute inset-x-4 top-0 bottom-0 rounded-3xl overflow-hidden shadow-2xl bg-card border border-border/50 select-none cursor-grab active:cursor-grabbing flex flex-col"
             >
               {/* Profile Image - Headshot */}
-              <div className="relative h-3/5 shrink-0">
-                 <img 
+              <div className="relative h-3/5 shrink-0 bg-muted">
+                 <SafeImage 
                    src={currentProfile.imageUrls?.[0] || "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80"} 
                    alt={currentProfile.displayName} 
                    className="w-full h-full object-cover"
@@ -142,8 +143,8 @@ export default function Buddies() {
                   <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
                     {(currentProfile.imageUrls?.length || 0) > 1 ? (
                       currentProfile.imageUrls?.slice(1).map((url, i) => (
-                        <div key={i} className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-border shadow-sm">
-                          <img src={url} alt="Surf action" className="w-full h-full object-cover" />
+                        <div key={i} className="flex-shrink-0 w-24 h-24 rounded-lg overflow-hidden border border-border shadow-sm bg-muted">
+                          <SafeImage src={url} alt="Surf action" className="w-full h-full object-cover" />
                         </div>
                       ))
                     ) : (

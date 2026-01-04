@@ -15,6 +15,7 @@ import { Card } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { PostWithUser } from "@shared/schema";
+import { SafeImage } from "@/components/SafeImage";
 
 // Worldwide surf spots database with hierarchical location data
 type SurfSpot = {
@@ -764,9 +765,9 @@ function LocationDetail({ location, open, onOpenChange }: { location: any, open:
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       <Dialog open={open} onOpenChange={onOpenChange}>
         <DialogContent className="max-w-md h-[90vh] flex flex-col p-0 gap-0 overflow-hidden bg-background">
-          <div className="h-48 relative w-full shrink-0">
+          <div className="h-48 relative w-full shrink-0 bg-muted">
              <div className="absolute inset-0 bg-gradient-to-t from-background to-transparent z-10" />
-             <img 
+             <SafeImage 
                src="https://images.unsplash.com/photo-1526346698789-22fd84314424?w=800&q=80" 
                alt="Surf Spot" 
                className="w-full h-full object-cover"
@@ -872,8 +873,8 @@ function LocationDetail({ location, open, onOpenChange }: { location: any, open:
 
               <div className="grid grid-cols-2 gap-3 pb-8">
                 {posts?.map((post) => (
-                  <Card key={post.id} className="group relative aspect-square overflow-hidden border-none shadow-md">
-                    <img 
+                  <Card key={post.id} className="group relative aspect-square overflow-hidden border-none shadow-md bg-muted">
+                    <SafeImage 
                       src={post.imageUrl} 
                       alt="Surf session" 
                       className="w-full h-full object-cover transition-transform group-hover:scale-110"

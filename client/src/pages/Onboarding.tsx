@@ -13,6 +13,7 @@ import { z } from "zod";
 import { Loader2, Camera, X } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
+import { SafeImage } from "@/components/SafeImage";
 
 const schema = insertProfileSchema.pick({
   displayName: true,
@@ -92,8 +93,8 @@ export default function Onboarding() {
             <Label>Profile Photos</Label>
             <div className="flex gap-3 flex-wrap">
               {uploadedPhotos.map((photo, index) => (
-                <div key={index} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-primary/30">
-                  <img src={photo.startsWith('/') ? photo : `/${photo}`} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
+                <div key={index} className="relative w-20 h-20 rounded-xl overflow-hidden border-2 border-primary/30 bg-muted">
+                  <SafeImage src={photo} alt={`Upload ${index + 1}`} className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => removePhoto(index)}

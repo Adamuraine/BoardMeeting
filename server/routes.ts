@@ -195,6 +195,14 @@ export async function registerRoutes(
     }
   });
 
+  // === BUDDIES (Matches) ===
+  app.get("/api/buddies", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const buddies = await storage.getMatchedBuddies(userId);
+    res.json(buddies);
+  });
+
   // === LOCATIONS & REPORTS ===
   app.get("/api/locations/favorites", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

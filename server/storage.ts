@@ -9,7 +9,7 @@ import {
   type FavoriteSpot, type InsertFavoriteSpot,
   users
 } from "@shared/schema";
-import { eq, and, desc, sql, notInArray } from "drizzle-orm";
+import { eq, and, desc, sql, notInArray, inArray } from "drizzle-orm";
 import { authStorage } from "./replit_integrations/auth";
 
 export interface IStorage {
@@ -24,6 +24,7 @@ export interface IStorage {
   createSwipe(swipe: InsertSwipe): Promise<Swipe>;
   getSwipesCountToday(userId: string): Promise<number>;
   checkMatch(userId1: string, userId2: string): Promise<boolean>;
+  getMatchedBuddies(userId: string): Promise<Profile[]>;
 
   // Locations & Reports
   getLocations(): Promise<(Location & { reports: SurfReport[] })[]>;
@@ -153,6 +154,42 @@ export class DatabaseStorage implements IStorage {
         )
       );
     return !!swipe;
+  }
+
+  async getMatchedBuddies(userId: string): Promise<Profile[]> {
+    // Get all users this person swiped right on
+    const myRightSwipes = await db.select({ swipedId: swipes.swipedId })
+      .from(swipes)
+      .where(
+        and(
+          eq(swipes.swiperId, userId),
+          eq(swipes.direction, 'right')
+        )
+      );
+    
+    if (myRightSwipes.length === 0) return [];
+    
+    const mySwipedIds = myRightSwipes.map(s => s.swipedId);
+    
+    // Find mutual matches - users who also swiped right on me
+    const mutualSwipes = await db.select({ swiperId: swipes.swiperId })
+      .from(swipes)
+      .where(
+        and(
+          inArray(swipes.swiperId, mySwipedIds),
+          eq(swipes.swipedId, userId),
+          eq(swipes.direction, 'right')
+        )
+      );
+    
+    if (mutualSwipes.length === 0) return [];
+    
+    const mutualIds = mutualSwipes.map(s => s.swiperId);
+    
+    // Get profiles of matched buddies
+    return await db.select()
+      .from(profiles)
+      .where(inArray(profiles.userId, mutualIds));
   }
 
   async getLocations(): Promise<(Location & { reports: SurfReport[] })[]> {

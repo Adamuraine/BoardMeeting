@@ -2,22 +2,31 @@ import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Settings, Camera, TrendingUp, X, Plus } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star } from "lucide-react";
 import { PremiumModal } from "@/components/PremiumModal";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
 import { Badge } from "@/components/ui/badge";
 import { ObjectUploader } from "@/components/ObjectUploader";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { Switch } from "@/components/ui/switch";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Link } from "wouter";
+import type { Profile as ProfileType } from "@shared/schema";
 
 export default function Profile() {
   const { data: profile, isLoading } = useMyProfile();
   const { logout } = useAuth();
   const [showPremium, setShowPremium] = useState(false);
   const { toast } = useToast();
+
+  const { data: buddies = [] } = useQuery<ProfileType[]>({
+    queryKey: ["/api/buddies"],
+    enabled: !!profile,
+  });
 
   const updatePhotosMutation = useMutation({
     mutationFn: async (imageUrls: string[]) => {
@@ -28,7 +37,7 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
       toast({ title: "Photos updated", description: "Your photos have been saved!" });
     },
-    onError: (error) => {
+    onError: () => {
       toast({ 
         title: "Upload failed", 
         description: "Failed to save your photos. Please try again.",
@@ -37,7 +46,17 @@ export default function Profile() {
     },
   });
 
-  const pendingPathsRef = { current: new Map<string, string>() };
+  const updateProfileMutation = useMutation({
+    mutationFn: async (updates: Partial<ProfileType>) => {
+      const res = await apiRequest("PATCH", "/api/profiles/me", updates);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
+    },
+  });
+
+  const pendingPathsRef = useRef(new Map<string, string>());
 
   const getUploadParams = async (file: { id?: string; name: string; size: number | null; type: string }) => {
     const res = await fetch("/api/uploads/request-url", {
@@ -102,19 +121,43 @@ export default function Profile() {
     }
   };
 
+  const toggleBuddiesPublic = () => {
+    updateProfileMutation.mutate({ buddiesPublic: !profile?.buddiesPublic });
+  };
+
+  const toggleTopBuddy = (buddyUserId: string) => {
+    const currentTop = profile?.topBuddyIds || [];
+    let newTop: string[];
+    
+    if (currentTop.includes(buddyUserId)) {
+      newTop = currentTop.filter(id => id !== buddyUserId);
+    } else {
+      if (currentTop.length >= 10) {
+        toast({ title: "Top 10 limit", description: "You can only have 10 top buddies. Remove one first." });
+        return;
+      }
+      newTop = [...currentTop, buddyUserId];
+    }
+    
+    updateProfileMutation.mutate({ topBuddyIds: newTop });
+  };
+
   if (isLoading) return <ProfileSkeleton />;
   if (!profile) return null;
+
+  const topBuddyIds = profile.topBuddyIds || [];
+  const topBuddies = buddies.filter(b => topBuddyIds.includes(b.userId));
+  const otherBuddies = buddies.filter(b => !topBuddyIds.includes(b.userId));
+  const sortedBuddies = [...topBuddies, ...otherBuddies];
 
   return (
     <Layout>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
-      <div className="relative">
-        {/* Header Background */}
+      <div className="relative pb-20">
         <div className="h-40 bg-gradient-to-r from-primary to-cyan-400" />
         
-        {/* Profile Content */}
-        <div className="px-6 pb-20 -mt-16">
+        <div className="px-6 -mt-16">
           <div className="flex justify-between items-end mb-6">
             <div className="relative">
               <div className="w-32 h-32 rounded-full border-4 border-background bg-secondary overflow-hidden shadow-xl">
@@ -135,7 +178,7 @@ export default function Profile() {
               </ObjectUploader>
             </div>
 
-            <Button variant="ghost" size="icon" className="mb-2" onClick={() => logout()}>
+            <Button variant="ghost" size="icon" className="mb-2" onClick={() => logout()} data-testid="button-logout">
               <LogOut className="w-5 h-5 text-muted-foreground" />
             </Button>
           </div>
@@ -145,10 +188,10 @@ export default function Profile() {
               {profile.displayName}
               {profile.isPremium && <Crown className="w-5 h-5 text-accent fill-current" />}
             </h1>
-            <p className="text-muted-foreground">{profile.location} • {profile.skillLevel} Surfer</p>
+            <p className="text-muted-foreground">{profile.location} - {profile.skillLevel} Surfer</p>
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">About</h3>
               <p className="text-foreground/80 leading-relaxed">
@@ -202,8 +245,9 @@ export default function Profile() {
 
             <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                Surf Photos ({profile.imageUrls?.length || 0}/50)
+                Surf & Lifestyle Photos ({profile.imageUrls?.length || 0}/50)
               </h3>
+              <p className="text-xs text-muted-foreground mb-3">Add up to 50 photos of your surf sessions, lifestyle, and adventures</p>
               <div className="grid grid-cols-3 gap-2">
                 {profile.imageUrls?.map((url, i) => (
                   <div key={i} className="aspect-square rounded-lg overflow-hidden bg-secondary relative group">
@@ -230,6 +274,80 @@ export default function Profile() {
                 )}
               </div>
             </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground flex items-center gap-2">
+                  <Users className="h-4 w-4" />
+                  Surf Buddies ({buddies.length})
+                </h3>
+                <div className="flex items-center gap-2">
+                  {profile.buddiesPublic ? (
+                    <Globe className="h-4 w-4 text-muted-foreground" />
+                  ) : (
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                  )}
+                  <Switch 
+                    checked={profile.buddiesPublic ?? true} 
+                    onCheckedChange={toggleBuddiesPublic}
+                    data-testid="switch-buddies-public"
+                  />
+                  <span className="text-xs text-muted-foreground">
+                    {profile.buddiesPublic ? "Public" : "Private"}
+                  </span>
+                </div>
+              </div>
+              
+              <p className="text-xs text-muted-foreground mb-4">
+                Star up to 10 buddies to feature them at the top. {profile.buddiesPublic ? "Others can see your buddies." : "Only you can see your buddies."}
+              </p>
+
+              {sortedBuddies.length > 0 ? (
+                <div className="space-y-2">
+                  {sortedBuddies.map((buddy) => {
+                    const isTop = topBuddyIds.includes(buddy.userId);
+                    return (
+                      <div 
+                        key={buddy.userId} 
+                        className={`flex items-center gap-3 p-3 rounded-xl border ${isTop ? 'border-accent bg-accent/10' : 'border-border/50 bg-secondary/30'}`}
+                        data-testid={`buddy-row-${buddy.userId}`}
+                      >
+                        <button 
+                          onClick={() => toggleTopBuddy(buddy.userId)}
+                          className="flex-shrink-0"
+                          data-testid={`button-star-buddy-${buddy.userId}`}
+                        >
+                          <Star className={`h-5 w-5 ${isTop ? 'text-accent fill-current' : 'text-muted-foreground'}`} />
+                        </button>
+                        
+                        <Link href={`/profile/${buddy.userId}`} className="flex items-center gap-3 flex-1 min-w-0">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={buddy.imageUrls?.[0]} />
+                            <AvatarFallback>{buddy.displayName.charAt(0)}</AvatarFallback>
+                          </Avatar>
+                          <div className="min-w-0 flex-1">
+                            <p className="font-medium text-foreground truncate">{buddy.displayName}</p>
+                            <p className="text-xs text-muted-foreground truncate">{buddy.location} - {buddy.skillLevel}</p>
+                          </div>
+                        </Link>
+                        
+                        {isTop && (
+                          <Badge variant="outline" className="flex-shrink-0 text-accent border-accent">
+                            Top 10
+                          </Badge>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No surf buddies yet!</p>
+                  <p className="text-xs mt-1">Match with other surfers to add them here</p>
+                </div>
+              )}
+            </div>
           </div>
 
           {!profile.isPremium && (
@@ -238,6 +356,7 @@ export default function Profile() {
                 onClick={() => setShowPremium(true)}
                 variant="outline"
                 className="w-full text-muted-foreground"
+                data-testid="button-upgrade-premium"
               >
                 <Crown className="w-4 h-4 mr-2" /> Upgrade to Premium
               </Button>

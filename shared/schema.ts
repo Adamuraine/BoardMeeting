@@ -21,6 +21,8 @@ export const profiles = pgTable("profiles", {
   longestWave: integer("longest_wave").default(0), // yards
   biggestWave: integer("biggest_wave").default(0), // feet
   isPremium: boolean("is_premium").default(false),
+  topBuddyIds: text("top_buddy_ids").array(), // Top 10 favorite buddies (user IDs)
+  buddiesPublic: boolean("buddies_public").default(true), // Whether buddies list is public
 });
 
 // === SWIPES ===

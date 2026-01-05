@@ -2,7 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, TrendingUp } from "lucide-react";
+import { ArrowLeft, MapPin, TrendingUp, MessageCircle } from "lucide-react";
 import { useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
@@ -96,9 +96,19 @@ export default function ViewProfile({ params }: ViewProfileProps) {
               </div>
             )}
             
-            <Badge variant="secondary" className="capitalize" data-testid="badge-skill-level">
-              {profile.skillLevel}
-            </Badge>
+            <div className="flex items-center gap-3">
+              <Badge variant="secondary" className="capitalize" data-testid="badge-skill-level">
+                {profile.skillLevel}
+              </Badge>
+              <Button 
+                onClick={() => navigate(`/messages?buddy=${id}`)}
+                className="ml-auto"
+                data-testid="button-message"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Message
+              </Button>
+            </div>
           </div>
 
           {profile.bio && (

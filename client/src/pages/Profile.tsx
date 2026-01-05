@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle } from "lucide-react";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -337,6 +337,16 @@ export default function Profile() {
                             <p className="font-medium text-foreground truncate">{buddy.displayName}</p>
                             <p className="text-xs text-muted-foreground truncate">{buddy.location} - {buddy.skillLevel}</p>
                           </div>
+                        </Link>
+                        
+                        <Link href={`/messages?buddy=${buddy.userId}`}>
+                          <Button 
+                            size="icon" 
+                            variant="ghost"
+                            data-testid={`button-message-buddy-${buddy.userId}`}
+                          >
+                            <MessageCircle className="h-4 w-4" />
+                          </Button>
                         </Link>
                         
                         {isTop && (

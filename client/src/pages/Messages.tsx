@@ -10,6 +10,7 @@ import { ArrowLeft, Send, MessageCircle } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { useLocation } from "wouter";
 import type { Profile, Message } from "@shared/schema";
 
 type Conversation = {
@@ -23,6 +24,7 @@ export default function Messages() {
   const [selectedBuddy, setSelectedBuddy] = useState<Profile | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [, navigate] = useLocation();
 
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/messages/conversations"],
@@ -34,6 +36,18 @@ export default function Messages() {
     queryKey: ["/api/buddies"],
     enabled: !!profile,
   });
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const buddyId = params.get("buddy");
+    if (buddyId && buddies.length > 0 && !selectedBuddy) {
+      const buddy = buddies.find(b => b.userId === buddyId);
+      if (buddy) {
+        setSelectedBuddy(buddy);
+        navigate("/messages", { replace: true });
+      }
+    }
+  }, [buddies, selectedBuddy, navigate]);
 
   const { data: threadMessages = [], isLoading: threadLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages", selectedBuddy?.userId],

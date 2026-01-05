@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport,
@@ -8,9 +8,10 @@ import {
   type Post, type InsertPost,
   type FavoriteSpot, type InsertFavoriteSpot,
   type PostLike,
+  type Message, type InsertMessage,
   users
 } from "@shared/schema";
-import { eq, and, desc, sql, notInArray, inArray } from "drizzle-orm";
+import { eq, and, desc, sql, notInArray, inArray, or } from "drizzle-orm";
 import { authStorage } from "./replit_integrations/auth";
 
 export interface IStorage {
@@ -50,6 +51,12 @@ export interface IStorage {
 
   // Premium
   setPremium(userId: string, status: boolean): Promise<void>;
+
+  // Messages
+  getConversations(userId: string): Promise<{ buddy: Profile; lastMessage: Message; unreadCount: number }[]>;
+  getMessages(userId: string, buddyId: string): Promise<Message[]>;
+  sendMessage(message: InsertMessage): Promise<Message>;
+  markMessagesRead(userId: string, buddyId: string): Promise<void>;
   
   // Seeding
   seedLocations(): Promise<void>;
@@ -309,6 +316,66 @@ export class DatabaseStorage implements IStorage {
       .from(postLikes)
       .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
     return !!existing;
+  }
+
+  async getConversations(userId: string): Promise<{ buddy: Profile; lastMessage: Message; unreadCount: number }[]> {
+    const allMessages = await db.select()
+      .from(messages)
+      .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+      .orderBy(desc(messages.createdAt));
+    
+    const buddyMap = new Map<string, { lastMessage: Message; unreadCount: number }>();
+    
+    for (const msg of allMessages) {
+      const buddyId = msg.senderId === userId ? msg.receiverId : msg.senderId;
+      if (!buddyMap.has(buddyId)) {
+        const unreadCount = allMessages.filter(m => 
+          m.senderId === buddyId && m.receiverId === userId && !m.read
+        ).length;
+        buddyMap.set(buddyId, { lastMessage: msg, unreadCount });
+      }
+    }
+    
+    const result: { buddy: Profile; lastMessage: Message; unreadCount: number }[] = [];
+    const entries = Array.from(buddyMap.entries());
+    for (let i = 0; i < entries.length; i++) {
+      const [buddyId, data] = entries[i];
+      const buddy = await this.getProfile(buddyId);
+      if (buddy) {
+        result.push({ buddy, ...data });
+      }
+    }
+    
+    return result;
+  }
+
+  async getMessages(userId: string, buddyId: string): Promise<Message[]> {
+    return await db.select()
+      .from(messages)
+      .where(
+        or(
+          and(eq(messages.senderId, userId), eq(messages.receiverId, buddyId)),
+          and(eq(messages.senderId, buddyId), eq(messages.receiverId, userId))
+        )
+      )
+      .orderBy(messages.createdAt);
+  }
+
+  async sendMessage(message: InsertMessage): Promise<Message> {
+    const [newMessage] = await db.insert(messages).values(message).returning();
+    return newMessage;
+  }
+
+  async markMessagesRead(userId: string, buddyId: string): Promise<void> {
+    await db.update(messages)
+      .set({ read: true })
+      .where(
+        and(
+          eq(messages.senderId, buddyId),
+          eq(messages.receiverId, userId),
+          eq(messages.read, false)
+        )
+      );
   }
 
   async seedLocations(): Promise<void> {

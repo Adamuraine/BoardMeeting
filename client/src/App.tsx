@@ -18,6 +18,7 @@ import ViewProfile from "@/pages/ViewProfile";
 import Stats from "@/pages/Stats";
 import Home from "@/pages/Home";
 import NewPost from "@/pages/NewPost";
+import Messages from "@/pages/Messages";
 import NotFound from "@/pages/not-found";
 
 // Protected Route Wrapper
@@ -74,6 +75,9 @@ function Router() {
       </Route>
       <Route path="/trips">
         <ProtectedRoute component={Trips} />
+      </Route>
+      <Route path="/messages">
+        <ProtectedRoute component={Messages} />
       </Route>
       <Route path="/profile">
         <ProtectedRoute component={Profile} />

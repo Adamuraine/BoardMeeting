@@ -318,6 +318,47 @@ export async function registerRoutes(
     res.json({ liked, count });
   });
 
+  // === MESSAGES ===
+  app.get(api.messages.conversations.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const conversations = await storage.getConversations(userId);
+    res.json(conversations);
+  });
+
+  app.get(api.messages.thread.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const messages = await storage.getMessages(userId, req.params.buddyId);
+    await storage.markMessagesRead(userId, req.params.buddyId);
+    res.json(messages);
+  });
+
+  app.post(api.messages.send.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const message = await storage.sendMessage({
+        senderId: userId,
+        receiverId: req.body.receiverId,
+        content: req.body.content,
+      });
+      res.status(201).json(message);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors });
+      }
+      throw err;
+    }
+  });
+
+  app.post(api.messages.markRead.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    await storage.markMessagesRead(userId, req.params.buddyId);
+    res.json({ success: true });
+  });
+
   // Seed Data
   await storage.seedLocations();
   await seedFakeProfiles();

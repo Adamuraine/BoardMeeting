@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, profiles, locations, trips, surfReports, posts, type InsertTrip } from './schema';
+import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, insertMessageSchema, profiles, locations, trips, surfReports, posts, messages, type InsertTrip } from './schema';
 
 export { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, profiles, locations, trips, surfReports, posts };
 export type CreateTripRequest = InsertTrip;
@@ -138,6 +138,42 @@ export const api = {
     upgrade: {
       method: 'POST' as const,
       path: '/api/premium/upgrade',
+      responses: {
+        200: z.object({ success: z.boolean() }),
+      },
+    },
+  },
+  messages: {
+    conversations: {
+      method: 'GET' as const,
+      path: '/api/messages/conversations',
+      responses: {
+        200: z.array(z.object({
+          buddy: z.custom<typeof profiles.$inferSelect>(),
+          lastMessage: z.custom<typeof messages.$inferSelect>(),
+          unreadCount: z.number(),
+        })),
+      },
+    },
+    thread: {
+      method: 'GET' as const,
+      path: '/api/messages/:buddyId',
+      responses: {
+        200: z.array(z.custom<typeof messages.$inferSelect>()),
+      },
+    },
+    send: {
+      method: 'POST' as const,
+      path: '/api/messages',
+      input: insertMessageSchema,
+      responses: {
+        201: z.custom<typeof messages.$inferSelect>(),
+        400: errorSchemas.validation,
+      },
+    },
+    markRead: {
+      method: 'POST' as const,
+      path: '/api/messages/:buddyId/read',
       responses: {
         200: z.object({ success: z.boolean() }),
       },

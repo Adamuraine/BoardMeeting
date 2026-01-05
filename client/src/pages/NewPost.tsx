@@ -59,7 +59,7 @@ export default function NewPost() {
 
   const handleUploadComplete = () => {
     if (pendingPathRef.current) {
-      setImageUrl(`/objects/${pendingPathRef.current}`);
+      setImageUrl(pendingPathRef.current);
       pendingPathRef.current = null;
     }
   };

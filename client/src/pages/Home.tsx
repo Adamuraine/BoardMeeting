@@ -166,6 +166,28 @@ export default function Home() {
         </Button>
       </header>
 
+      <div className="p-4 pb-0">
+        <Link href="/post/new">
+          <div 
+            className="relative overflow-hidden rounded-xl bg-gradient-to-r from-primary to-cyan-400 p-4 cursor-pointer hover-elevate"
+            data-testid="button-share-session"
+          >
+            <div className="flex items-center gap-4">
+              <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <Camera className="h-6 w-6 text-white" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-sm">Share Your Session</p>
+                <p className="text-white/80 text-xs">Post your best wave of the day</p>
+              </div>
+              <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
+                <span className="text-white text-lg">+</span>
+              </div>
+            </div>
+          </div>
+        </Link>
+      </div>
+
       <div className="space-y-4 p-4">
         {posts?.map((post) => (
           <PostCard key={post.id} post={post} />

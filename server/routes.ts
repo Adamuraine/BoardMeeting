@@ -275,6 +275,25 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // === POST LIKES (Shaka) ===
+  app.post("/api/posts/:id/like", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const postId = parseInt(req.params.id);
+    const liked = await storage.togglePostLike(postId, userId);
+    const count = await storage.getPostLikesCount(postId);
+    res.json({ liked, count });
+  });
+
+  app.get("/api/posts/:id/like", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const postId = parseInt(req.params.id);
+    const liked = await storage.hasUserLikedPost(postId, userId);
+    const count = await storage.getPostLikesCount(postId);
+    res.json({ liked, count });
+  });
+
   // Seed Data
   await storage.seedLocations();
   await seedFakeProfiles();

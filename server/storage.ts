@@ -1,12 +1,13 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport,
   type Trip, type InsertTrip,
   type Post, type InsertPost,
   type FavoriteSpot, type InsertFavoriteSpot,
+  type PostLike,
   users
 } from "@shared/schema";
 import { eq, and, desc, sql, notInArray, inArray } from "drizzle-orm";
@@ -40,6 +41,11 @@ export interface IStorage {
   createPost(post: InsertPost): Promise<Post>;
   getPosts(): Promise<(Post & { user: Profile, location: Location })[]>;
   getPostsByLocation(locationId: number): Promise<(Post & { user: Profile })[]>;
+
+  // Post Likes (Shaka)
+  togglePostLike(postId: number, userId: string): Promise<boolean>;
+  getPostLikesCount(postId: number): Promise<number>;
+  hasUserLikedPost(postId: number, userId: string): Promise<boolean>;
 
   // Premium
   setPremium(userId: string, status: boolean): Promise<void>;
@@ -266,6 +272,35 @@ export class DatabaseStorage implements IStorage {
     await db.update(profiles)
       .set({ isPremium: status })
       .where(eq(profiles.userId, userId));
+  }
+
+  async togglePostLike(postId: number, userId: string): Promise<boolean> {
+    const [existing] = await db.select()
+      .from(postLikes)
+      .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
+    
+    if (existing) {
+      await db.delete(postLikes).where(eq(postLikes.id, existing.id));
+      return false;
+    } else {
+      await db.insert(postLikes).values({ postId, userId });
+      return true;
+    }
+  }
+
+  async getPostLikesCount(postId: number): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(postLikes)
+      .where(eq(postLikes.postId, postId));
+    return Number(result.count);
+  }
+
+  async hasUserLikedPost(postId: number, userId: string): Promise<boolean> {
+    const [existing] = await db.select()
+      .from(postLikes)
+      .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
+    return !!existing;
   }
 
   async seedLocations(): Promise<void> {

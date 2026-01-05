@@ -89,12 +89,21 @@ export const favoriteSpots = pgTable("favorite_spots", {
   locationId: integer("location_id").notNull().references(() => locations.id),
 });
 
+// === POST LIKES (Shaka reactions) ===
+export const postLikes = pgTable("post_likes", {
+  id: serial("id").primaryKey(),
+  postId: integer("post_id").notNull().references(() => posts.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === SCHEMAS ===
 export const insertProfileSchema = createInsertSchema(profiles).omit({ id: true });
 export const insertSwipeSchema = createInsertSchema(swipes).omit({ id: true, createdAt: true });
 export const insertTripSchema = createInsertSchema(trips).omit({ id: true });
 export const insertPostSchema = createInsertSchema(posts).omit({ id: true, createdAt: true });
 export const insertFavoriteSpotSchema = createInsertSchema(favoriteSpots).omit({ id: true });
+export const insertPostLikeSchema = createInsertSchema(postLikes).omit({ id: true, createdAt: true });
 
 // === TYPES ===
 export type Profile = typeof profiles.$inferSelect;
@@ -109,6 +118,8 @@ export type Post = typeof posts.$inferSelect;
 export type InsertPost = z.infer<typeof insertPostSchema>;
 export type FavoriteSpot = typeof favoriteSpots.$inferSelect;
 export type InsertFavoriteSpot = z.infer<typeof insertFavoriteSpotSchema>;
+export type PostLike = typeof postLikes.$inferSelect;
+export type InsertPostLike = z.infer<typeof insertPostLikeSchema>;
 
 // Request Types
 export type CreateProfileRequest = InsertProfile;

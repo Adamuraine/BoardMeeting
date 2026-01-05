@@ -127,7 +127,7 @@ export default function NewPost() {
             ) : (
               <ObjectUploader
                 maxNumberOfFiles={1}
-                maxFileSize={10485760}
+                maxFileSize={52428800}
                 onGetUploadParameters={getUploadParams}
                 onComplete={handleUploadComplete}
                 buttonClassName="w-full aspect-square rounded-xl border-2 border-dashed border-border flex flex-col items-center justify-center gap-3 text-muted-foreground hover:bg-secondary/50 transition-colors p-0"

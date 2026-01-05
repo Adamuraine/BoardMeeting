@@ -183,7 +183,22 @@ export async function registerRoutes(
       // Check for match
       let isMatch = false;
       if (input.direction === 'right') {
-        isMatch = await storage.checkMatch(userId, input.swipedId);
+        // For mock profiles, auto-swipe right back to create matches (demo purposes)
+        if (input.swipedId.startsWith('mock_user_')) {
+          // Check if mock profile already swiped on this user
+          const alreadySwiped = await storage.checkMatch(userId, input.swipedId);
+          if (!alreadySwiped) {
+            // Create reverse swipe from mock profile to user
+            await storage.createSwipe({
+              swiperId: input.swipedId,
+              swipedId: userId,
+              direction: 'right'
+            });
+          }
+          isMatch = true; // Always a match with mock profiles when you swipe right
+        } else {
+          isMatch = await storage.checkMatch(userId, input.swipedId);
+        }
       }
       
       res.status(201).json({ match: isMatch });

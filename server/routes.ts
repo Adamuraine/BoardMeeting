@@ -154,6 +154,13 @@ export async function registerRoutes(
     res.json(matches);
   });
 
+  app.get(api.profiles.get.path, async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const profile = await storage.getProfile(req.params.id);
+    if (!profile) return res.sendStatus(404);
+    res.json(profile);
+  });
+
   // === SWIPES ===
   app.post(api.swipes.create.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

@@ -14,6 +14,7 @@ import Buddies from "@/pages/Buddies";
 import SurfReports from "@/pages/SurfReports";
 import Trips from "@/pages/Trips";
 import Profile from "@/pages/Profile";
+import ViewProfile from "@/pages/ViewProfile";
 import Stats from "@/pages/Stats";
 import Home from "@/pages/Home";
 import NotFound from "@/pages/not-found";
@@ -75,6 +76,9 @@ function Router() {
       </Route>
       <Route path="/profile">
         <ProtectedRoute component={Profile} />
+      </Route>
+      <Route path="/profile/:id">
+        {(params) => <ProtectedRoute component={() => <ViewProfile params={params} />} />}
       </Route>
 
       <Route component={NotFound} />

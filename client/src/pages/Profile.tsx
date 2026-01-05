@@ -26,6 +26,8 @@ export default function Profile() {
   const { data: buddies = [] } = useQuery<ProfileType[]>({
     queryKey: ["/api/buddies"],
     enabled: !!profile,
+    staleTime: 0,
+    refetchOnMount: true,
   });
 
   const updatePhotosMutation = useMutation({

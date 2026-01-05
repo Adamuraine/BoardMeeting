@@ -302,13 +302,13 @@ export async function registerRoutes(
 }
 
 async function seedFakeProfiles() {
-  // Male surfers in action (clearly identifiable as male)
+  // Male surfers in action - verified working URLs
   const maleSurfAction = [
     "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80", // Male surfer on wave
     "https://images.unsplash.com/photo-1455729552865-3658a5d39692?w=800&q=80", // Male barrel ride
-    "https://images.unsplash.com/photo-1527769929977-c341ee9f2e66?w=800&q=80", // Male surfer cutback
-    "https://images.unsplash.com/photo-1531722569936-825d3dd91b15?w=800&q=80", // Male aerial
     "https://images.unsplash.com/photo-1509914398892-963f53e6e2f1?w=800&q=80", // Male paddling out
+    "https://images.unsplash.com/photo-1600077106724-946750eeaf3c?w=800&q=80", // Male dawn patrol
+    "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=80", // Male sunset surf
   ];
   // Male lifestyle photos (beach/surf vibes, no headshots)
   const maleLifestyle = [
@@ -317,13 +317,13 @@ async function seedFakeProfiles() {
     "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80", // Beach scene
   ];
   
-  // Female surfers in action (clearly identifiable as female)
+  // Female surfers in action - verified working URLs
   const femaleSurfAction = [
     "https://images.unsplash.com/photo-1506477331477-33d5d8b3dc85?w=800&q=80", // Female surfer on wave
     "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80", // Female longboarder
-    "https://images.unsplash.com/photo-1523815378073-d3d71dcca381?w=800&q=80", // Female surfer action
     "https://images.unsplash.com/photo-1502933691298-84fc14542831?w=800&q=80", // Female tube ride
     "https://images.unsplash.com/photo-1537519646099-335112f03225?w=800&q=80", // Female paddling
+    "https://images.unsplash.com/photo-1510218830377-2e994ea9087d?w=800&q=80", // Female beach walk
   ];
   // Female lifestyle photos (beach/surf vibes, no headshots)
   const femaleLifestyle = [

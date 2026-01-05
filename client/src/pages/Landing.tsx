@@ -38,8 +38,12 @@ export default function Landing() {
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-500">Surf Tribe</span>
         </h1>
 
-        <p className="text-lg text-muted-foreground max-w-sm mb-12">
-          Connect with local surfers, check reports, and plan epic trips. The ocean is calling.
+        <p className="text-lg font-medium text-foreground max-w-sm mb-3">
+          It's not always what you know, but who you know that's important.
+        </p>
+        
+        <p className="text-base text-muted-foreground max-w-sm mb-12">
+          Learn new tricks, find rides to the beach, and plan surf trips with other surfers.
         </p>
 
         <Button 

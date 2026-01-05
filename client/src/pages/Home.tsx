@@ -3,7 +3,8 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Camera, MapPin, ExternalLink, Loader2, Hand } from "lucide-react";
+import { Camera, MapPin, ExternalLink, Loader2, MessageCircle } from "lucide-react";
+import { ShakaIcon } from "@/components/ShakaIcon";
 import type { PostWithUser } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
 import { useState, useCallback } from "react";
@@ -89,7 +90,7 @@ function PostCard({ post }: PostCardProps) {
               className="absolute inset-0 flex items-center justify-center pointer-events-none"
             >
               <div className="w-24 h-24 bg-white/90 rounded-full flex items-center justify-center shadow-xl">
-                <Hand className="w-12 h-12 text-primary" />
+                <ShakaIcon className="w-12 h-12 text-primary" filled />
               </div>
             </motion.div>
           )}
@@ -123,18 +124,28 @@ function PostCard({ post }: PostCardProps) {
             </div>
           </div>
           
-          <button 
-            onClick={handleLikeClick}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-secondary/50 transition-colors"
-            data-testid={`button-like-post-${post.id}`}
-          >
-            <Hand className={`h-5 w-5 ${currentLiked ? 'text-primary' : 'text-muted-foreground'}`} />
-            {currentCount > 0 && (
-              <span className={`text-sm font-medium ${currentLiked ? 'text-primary' : 'text-muted-foreground'}`}>
-                {currentCount}
-              </span>
-            )}
-          </button>
+          <div className="flex items-center gap-1">
+            <Link href={`/messages?buddy=${post.user.userId}`}>
+              <button 
+                className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-secondary/50 transition-colors"
+                data-testid={`button-message-post-${post.id}`}
+              >
+                <MessageCircle className="h-5 w-5 text-muted-foreground" />
+              </button>
+            </Link>
+            <button 
+              onClick={handleLikeClick}
+              className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-secondary/50 transition-colors"
+              data-testid={`button-like-post-${post.id}`}
+            >
+              <ShakaIcon className={`h-5 w-5 ${currentLiked ? 'text-primary' : 'text-muted-foreground'}`} filled={currentLiked} />
+              {currentCount > 0 && (
+                <span className={`text-sm font-medium ${currentLiked ? 'text-primary' : 'text-muted-foreground'}`}>
+                  {currentCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
         <p className="text-sm text-card-foreground leading-relaxed">
           {post.caption}

@@ -28,11 +28,18 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
       toast({ title: "Photos updated", description: "Your photos have been saved!" });
     },
+    onError: (error) => {
+      toast({ 
+        title: "Upload failed", 
+        description: "Failed to save your photos. Please try again.",
+        variant: "destructive"
+      });
+    },
   });
 
-  const [pendingPaths, setPendingPaths] = useState<Map<string, string>>(new Map());
+  const pendingPathsRef = { current: new Map<string, string>() };
 
-  const getUploadParams = async (file: { name: string; size: number | null; type: string }) => {
+  const getUploadParams = async (file: { id?: string; name: string; size: number | null; type: string }) => {
     const res = await fetch("/api/uploads/request-url", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -43,7 +50,8 @@ export default function Profile() {
       }),
     });
     const { uploadURL, objectPath } = await res.json();
-    setPendingPaths(prev => new Map(prev).set(file.name, objectPath));
+    const fileId = file.id || file.name;
+    pendingPathsRef.current.set(fileId, objectPath);
     return {
       method: "PUT" as const,
       url: uploadURL as string,
@@ -51,29 +59,39 @@ export default function Profile() {
     };
   };
 
-  const handleProfilePhotoComplete = (result: { successful?: { name?: string }[] }) => {
+  const handleProfilePhotoComplete = (result: { successful?: { id?: string; name?: string }[] }) => {
     const files = result.successful || [];
-    if (files.length > 0 && files[0]?.name) {
-      const objectPath = pendingPaths.get(files[0].name);
+    if (files.length > 0) {
+      const file = files[0];
+      const fileId = file?.id || file?.name;
+      const objectPath = fileId ? pendingPathsRef.current.get(fileId) : undefined;
       if (objectPath) {
         const newImageUrls = [objectPath, ...(profile?.imageUrls?.slice(1) || [])];
         updatePhotosMutation.mutate(newImageUrls);
-        setPendingPaths(new Map());
+        pendingPathsRef.current.delete(fileId!);
       }
     }
   };
 
-  const handleGalleryComplete = (result: { successful?: { name?: string }[] }) => {
+  const handleGalleryComplete = (result: { successful?: { id?: string; name?: string }[] }) => {
     const files = result.successful || [];
-    const newUrls = files
-      .map((f) => f?.name ? pendingPaths.get(f.name) : undefined)
-      .filter((path): path is string => !!path);
+    const newUrls: string[] = [];
+    
+    for (const file of files) {
+      const fileId = file?.id || file?.name;
+      if (fileId) {
+        const objectPath = pendingPathsRef.current.get(fileId);
+        if (objectPath) {
+          newUrls.push(objectPath);
+          pendingPathsRef.current.delete(fileId);
+        }
+      }
+    }
     
     if (newUrls.length > 0) {
       const currentUrls = profile?.imageUrls || [];
       const updatedUrls = [...currentUrls, ...newUrls].slice(0, 50);
       updatePhotosMutation.mutate(updatedUrls);
-      setPendingPaths(new Map());
     }
   };
 

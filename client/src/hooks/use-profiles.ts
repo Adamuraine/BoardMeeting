@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 import { api, buildUrl } from "@shared/routes";
 
 export function useMyProfile() {
@@ -77,6 +78,11 @@ export function useSwipe() {
       }
       
       return api.swipes.create.responses[201].parse(await res.json());
+    },
+    onSuccess: (result) => {
+      if (result.match) {
+        queryClient.invalidateQueries({ queryKey: ["/api/buddies"] });
+      }
     },
   });
 }

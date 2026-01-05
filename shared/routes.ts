@@ -84,11 +84,11 @@ export const api = {
     create: {
       method: 'POST' as const,
       path: '/api/swipes',
-      input: insertSwipeSchema,
+      input: z.object({ swipedId: z.string(), direction: z.enum(['left', 'right']) }),
       responses: {
-        201: z.object({ match: z.boolean() }), // Return if it's a match!
+        201: z.object({ match: z.boolean() }),
         400: errorSchemas.validation,
-        403: z.object({ message: z.string(), code: z.literal('LIMIT_REACHED') }), // For free tier limit
+        403: z.object({ message: z.string(), code: z.literal('LIMIT_REACHED') }),
       },
     },
   },

@@ -71,6 +71,7 @@ const TRICK_CATEGORIES = {
 };
 
 const WAVE_SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50];
+const SKILL_LEVELS = ["beginner", "intermediate", "advanced", "pro"] as const;
 
 export default function Stats() {
   const { data: profile, isLoading } = useMyProfile();
@@ -80,6 +81,20 @@ export default function Stats() {
   const [editingLongestWave, setEditingLongestWave] = useState(false);
   const [tempSpeed, setTempSpeed] = useState("");
   const [tempLongestWave, setTempLongestWave] = useState("");
+
+  const skillLevelMutation = useMutation({
+    mutationFn: async (skillLevel: string) => {
+      const res = await apiRequest("PATCH", "/api/profiles/me", { skillLevel });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
+      toast({
+        title: "Skill Level Updated",
+        description: "Your skill level has been saved!",
+      });
+    },
+  });
 
   const tricksMutation = useMutation({
     mutationFn: async (tricks: string[]) => {
@@ -347,9 +362,24 @@ export default function Stats() {
         <CardContent>
           <div className="space-y-4">
             <div>
-              <div className="flex justify-between mb-2 text-sm">
+              <div className="flex justify-between items-center mb-2 text-sm">
                 <span className="text-muted-foreground">Current Level</span>
-                <span className="font-medium capitalize" data-testid="text-skill-level">{profile?.skillLevel}</span>
+                <Select
+                  value={profile?.skillLevel || "beginner"}
+                  onValueChange={(value) => skillLevelMutation.mutate(value)}
+                  disabled={skillLevelMutation.isPending}
+                >
+                  <SelectTrigger className="w-32 h-8" data-testid="select-skill-level">
+                    <SelectValue placeholder="Select level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {SKILL_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level} data-testid={`select-skill-${level}`}>
+                        <span className="capitalize">{level}</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
               <div className="h-2 bg-secondary rounded-full overflow-hidden">
                 <div 

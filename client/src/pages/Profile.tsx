@@ -220,7 +220,7 @@ export default function Profile() {
                   </div>
                 ))}
                 <ObjectUploader
-                  maxNumberOfFiles={10}
+                  maxNumberOfFiles={50}
                   maxFileSize={10485760}
                   onGetUploadParameters={getUploadParams}
                   onComplete={handleGalleryComplete}

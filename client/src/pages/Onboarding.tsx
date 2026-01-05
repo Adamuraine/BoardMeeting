@@ -125,7 +125,7 @@ export default function Onboarding() {
                 )}
               </label>
             </div>
-            <p className="text-xs text-muted-foreground">Add up to 4 photos to show off your surf skills</p>
+            <p className="text-xs text-muted-foreground">Add photos to show off your surf skills</p>
           </div>
 
           <div className="space-y-2">

@@ -23,14 +23,12 @@ export default function Profile() {
   const [showPremium, setShowPremium] = useState(false);
   const { toast } = useToast();
 
-  const { data: buddies = [], isLoading: buddiesLoading, error: buddiesError } = useQuery<ProfileType[]>({
+  const { data: buddies = [] } = useQuery<ProfileType[]>({
     queryKey: ["/api/buddies"],
     enabled: !!profile,
     staleTime: 0,
     refetchOnMount: 'always',
   });
-  
-  console.log("Profile page - buddies:", buddies, "loading:", buddiesLoading, "error:", buddiesError, "profile:", !!profile);
 
   const updatePhotosMutation = useMutation({
     mutationFn: async (imageUrls: string[]) => {

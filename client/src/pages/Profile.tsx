@@ -109,7 +109,7 @@ export default function Profile() {
     
     if (newUrls.length > 0) {
       const currentUrls = profile?.imageUrls || [];
-      const updatedUrls = [...currentUrls, ...newUrls].slice(0, 50);
+      const updatedUrls = [...currentUrls, ...newUrls];
       updatePhotosMutation.mutate(updatedUrls);
     }
   };
@@ -200,54 +200,10 @@ export default function Profile() {
             </div>
 
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Stats</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary">{profile.fastestSpeed || 0}</div>
-                  <div className="text-xs text-muted-foreground">Top Speed (mph)</div>
-                </div>
-                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary">{profile.biggestWave || 0}</div>
-                  <div className="text-xs text-muted-foreground">Biggest Wave (ft)</div>
-                </div>
-                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary">{profile.longestWave || 0}</div>
-                  <div className="text-xs text-muted-foreground">Longest Ride (yds)</div>
-                </div>
-                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary capitalize">{profile.skillLevel}</div>
-                  <div className="text-xs text-muted-foreground">Skill Level</div>
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Tricks Mastered ({profile.tricks?.length || 0})
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {profile.tricks?.length ? (
-                  profile.tricks.map((trick: string) => (
-                    <Badge 
-                      key={trick} 
-                      variant="secondary"
-                      data-testid={`profile-badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
-                    >
-                      {trick}
-                    </Badge>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">No tricks logged yet. Add tricks from the Stats page!</p>
-                )}
-              </div>
-            </div>
-
-            <div>
               <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">
-                Surf & Lifestyle Photos ({profile.imageUrls?.length || 0}/50)
+                My Photos ({profile.imageUrls?.length || 0})
               </h3>
-              <p className="text-xs text-muted-foreground mb-3">Add up to 50 photos of your surf sessions, lifestyle, and adventures</p>
+              <p className="text-xs text-muted-foreground mb-3">Upload as many surf action shots and lifestyle photos as you want</p>
               <div className="grid grid-cols-3 gap-2">
                 {profile.imageUrls?.map((url, i) => (
                   <div key={i} className="aspect-square rounded-lg overflow-hidden bg-secondary relative group">
@@ -261,17 +217,15 @@ export default function Profile() {
                     </button>
                   </div>
                 ))}
-                {(profile.imageUrls?.length || 0) < 50 && (
-                  <ObjectUploader
-                    maxNumberOfFiles={Math.min(10, 50 - (profile.imageUrls?.length || 0))}
-                    maxFileSize={10485760}
-                    onGetUploadParameters={getUploadParams}
-                    onComplete={handleGalleryComplete}
-                    buttonClassName="aspect-square w-full rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:bg-secondary/50 transition-colors p-0"
-                  >
-                    <Plus className="w-6 h-6" />
-                  </ObjectUploader>
-                )}
+                <ObjectUploader
+                  maxNumberOfFiles={10}
+                  maxFileSize={10485760}
+                  onGetUploadParameters={getUploadParams}
+                  onComplete={handleGalleryComplete}
+                  buttonClassName="aspect-square w-full rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:bg-secondary/50 transition-colors p-0"
+                >
+                  <Plus className="w-6 h-6" />
+                </ObjectUploader>
               </div>
             </div>
 
@@ -347,6 +301,50 @@ export default function Profile() {
                   <p className="text-xs mt-1">Match with other surfers to add them here</p>
                 </div>
               )}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Stats</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
+                  <div className="text-2xl font-bold font-display text-primary">{profile.fastestSpeed || 0}</div>
+                  <div className="text-xs text-muted-foreground">Top Speed (mph)</div>
+                </div>
+                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
+                  <div className="text-2xl font-bold font-display text-primary">{profile.biggestWave || 0}</div>
+                  <div className="text-xs text-muted-foreground">Biggest Wave (ft)</div>
+                </div>
+                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
+                  <div className="text-2xl font-bold font-display text-primary">{profile.longestWave || 0}</div>
+                  <div className="text-xs text-muted-foreground">Longest Ride (yds)</div>
+                </div>
+                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
+                  <div className="text-2xl font-bold font-display text-primary capitalize">{profile.skillLevel}</div>
+                  <div className="text-xs text-muted-foreground">Skill Level</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                <TrendingUp className="h-4 w-4" />
+                Tricks Mastered ({profile.tricks?.length || 0})
+              </h3>
+              <div className="flex flex-wrap gap-2">
+                {profile.tricks?.length ? (
+                  profile.tricks.map((trick: string) => (
+                    <Badge 
+                      key={trick} 
+                      variant="secondary"
+                      data-testid={`profile-badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
+                    >
+                      {trick}
+                    </Badge>
+                  ))
+                ) : (
+                  <p className="text-sm text-muted-foreground italic">No tricks logged yet. Add tricks from the Stats page!</p>
+                )}
+              </div>
             </div>
           </div>
 

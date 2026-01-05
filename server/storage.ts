@@ -344,47 +344,51 @@ export class DatabaseStorage implements IStorage {
     const existingMockProfiles = await db.select().from(profiles).where(sql`${profiles.userId} LIKE 'mock_user_%'`);
     if (existingMockProfiles.length >= 20) return;
 
-    const surfActionPhotos = [
+    // Male surfers in action - clearly identifiable as male
+    const maleSurfAction = [
       "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80",
-      "https://images.unsplash.com/photo-1455264745730-cb3b76250ae8?w=800&q=80",
-      "https://images.unsplash.com/photo-1509914398892-963f53e6e2f1?w=800&q=80",
-      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80",
-      "https://images.unsplash.com/photo-1531722569936-825d3dd91b15?w=800&q=80",
+      "https://images.unsplash.com/photo-1455729552865-3658a5d39692?w=800&q=80",
       "https://images.unsplash.com/photo-1527769929977-c341ee9f2e66?w=800&q=80",
-      "https://images.unsplash.com/photo-1600077106724-946750eeaf3c?w=800&q=80",
-      "https://images.unsplash.com/photo-1519046904884-53103b34b206?w=800&q=80",
+      "https://images.unsplash.com/photo-1531722569936-825d3dd91b15?w=800&q=80",
+      "https://images.unsplash.com/photo-1509914398892-963f53e6e2f1?w=800&q=80",
+    ];
+    // Male lifestyle photos (no headshots)
+    const maleLifestyle = [
       "https://images.unsplash.com/photo-1505459668311-8dfac7952bf0?w=800&q=80",
-      "https://images.unsplash.com/photo-1484264883846-5d0df33f3b67?w=800&q=80",
-      "https://images.unsplash.com/photo-1581610186406-5f6e9f9edbc1?w=800&q=80",
-      "https://images.unsplash.com/photo-1531859663742-44d8e2a61ad4?w=800&q=80",
+      "https://images.unsplash.com/photo-1520116468816-95b69f847357?w=800&q=80",
+      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=800&q=80",
+    ];
+    
+    // Female surfers in action - clearly identifiable as female
+    const femaleSurfAction = [
+      "https://images.unsplash.com/photo-1506477331477-33d5d8b3dc85?w=800&q=80",
+      "https://images.unsplash.com/photo-1544551763-46a013bb70d5?w=800&q=80",
+      "https://images.unsplash.com/photo-1523815378073-d3d71dcca381?w=800&q=80",
       "https://images.unsplash.com/photo-1502933691298-84fc14542831?w=800&q=80",
-      "https://images.unsplash.com/photo-1539857284950-98bea9b83e06?w=800&q=80",
-      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=800&q=80",
-      "https://images.unsplash.com/photo-1462392246754-28dfa2df8e6b?w=800&q=80",
+      "https://images.unsplash.com/photo-1537519646099-335112f03225?w=800&q=80",
+    ];
+    // Female lifestyle photos (no headshots)
+    const femaleLifestyle = [
+      "https://images.unsplash.com/photo-1510218830377-2e994ea9087d?w=800&q=80",
+      "https://images.unsplash.com/photo-1520250497591-112f2f40a3f4?w=800&q=80",
+      "https://images.unsplash.com/photo-1505459668311-8dfac7952bf0?w=800&q=80",
     ];
 
-    const headshots = [
-      "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=400&q=80",
-      "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&q=80",
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=400&q=80",
-      "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=400&q=80",
-      "https://images.unsplash.com/photo-1517841905240-472988babdf9?w=400&q=80",
-      "https://images.unsplash.com/photo-1539571696357-5a69c17a67c6?w=400&q=80",
-      "https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=400&q=80",
-      "https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?w=400&q=80",
-      "https://images.unsplash.com/photo-1501196354995-cbb51c65adc6?w=400&q=80",
-      "https://images.unsplash.com/photo-1552058544-f2b08422138a?w=400&q=80",
-      "https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?w=400&q=80",
-      "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&q=80",
-      "https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&q=80",
-      "https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=400&q=80",
-      "https://images.unsplash.com/photo-1463453091185-61582044d556?w=400&q=80",
-      "https://images.unsplash.com/photo-1504257432389-52343af06ae3?w=400&q=80",
-      "https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=400&q=80",
-      "https://images.unsplash.com/photo-1548142813-c348350df52b?w=400&q=80",
-      "https://images.unsplash.com/photo-1521119989659-a83eee488004?w=400&q=80",
-      "https://images.unsplash.com/photo-1557862921-37829c790f19?w=400&q=80",
-    ];
+    // Build gallery: surf action first, lifestyle mixed in lower positions
+    const buildMaleGallery = (idx: number) => {
+      const surf1 = maleSurfAction[idx % maleSurfAction.length];
+      const surf2 = maleSurfAction[(idx + 1) % maleSurfAction.length];
+      const surf3 = maleSurfAction[(idx + 2) % maleSurfAction.length];
+      const lifestyle = maleLifestyle[idx % maleLifestyle.length];
+      return [surf1, surf2, lifestyle, surf3];
+    };
+    const buildFemaleGallery = (idx: number) => {
+      const surf1 = femaleSurfAction[idx % femaleSurfAction.length];
+      const surf2 = femaleSurfAction[(idx + 1) % femaleSurfAction.length];
+      const surf3 = femaleSurfAction[(idx + 2) % femaleSurfAction.length];
+      const lifestyle = femaleLifestyle[idx % femaleLifestyle.length];
+      return [surf1, surf2, lifestyle, surf3];
+    };
 
     const mockUsers = [
       { name: "Jake", gender: "male", age: 28, skill: "advanced", bio: "Chasing barrels up and down the coast. Love early dawn sessions.", location: "Oceanside, CA", tricks: ["Tube Ride", "Cutback", "Floater"] },
@@ -412,6 +416,8 @@ export class DatabaseStorage implements IStorage {
     const locationIds = await db.select({ id: locations.id }).from(locations);
     const locIds = locationIds.map(l => l.id);
 
+    let maleIdx = 0;
+    let femaleIdx = 0;
     for (let i = 0; i < mockUsers.length; i++) {
       const u = mockUsers[i];
       const fakeUserId = `mock_user_${i + 1}`;
@@ -423,12 +429,10 @@ export class DatabaseStorage implements IStorage {
         lastName: "Surfer",
       }).onConflictDoNothing();
 
-      const imageUrls = [
-        headshots[i % headshots.length],
-        surfActionPhotos[(i * 3) % surfActionPhotos.length],
-        surfActionPhotos[(i * 3 + 1) % surfActionPhotos.length],
-        surfActionPhotos[(i * 3 + 2) % surfActionPhotos.length],
-      ];
+      // Gender-appropriate images - surf action first, lifestyle mixed in
+      const imageUrls = u.gender === "female" 
+        ? buildFemaleGallery(femaleIdx++)
+        : buildMaleGallery(maleIdx++);
 
       await db.insert(profiles).values({
         userId: fakeUserId,

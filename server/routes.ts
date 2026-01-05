@@ -271,6 +271,11 @@ export async function registerRoutes(
     res.json(trips);
   });
 
+  app.get(api.trips.byUser.path, async (req, res) => {
+    const trips = await storage.getUserTrips(req.params.userId);
+    res.json(trips);
+  });
+
   app.post(api.trips.create.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);

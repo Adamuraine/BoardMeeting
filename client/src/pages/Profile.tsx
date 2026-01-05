@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar } from "lucide-react";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,7 +15,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Switch } from "@/components/ui/switch";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "wouter";
-import type { Profile as ProfileType } from "@shared/schema";
+import type { Profile as ProfileType, Trip } from "@shared/schema";
+import { format } from "date-fns";
 
 export default function Profile() {
   const { data: profile, isLoading } = useMyProfile();
@@ -28,6 +29,11 @@ export default function Profile() {
     enabled: !!profile,
     staleTime: 0,
     refetchOnMount: 'always',
+  });
+
+  const { data: myTrips = [] } = useQuery<Trip[]>({
+    queryKey: ["/api/trips/user", profile?.userId],
+    enabled: !!profile?.userId,
   });
 
   const updatePhotosMutation = useMutation({
@@ -199,6 +205,52 @@ export default function Profile() {
               <p className="text-foreground/80 leading-relaxed">
                 {profile.bio || "No bio yet."}
               </p>
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                <MapPin className="h-4 w-4" />
+                Upcoming Trips ({myTrips.length})
+              </h3>
+              {myTrips.length > 0 ? (
+                <div className="space-y-3">
+                  {myTrips.map((trip) => (
+                    <div 
+                      key={trip.id} 
+                      className="p-4 rounded-xl border border-border/50 bg-secondary/30"
+                      data-testid={`trip-card-${trip.id}`}
+                    >
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <h4 className="font-semibold text-foreground truncate">{trip.destination}</h4>
+                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                            <Calendar className="h-3 w-3" />
+                            <span>
+                              {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d, yyyy")}
+                            </span>
+                          </div>
+                          {trip.description && (
+                            <p className="text-sm text-foreground/70 mt-2 line-clamp-2">{trip.description}</p>
+                          )}
+                        </div>
+                        {trip.tripType && (
+                          <Badge variant="secondary" className="flex-shrink-0">{trip.tripType}</Badge>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-6 bg-secondary/30 rounded-xl border border-border/50">
+                  <MapPin className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">No upcoming trips planned</p>
+                  <Link href="/trips">
+                    <Button variant="outline" size="sm" className="mt-3" data-testid="button-plan-trip">
+                      Plan a Trip
+                    </Button>
+                  </Link>
+                </div>
+              )}
             </div>
 
             <div>

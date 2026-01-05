@@ -35,6 +35,7 @@ export interface IStorage {
   
   // Trips
   getTrips(): Promise<(Trip & { organizer: Profile })[]>;
+  getUserTrips(userId: string): Promise<Trip[]>;
   createTrip(trip: InsertTrip): Promise<Trip>;
 
   // Posts
@@ -261,6 +262,13 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(profiles, eq(trips.organizerId, profiles.userId));
     
     return tripsData.map(({ trip, organizer }) => ({ ...trip, organizer }));
+  }
+
+  async getUserTrips(userId: string): Promise<Trip[]> {
+    return await db.select()
+      .from(trips)
+      .where(eq(trips.organizerId, userId))
+      .orderBy(trips.startDate);
   }
 
   async createTrip(trip: InsertTrip): Promise<Trip> {

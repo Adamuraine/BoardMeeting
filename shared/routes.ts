@@ -117,6 +117,13 @@ export const api = {
         200: z.array(z.custom<typeof trips.$inferSelect & { organizer: typeof profiles.$inferSelect }>()),
       },
     },
+    byUser: {
+      method: 'GET' as const,
+      path: '/api/trips/user/:userId',
+      responses: {
+        200: z.array(z.custom<typeof trips.$inferSelect>()),
+      },
+    },
     create: {
       method: 'POST' as const,
       path: '/api/trips',

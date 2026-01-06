@@ -3,7 +3,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
-import { Camera, MapPin, ExternalLink, Loader2, MessageCircle } from "lucide-react";
+import { Camera, MapPin, ExternalLink, Loader2, Mail } from "lucide-react";
 import { ShakaIcon } from "@/components/ShakaIcon";
 import type { PostWithUser } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
@@ -130,7 +130,7 @@ function PostCard({ post }: PostCardProps) {
                 className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-secondary/50 transition-colors"
                 data-testid={`button-message-post-${post.id}`}
               >
-                <MessageCircle className="h-5 w-5 text-muted-foreground" />
+                <Mail className="h-5 w-5 text-muted-foreground" />
               </button>
             </Link>
             <button 

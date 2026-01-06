@@ -266,6 +266,10 @@ function WindMapView({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
   const [isDragging, setIsDragging] = useState(false);
+  const [pendingTransform, setPendingTransform] = useState({ x: 0, y: 0, scale: 1 });
+  const [tilesReady, setTilesReady] = useState(true);
+  const loadedTilesRef = useRef(new Set<string>());
+  const resetTimeoutRef = useRef<number | null>(null);
   
   const gestureRef = useRef({
     startX: 0,
@@ -275,6 +279,7 @@ function WindMapView({
     scale: 1,
     startDistance: 0,
     pointers: new Map<number, { x: number; y: number }>(),
+    isGesturing: false,
   });
   
   useEffect(() => {
@@ -297,9 +302,16 @@ function WindMapView({
   const applyTransform = useCallback(() => {
     if (wrapperRef.current) {
       const g = gestureRef.current;
-      wrapperRef.current.style.transform = `translate(${g.offsetX}px, ${g.offsetY}px) scale(${g.scale})`;
+      const totalX = pendingTransform.x + g.offsetX;
+      const totalY = pendingTransform.y + g.offsetY;
+      const totalScale = pendingTransform.scale * g.scale;
+      wrapperRef.current.style.transform = `translate(${totalX}px, ${totalY}px) scale(${totalScale})`;
     }
-  }, []);
+  }, [pendingTransform]);
+  
+  useEffect(() => {
+    applyTransform();
+  }, [pendingTransform, applyTransform]);
   
   const getPointerDistance = useCallback(() => {
     const pointers = Array.from(gestureRef.current.pointers.values());
@@ -314,6 +326,12 @@ function WindMapView({
     
     const g = gestureRef.current;
     g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    g.isGesturing = true;
+    
+    if (resetTimeoutRef.current) {
+      clearTimeout(resetTimeoutRef.current);
+      resetTimeoutRef.current = null;
+    }
     
     if (g.pointers.size === 1) {
       g.startX = e.clientX;
@@ -358,33 +376,60 @@ function WindMapView({
     g.pointers.delete(e.pointerId);
     
     if (g.pointers.size === 0) {
+      g.isGesturing = false;
+      
+      const finalOffsetX = pendingTransform.x + g.offsetX;
+      const finalOffsetY = pendingTransform.y + g.offsetY;
+      
       const dragSensitivity = 0.004;
-      if (Math.abs(g.offsetX) > 5 || Math.abs(g.offsetY) > 5) {
-        const deltaLat = g.offsetY * dragSensitivity;
-        const deltaLng = -g.offsetX * dragSensitivity;
+      if (Math.abs(finalOffsetX) > 5 || Math.abs(finalOffsetY) > 5) {
+        const deltaLat = finalOffsetY * dragSensitivity;
+        const deltaLng = -finalOffsetX * dragSensitivity;
+        
+        setPendingTransform({ x: finalOffsetX, y: finalOffsetY, scale: 1 });
+        setTilesReady(false);
+        
         onDrag(deltaLat, deltaLng);
+        
+        resetTimeoutRef.current = window.setTimeout(() => {
+          setPendingTransform({ x: 0, y: 0, scale: 1 });
+          setTilesReady(true);
+        }, 300);
+      } else {
+        setPendingTransform({ x: 0, y: 0, scale: 1 });
       }
+      
       g.offsetX = 0;
       g.offsetY = 0;
       g.scale = 1;
-      applyTransform();
       setIsDragging(false);
     } else if (g.pointers.size === 1) {
       const remaining = Array.from(g.pointers.values())[0];
-      g.startX = remaining.x - g.offsetX;
-      g.startY = remaining.y - g.offsetY;
+      g.startX = remaining.x;
+      g.startY = remaining.y;
+      g.offsetX = 0;
+      g.offsetY = 0;
+      g.scale = 1;
     }
     
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {}
-  }, [onDrag, onZoom, getPointerDistance, applyTransform]);
+  }, [onDrag, onZoom, getPointerDistance, pendingTransform]);
   
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
     const delta = e.deltaY > 0 ? -0.15 : 0.15;
     onZoom(delta);
   }, [onZoom]);
+  
+  useEffect(() => {
+    return () => {
+      if (resetTimeoutRef.current) {
+        clearTimeout(resetTimeoutRef.current);
+      }
+    };
+  }, []);
   
   const baseColor = getWindColorHex(windSpeed);
   const onshoreWind = isOnshore(windDirection);
@@ -412,6 +457,10 @@ function WindMapView({
       }
     }
   }
+  
+  const handleTileLoad = useCallback((key: string) => {
+    loadedTilesRef.current.add(key);
+  }, []);
   
   return (
     <div 
@@ -447,6 +496,7 @@ function WindMapView({
                 filter: 'brightness(0.7) saturate(0.8)',
               }}
               draggable={false}
+              onLoad={() => handleTileLoad(tile.key)}
             />
           ))}
         </div>

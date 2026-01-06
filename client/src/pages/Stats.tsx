@@ -179,150 +179,6 @@ export default function Stats() {
         <p className="text-muted-foreground">Track your progression</p>
       </div>
 
-      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
-        <CardContent className="pt-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-primary/20 rounded-full">
-              <Watch className="h-5 w-5 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="font-medium text-sm">Apple Watch Sync</p>
-              <p className="text-xs text-muted-foreground">Connect your watch to auto-track speed and rides</p>
-            </div>
-            <Badge variant="outline" className="text-xs">Coming Soon</Badge>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-2 gap-4">
-        <Card className="hover-elevate bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-200/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2">
-                <Gauge className="h-4 w-4 text-blue-500" />
-                Top Speed
-              </span>
-              {!editingSpeed && (
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-6 w-6"
-                  onClick={() => {
-                    setTempSpeed(String(profile?.fastestSpeed || 0));
-                    setEditingSpeed(true);
-                  }}
-                  data-testid="button-edit-speed"
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {editingSpeed ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={tempSpeed}
-                  onChange={(e) => setTempSpeed(e.target.value)}
-                  className="h-8 w-16 text-lg font-bold"
-                  autoFocus
-                  data-testid="input-speed"
-                />
-                <span className="text-sm text-muted-foreground">mph</span>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={saveSpeed} data-testid="button-save-speed">
-                  <Save className="h-3 w-3 text-green-500" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingSpeed(false)} data-testid="button-cancel-speed">
-                  <X className="h-3 w-3 text-red-500" />
-                </Button>
-              </div>
-            ) : (
-              <div className="text-2xl font-bold font-display" data-testid="text-speed-value">
-                {profile?.fastestSpeed || 0} <span className="text-sm font-normal text-muted-foreground">mph</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        <Card className="hover-elevate bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-200/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
-              <Waves className="h-4 w-4 text-indigo-500" />
-              Biggest Wave
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Select 
-              value={profile?.biggestWave ? String(profile.biggestWave) : undefined} 
-              onValueChange={handleBiggestWaveChange}
-            >
-              <SelectTrigger className="w-full h-10 text-xl font-bold font-display" data-testid="select-biggest-wave">
-                <SelectValue placeholder="Select size" />
-                <span className="text-sm font-normal text-muted-foreground ml-1">ft</span>
-              </SelectTrigger>
-              <SelectContent className="bg-background border">
-                {WAVE_SIZES.map((size) => (
-                  <SelectItem key={size} value={String(size)} data-testid={`option-wave-${size}`}>
-                    {size} ft
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
-
-        <Card className="col-span-2 hover-elevate bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-200/20">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between gap-2">
-              <span className="flex items-center gap-2">
-                <Activity className="h-4 w-4 text-emerald-500" />
-                Longest Ride
-              </span>
-              {!editingLongestWave && (
-                <Button 
-                  size="icon" 
-                  variant="ghost" 
-                  className="h-6 w-6"
-                  onClick={() => {
-                    setTempLongestWave(String(profile?.longestWave || 0));
-                    setEditingLongestWave(true);
-                  }}
-                  data-testid="button-edit-longest-wave"
-                >
-                  <Pencil className="h-3 w-3" />
-                </Button>
-              )}
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {editingLongestWave ? (
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  value={tempLongestWave}
-                  onChange={(e) => setTempLongestWave(e.target.value)}
-                  className="h-8 w-20 text-lg font-bold"
-                  autoFocus
-                  data-testid="input-longest-wave"
-                />
-                <span className="text-sm text-muted-foreground">yards</span>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={saveLongestWave} data-testid="button-save-longest-wave">
-                  <Save className="h-3 w-3 text-green-500" />
-                </Button>
-                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingLongestWave(false)} data-testid="button-cancel-longest-wave">
-                  <X className="h-3 w-3 text-red-500" />
-                </Button>
-              </div>
-            ) : (
-              <div className="text-2xl font-bold font-display" data-testid="text-longest-wave-value">
-                {profile?.longestWave || 0} <span className="text-sm font-normal text-muted-foreground">yards</span>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
           <CardTitle className="flex items-center gap-2">
@@ -414,6 +270,150 @@ export default function Stats() {
                 )}
               </div>
             </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="hover-elevate bg-gradient-to-br from-indigo-500/10 to-purple-500/10 border-indigo-200/20">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
+            <Waves className="h-4 w-4 text-indigo-500" />
+            Biggest Wave
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Select 
+            value={profile?.biggestWave ? String(profile.biggestWave) : undefined} 
+            onValueChange={handleBiggestWaveChange}
+          >
+            <SelectTrigger className="w-full h-10 text-xl font-bold font-display" data-testid="select-biggest-wave">
+              <SelectValue placeholder="Select size" />
+              <span className="text-sm font-normal text-muted-foreground ml-1">ft</span>
+            </SelectTrigger>
+            <SelectContent className="bg-background border">
+              {WAVE_SIZES.map((size) => (
+                <SelectItem key={size} value={String(size)} data-testid={`option-wave-${size}`}>
+                  {size} ft
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Card className="hover-elevate bg-gradient-to-br from-blue-500/10 to-cyan-500/10 border-blue-200/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Gauge className="h-4 w-4 text-blue-500" />
+                Top Speed
+              </span>
+              {!editingSpeed && (
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-6 w-6"
+                  onClick={() => {
+                    setTempSpeed(String(profile?.fastestSpeed || 0));
+                    setEditingSpeed(true);
+                  }}
+                  data-testid="button-edit-speed"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {editingSpeed ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={tempSpeed}
+                  onChange={(e) => setTempSpeed(e.target.value)}
+                  className="h-8 w-16 text-lg font-bold"
+                  autoFocus
+                  data-testid="input-speed"
+                />
+                <span className="text-sm text-muted-foreground">mph</span>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={saveSpeed} data-testid="button-save-speed">
+                  <Save className="h-3 w-3 text-green-500" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingSpeed(false)} data-testid="button-cancel-speed">
+                  <X className="h-3 w-3 text-red-500" />
+                </Button>
+              </div>
+            ) : (
+              <div className="text-2xl font-bold font-display" data-testid="text-speed-value">
+                {profile?.fastestSpeed || 0} <span className="text-sm font-normal text-muted-foreground">mph</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card className="hover-elevate bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border-emerald-200/20">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-emerald-500" />
+                Longest Ride
+              </span>
+              {!editingLongestWave && (
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-6 w-6"
+                  onClick={() => {
+                    setTempLongestWave(String(profile?.longestWave || 0));
+                    setEditingLongestWave(true);
+                  }}
+                  data-testid="button-edit-longest-wave"
+                >
+                  <Pencil className="h-3 w-3" />
+                </Button>
+              )}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {editingLongestWave ? (
+              <div className="flex items-center gap-2">
+                <Input
+                  type="number"
+                  value={tempLongestWave}
+                  onChange={(e) => setTempLongestWave(e.target.value)}
+                  className="h-8 w-20 text-lg font-bold"
+                  autoFocus
+                  data-testid="input-longest-wave"
+                />
+                <span className="text-sm text-muted-foreground">yards</span>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={saveLongestWave} data-testid="button-save-longest-wave">
+                  <Save className="h-3 w-3 text-green-500" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-6 w-6" onClick={() => setEditingLongestWave(false)} data-testid="button-cancel-longest-wave">
+                  <X className="h-3 w-3 text-red-500" />
+                </Button>
+              </div>
+            ) : (
+              <div className="text-2xl font-bold font-display" data-testid="text-longest-wave-value">
+                {profile?.longestWave || 0} <span className="text-sm font-normal text-muted-foreground">yards</span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card className="bg-gradient-to-r from-primary/5 to-primary/10 border-primary/20">
+        <CardContent className="pt-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-primary/20 rounded-full">
+              <Watch className="h-5 w-5 text-primary" />
+            </div>
+            <div className="flex-1">
+              <p className="font-medium text-sm">Apple Watch Sync</p>
+              <p className="text-xs text-muted-foreground">Connect your watch to auto-track speed and rides</p>
+            </div>
+            <Badge variant="outline" className="text-xs">Coming Soon</Badge>
           </div>
         </CardContent>
       </Card>

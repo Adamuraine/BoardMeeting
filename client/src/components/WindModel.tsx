@@ -35,6 +35,10 @@ async function fetchWindData(lat: number, lng: number): Promise<DailyWindData[]>
   );
   const data = await response.json();
   
+  if (!data.hourly || !data.hourly.time) {
+    return [];
+  }
+  
   const dailyData: DailyWindData[] = [];
   const hourly = data.hourly;
   
@@ -183,6 +187,12 @@ export function WindModel({ lat = 33.1936, lng = -117.3831, locationName = "Ocea
   const isPremium = profile?.isPremium;
   const maxDays = isPremium ? 7 : 3;
   
+  useEffect(() => {
+    if (selectedDay >= maxDays) {
+      setSelectedDay(maxDays - 1);
+    }
+  }, [maxDays, selectedDay]);
+  
   const { data: windData, isLoading } = useQuery({
     queryKey: ['wind-data', lat, lng],
     queryFn: () => fetchWindData(lat, lng),
@@ -190,7 +200,7 @@ export function WindModel({ lat = 33.1936, lng = -117.3831, locationName = "Ocea
   });
   
   const visibleDays = windData?.slice(0, maxDays) || [];
-  const currentDay = windData?.[selectedDay];
+  const currentDay = visibleDays[selectedDay];
   
   if (isLoading) {
     return (

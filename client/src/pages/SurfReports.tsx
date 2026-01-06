@@ -14,8 +14,10 @@ import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PostWithUser } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
+import { WindModel } from "@/components/WindModel";
 
 // Worldwide surf spots database with hierarchical location data
 type SurfSpot = {
@@ -650,73 +652,102 @@ export default function SurfReports() {
     }
   };
 
+  const [activeTab, setActiveTab] = useState("surf");
+  
   return (
     <Layout>
       <div className="flex flex-col h-full bg-gradient-to-b from-sky-50 via-cyan-50/30 to-background dark:from-slate-900 dark:via-slate-900 dark:to-background">
         <header className="px-4 pt-4 pb-3">
-          <div className="flex items-center justify-between gap-2 mb-2">
-            <div className="flex items-center gap-2">
-              <Waves className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
-              <h1 className="text-xl font-bold text-foreground">Surf Forecast</h1>
-            </div>
-            <Popover open={showAddSpots} onOpenChange={setShowAddSpots}>
-              <PopoverTrigger asChild>
-                <Button 
-                  size="sm" 
-                  variant="outline"
-                  className="gap-1.5 rounded-full"
-                  data-testid="button-add-spots"
-                >
-                  <Globe className="h-4 w-4" />
-                  Add Spots
-                  <ChevronDown className="h-3 w-3" />
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-[340px] p-0" align="end">
-                <SpotPicker addedSpots={addedSpots} onToggleSpot={toggleSpot} onClose={() => setShowAddSpots(false)} />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            {userSpots.length > 0 ? `Tracking ${userSpots.length} spot${userSpots.length > 1 ? 's' : ''}` : 'Add spots to see live conditions'}
-          </p>
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <TabsList className="grid w-full grid-cols-2 mb-3">
+              <TabsTrigger value="surf" className="gap-2" data-testid="tab-surf-report">
+                <Waves className="h-4 w-4" />
+                Surf Report
+              </TabsTrigger>
+              <TabsTrigger value="wind" className="gap-2" data-testid="tab-wind-model">
+                <Wind className="h-4 w-4" />
+                Wind Model
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          
+          {activeTab === "surf" && (
+            <>
+              <div className="flex items-center justify-between gap-2 mb-2">
+                <div className="flex items-center gap-2">
+                  <Waves className="h-6 w-6 text-cyan-600 dark:text-cyan-400" />
+                  <h1 className="text-xl font-bold text-foreground">Surf Forecast</h1>
+                </div>
+                <Popover open={showAddSpots} onOpenChange={setShowAddSpots}>
+                  <PopoverTrigger asChild>
+                    <Button 
+                      size="sm" 
+                      variant="outline"
+                      className="gap-1.5 rounded-full"
+                      data-testid="button-add-spots"
+                    >
+                      <Globe className="h-4 w-4" />
+                      Add Spots
+                      <ChevronDown className="h-3 w-3" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-[340px] p-0" align="end">
+                    <SpotPicker addedSpots={addedSpots} onToggleSpot={toggleSpot} onClose={() => setShowAddSpots(false)} />
+                  </PopoverContent>
+                </Popover>
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {userSpots.length > 0 ? `Tracking ${userSpots.length} spot${userSpots.length > 1 ? 's' : ''}` : 'Add spots to see live conditions'}
+              </p>
+            </>
+          )}
         </header>
 
-        <main className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
-          {userSpots.length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-16 text-center">
-              <div className="w-20 h-20 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center mb-4">
-                <Waves className="h-10 w-10 text-cyan-600 dark:text-cyan-400" />
+        {activeTab === "surf" ? (
+          <main className="flex-1 overflow-y-auto px-4 pb-24 space-y-3">
+            {userSpots.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-center">
+                <div className="w-20 h-20 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center mb-4">
+                  <Waves className="h-10 w-10 text-cyan-600 dark:text-cyan-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground mb-2">No spots added yet</h3>
+                <p className="text-sm text-muted-foreground mb-4 max-w-xs">
+                  Add your favorite surf spots to track live wave conditions from around the world
+                </p>
+                <Button 
+                  onClick={() => setShowAddSpots(true)}
+                  className="gap-2"
+                  data-testid="button-add-first-spot"
+                >
+                  <Plus className="h-4 w-4" />
+                  Add Your First Spot
+                </Button>
               </div>
-              <h3 className="text-lg font-semibold text-foreground mb-2">No spots added yet</h3>
-              <p className="text-sm text-muted-foreground mb-4 max-w-xs">
-                Add your favorite surf spots to track live wave conditions from around the world
-              </p>
-              <Button 
-                onClick={() => setShowAddSpots(true)}
-                className="gap-2"
-                data-testid="button-add-first-spot"
-              >
-                <Plus className="h-4 w-4" />
-                Add Your First Spot
-              </Button>
-            </div>
-          ) : (
-            userSpots.map((spot) => (
-              <SpotCard 
-                key={spot.name}
-                spot={spot}
-                allSpots={WORLDWIDE_SPOTS}
-                onRemove={() => setAddedSpots(prev => prev.filter(s => s !== spot.name))}
-                onAddSpot={(spotName) => {
-                  if (!addedSpots.includes(spotName)) {
-                    setAddedSpots(prev => [...prev, spotName]);
-                  }
-                }}
-              />
-            ))
-          )}
-        </main>
+            ) : (
+              userSpots.map((spot) => (
+                <SpotCard 
+                  key={spot.name}
+                  spot={spot}
+                  allSpots={WORLDWIDE_SPOTS}
+                  onRemove={() => setAddedSpots(prev => prev.filter(s => s !== spot.name))}
+                  onAddSpot={(spotName) => {
+                    if (!addedSpots.includes(spotName)) {
+                      setAddedSpots(prev => [...prev, spotName]);
+                    }
+                  }}
+                />
+              ))
+            )}
+          </main>
+        ) : (
+          <main className="flex-1 overflow-y-auto pb-24">
+            <WindModel 
+              lat={userSpots[0]?.lat || 33.1936} 
+              lng={userSpots[0]?.lng || -117.3831} 
+              locationName={userSpots[0]?.name || "Oceanside, CA"} 
+            />
+          </main>
+        )}
       </div>
 
       <LocationDetail 

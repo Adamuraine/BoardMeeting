@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import { Camera, MapPin, ExternalLink, Loader2, Mail } from "lucide-react";
 import { ShakaIcon } from "@/components/ShakaIcon";
-import type { PostWithUser } from "@shared/schema";
+import { MessageDialog } from "@/components/MessageDialog";
+import type { PostWithUser, Profile } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
 import { useState, useCallback } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -13,9 +14,10 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface PostCardProps {
   post: PostWithUser & { location: { name: string } };
+  onMessageClick: (user: Profile) => void;
 }
 
-function PostCard({ post }: PostCardProps) {
+function PostCard({ post, onMessageClick }: PostCardProps) {
   const [showShaka, setShowShaka] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
@@ -125,14 +127,13 @@ function PostCard({ post }: PostCardProps) {
           </div>
           
           <div className="flex items-center gap-1">
-            <Link href={`/messages?buddy=${post.user.userId}`}>
-              <button 
-                className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-secondary/50 transition-colors"
-                data-testid={`button-message-post-${post.id}`}
-              >
-                <Mail className="h-5 w-5 text-muted-foreground" />
-              </button>
-            </Link>
+            <button 
+              onClick={() => onMessageClick(post.user)}
+              className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-secondary/50 transition-colors"
+              data-testid={`button-message-post-${post.id}`}
+            >
+              <Mail className="h-5 w-5 text-muted-foreground" />
+            </button>
             <button 
               onClick={handleLikeClick}
               className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-secondary/50 transition-colors"
@@ -159,6 +160,13 @@ export default function Home() {
   const { data: posts, isLoading } = useQuery<(PostWithUser & { location: { name: string } })[]>({
     queryKey: ["/api/posts"],
   });
+  const [messageBuddy, setMessageBuddy] = useState<Profile | null>(null);
+  const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+
+  const handleMessageClick = (user: Profile) => {
+    setMessageBuddy(user);
+    setMessageDialogOpen(true);
+  };
 
   if (isLoading) {
     return (
@@ -201,7 +209,7 @@ export default function Home() {
 
       <div className="space-y-4 p-4">
         {posts?.map((post) => (
-          <PostCard key={post.id} post={post} />
+          <PostCard key={post.id} post={post} onMessageClick={handleMessageClick} />
         ))}
 
         {!posts?.length && (
@@ -211,6 +219,12 @@ export default function Home() {
           </div>
         )}
       </div>
+
+      <MessageDialog
+        buddy={messageBuddy}
+        open={messageDialogOpen}
+        onOpenChange={setMessageDialogOpen}
+      />
     </div>
   );
 }

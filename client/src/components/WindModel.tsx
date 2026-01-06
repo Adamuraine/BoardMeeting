@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, memo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
@@ -114,12 +114,17 @@ function WindSpeedScale() {
   );
 }
 
-function MapTileLayer({ lat, lng, zoom, width, height }: { lat: number; lng: number; zoom: number; width: number; height: number }) {
-  const tileZoom = Math.min(18, Math.max(1, Math.round(8 + (zoom - 1) * 3)));
+const MapTileLayer = memo(function MapTileLayer({ lat, lng, zoom, width, height }: { lat: number; lng: number; zoom: number; width: number; height: number }) {
+  if (width === 0 || height === 0) return null;
   
-  const latRad = lat * Math.PI / 180;
+  const safeLat = Math.max(-85, Math.min(85, lat));
+  const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
+  
+  const tileZoom = Math.min(10, Math.max(3, Math.round(5 + (zoom - 1) * 2)));
+  
+  const latRad = safeLat * Math.PI / 180;
   const n = Math.pow(2, tileZoom);
-  const centerTileX = ((lng + 180) / 360) * n;
+  const centerTileX = ((safeLng + 180) / 360) * n;
   const centerTileY = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n;
   
   const tileSize = 256;
@@ -149,10 +154,8 @@ function MapTileLayer({ lat, lng, zoom, width, height }: { lat: number; lng: num
     }
   }
   
-  if (width === 0 || height === 0) return null;
-  
   return (
-    <div className="absolute inset-0 overflow-hidden">
+    <div className="absolute inset-0 overflow-hidden bg-slate-800">
       {tiles.map(tile => (
         <img
           key={tile.key}
@@ -165,12 +168,12 @@ function MapTileLayer({ lat, lng, zoom, width, height }: { lat: number; lng: num
             width: tileSize,
             height: tileSize,
           }}
-          loading="lazy"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
       ))}
     </div>
   );
-}
+});
 
 function AnimatedWindCanvas({ 
   windSpeed, 

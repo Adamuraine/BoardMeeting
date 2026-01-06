@@ -27,7 +27,7 @@ type Particle = {
 
 async function fetchHourlyWindData(lat: number, lng: number): Promise<HourlyWindData[]> {
   const response = await fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&forecast_days=7&timezone=auto`
+    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&forecast_days=7&timezone=auto`
   );
   const data = await response.json();
   
@@ -38,13 +38,33 @@ async function fetchHourlyWindData(lat: number, lng: number): Promise<HourlyWind
   const hourly = data.hourly;
   const result: HourlyWindData[] = [];
   
+  const now = new Date();
+  let currentHourIndex = 0;
+  
   for (let i = 0; i < hourly.time.length; i++) {
+    const hourTime = new Date(hourly.time[i]);
+    if (hourTime <= now) {
+      currentHourIndex = i;
+    }
+    
+    let windSpeed = hourly.wind_speed_10m[i];
+    let windGusts = hourly.wind_gusts_10m[i];
+    let windDirection = hourly.wind_direction_10m[i];
+    let temperature = hourly.temperature_2m[i];
+    
+    if (i === currentHourIndex && data.current) {
+      windSpeed = data.current.wind_speed_10m;
+      windGusts = data.current.wind_gusts_10m;
+      windDirection = data.current.wind_direction_10m;
+      temperature = data.current.temperature_2m;
+    }
+    
     result.push({
-      time: new Date(hourly.time[i]),
-      windSpeed: Math.round(hourly.wind_speed_10m[i] * 0.621371 * 10) / 10,
-      windDirection: hourly.wind_direction_10m[i],
-      windGusts: Math.round(hourly.wind_gusts_10m[i] * 0.621371 * 10) / 10,
-      temperature: Math.round(hourly.temperature_2m[i] * 9/5 + 32),
+      time: hourTime,
+      windSpeed: Math.round(windSpeed * 0.621371 * 10) / 10,
+      windDirection: windDirection,
+      windGusts: Math.round(windGusts * 0.621371 * 10) / 10,
+      temperature: Math.round(temperature * 9/5 + 32),
     });
   }
   
@@ -246,12 +266,13 @@ function WindMapView({
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
   const [isDragging, setIsDragging] = useState(false);
-  const [visualOffset, setVisualOffset] = useState({ x: 0, y: 0 });
-  const [visualScale, setVisualScale] = useState(1);
   
   const gestureRef = useRef({
     startX: 0,
     startY: 0,
+    offsetX: 0,
+    offsetY: 0,
+    scale: 1,
     startDistance: 0,
     pointers: new Map<number, { x: number; y: number }>(),
   });
@@ -273,6 +294,13 @@ function WindMapView({
     return () => resizeObserver.disconnect();
   }, []);
   
+  const applyTransform = useCallback(() => {
+    if (wrapperRef.current) {
+      const g = gestureRef.current;
+      wrapperRef.current.style.transform = `translate(${g.offsetX}px, ${g.offsetY}px) scale(${g.scale})`;
+    }
+  }, []);
+  
   const getPointerDistance = useCallback(() => {
     const pointers = Array.from(gestureRef.current.pointers.values());
     if (pointers.length < 2) return 0;
@@ -284,73 +312,73 @@ function WindMapView({
   const handlePointerDown = useCallback((e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('input, button')) return;
     
-    const gesture = gestureRef.current;
-    gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const g = gestureRef.current;
+    g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     
-    if (gesture.pointers.size === 1) {
-      gesture.startX = e.clientX;
-      gesture.startY = e.clientY;
+    if (g.pointers.size === 1) {
+      g.startX = e.clientX;
+      g.startY = e.clientY;
       setIsDragging(true);
-    } else if (gesture.pointers.size === 2) {
-      gesture.startDistance = getPointerDistance();
+    } else if (g.pointers.size === 2) {
+      g.startDistance = getPointerDistance();
     }
     
     e.currentTarget.setPointerCapture(e.pointerId);
   }, [getPointerDistance]);
   
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    const gesture = gestureRef.current;
-    if (!gesture.pointers.has(e.pointerId)) return;
+    const g = gestureRef.current;
+    if (!g.pointers.has(e.pointerId)) return;
     
-    gesture.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
     
-    if (gesture.pointers.size === 1) {
-      const offsetX = e.clientX - gesture.startX;
-      const offsetY = e.clientY - gesture.startY;
-      setVisualOffset({ x: offsetX, y: offsetY });
-    } else if (gesture.pointers.size === 2 && gesture.startDistance > 0) {
+    if (g.pointers.size === 1) {
+      g.offsetX = e.clientX - g.startX;
+      g.offsetY = e.clientY - g.startY;
+      applyTransform();
+    } else if (g.pointers.size === 2 && g.startDistance > 0) {
       const currentDistance = getPointerDistance();
-      const scale = Math.max(0.5, Math.min(2, currentDistance / gesture.startDistance));
-      setVisualScale(scale);
+      g.scale = Math.max(0.5, Math.min(2, currentDistance / g.startDistance));
+      applyTransform();
     }
-  }, [getPointerDistance]);
+  }, [getPointerDistance, applyTransform]);
   
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    const gesture = gestureRef.current;
+    const g = gestureRef.current;
     
-    if (gesture.pointers.size === 2 && gesture.startDistance > 0) {
+    if (g.pointers.size === 2 && g.startDistance > 0) {
       const currentDistance = getPointerDistance();
       if (currentDistance > 0) {
-        const scale = currentDistance / gesture.startDistance;
+        const scale = currentDistance / g.startDistance;
         const zoomDelta = (scale - 1) * 0.5;
         onZoom(zoomDelta);
       }
     }
     
-    gesture.pointers.delete(e.pointerId);
+    g.pointers.delete(e.pointerId);
     
-    if (gesture.pointers.size === 0) {
+    if (g.pointers.size === 0) {
       const dragSensitivity = 0.004;
-      if (Math.abs(visualOffset.x) > 5 || Math.abs(visualOffset.y) > 5) {
-        const deltaLat = visualOffset.y * dragSensitivity;
-        const deltaLng = -visualOffset.x * dragSensitivity;
+      if (Math.abs(g.offsetX) > 5 || Math.abs(g.offsetY) > 5) {
+        const deltaLat = g.offsetY * dragSensitivity;
+        const deltaLng = -g.offsetX * dragSensitivity;
         onDrag(deltaLat, deltaLng);
       }
-      setVisualOffset({ x: 0, y: 0 });
-      setVisualScale(1);
+      g.offsetX = 0;
+      g.offsetY = 0;
+      g.scale = 1;
+      applyTransform();
       setIsDragging(false);
-    } else if (gesture.pointers.size === 1) {
-      const remaining = Array.from(gesture.pointers.values())[0];
-      gesture.startX = remaining.x;
-      gesture.startY = remaining.y;
-      setVisualOffset({ x: 0, y: 0 });
-      setVisualScale(1);
+    } else if (g.pointers.size === 1) {
+      const remaining = Array.from(g.pointers.values())[0];
+      g.startX = remaining.x - g.offsetX;
+      g.startY = remaining.y - g.offsetY;
     }
     
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {}
-  }, [onDrag, onZoom, visualOffset, getPointerDistance]);
+  }, [onDrag, onZoom, getPointerDistance, applyTransform]);
   
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -400,11 +428,8 @@ function WindMapView({
     >
       <div 
         ref={wrapperRef}
-        className="absolute inset-0"
-        style={{ 
-          transform: `translate(${visualOffset.x}px, ${visualOffset.y}px) scale(${visualScale})`,
-          transformOrigin: 'center center',
-        }}
+        className="absolute inset-0 will-change-transform"
+        style={{ transformOrigin: 'center center' }}
       >
         <div className="absolute inset-0">
           {tiles.map((tile) => (

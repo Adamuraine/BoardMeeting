@@ -133,9 +133,9 @@ function AnimatedWindCanvas({
     return {
       x: Math.random() * width,
       y: Math.random() * height,
-      age: 0,
-      maxAge: 50 + Math.random() * 100,
-      speed: 0.5 + Math.random() * 1.5,
+      age: Math.random() * 60,
+      maxAge: 80 + Math.random() * 80,
+      speed: 1 + Math.random() * 2,
     };
   }, []);
   
@@ -149,23 +149,23 @@ function AnimatedWindCanvas({
     canvas.width = width;
     canvas.height = height;
     
-    const particleCount = Math.min(200, Math.floor(width * height / 2000));
+    const particleCount = Math.min(500, Math.floor(width * height / 800));
     particlesRef.current = Array.from({ length: particleCount }, () => 
       createParticle(width, height)
     );
     
-    const radians = (windDirection - 90) * (Math.PI / 180);
-    const speedFactor = Math.max(0.5, windSpeed / 20);
-    
     const animate = () => {
       ctx.clearRect(0, 0, width, height);
+      
+      const radians = (windDirection - 90) * (Math.PI / 180);
+      const speedFactor = Math.max(1, windSpeed / 10);
       
       particlesRef.current.forEach((particle, i) => {
         particle.age++;
         
         if (particle.age > particle.maxAge || 
-            particle.x < 0 || particle.x > width || 
-            particle.y < 0 || particle.y > height) {
+            particle.x < -50 || particle.x > width + 50 || 
+            particle.y < -50 || particle.y > height + 50) {
           particlesRef.current[i] = createParticle(width, height);
           particlesRef.current[i].age = 0;
           return;
@@ -177,14 +177,15 @@ function AnimatedWindCanvas({
         particle.x += moveX;
         particle.y += moveY;
         
-        const fadeIn = Math.min(1, particle.age / 20);
-        const fadeOut = Math.max(0, 1 - (particle.age - particle.maxAge + 20) / 20);
-        const alpha = Math.min(fadeIn, fadeOut) * 0.6;
+        const fadeIn = Math.min(1, particle.age / 15);
+        const fadeOut = Math.max(0, 1 - (particle.age - particle.maxAge + 30) / 30);
+        const alpha = Math.min(fadeIn, fadeOut) * 0.8;
         
-        const tailLength = 8;
+        const tailLength = 12;
         ctx.beginPath();
         ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.lineWidth = 1;
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
         ctx.moveTo(particle.x - moveX * tailLength, particle.y - moveY * tailLength);
         ctx.lineTo(particle.x, particle.y);
         ctx.stroke();

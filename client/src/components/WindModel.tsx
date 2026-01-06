@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,9 @@ import { Navigation, Lock, MapPin, Search, ChevronLeft, ChevronRight, ArrowUp, A
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PremiumModal } from "@/components/PremiumModal";
+import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 type HourlyWindData = {
   time: Date;
@@ -235,6 +238,155 @@ function WindCanvas({
   );
 }
 
+function MapController({ 
+  lat, 
+  lng, 
+  zoom,
+  onMoveEnd 
+}: { 
+  lat: number; 
+  lng: number; 
+  zoom: number;
+  onMoveEnd: (lat: number, lng: number, zoom: number) => void;
+}) {
+  const map = useMap();
+  const isFirstRender = useRef(true);
+  
+  useEffect(() => {
+    if (isFirstRender.current) {
+      isFirstRender.current = false;
+      return;
+    }
+    map.setView([lat, lng], Math.round(8 + (zoom - 1) * 2), { animate: true });
+  }, [lat, lng, zoom, map]);
+  
+  useMapEvents({
+    moveend: () => {
+      const center = map.getCenter();
+      const z = map.getZoom();
+      const normalizedZoom = (z - 8) / 2 + 1;
+      onMoveEnd(center.lat, center.lng, normalizedZoom);
+    },
+  });
+  
+  return null;
+}
+
+function LeafletWindOverlay({ 
+  windSpeed, 
+  windDirection 
+}: { 
+  windSpeed: number; 
+  windDirection: number;
+}) {
+  const map = useMap();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const particlesRef = useRef<Particle[]>([]);
+  
+  useEffect(() => {
+    const container = map.getContainer();
+    const canvas = document.createElement('canvas');
+    canvas.style.position = 'absolute';
+    canvas.style.top = '0';
+    canvas.style.left = '0';
+    canvas.style.width = '100%';
+    canvas.style.height = '100%';
+    canvas.style.pointerEvents = 'none';
+    canvas.style.zIndex = '400';
+    container.appendChild(canvas);
+    canvasRef.current = canvas;
+    
+    const updateSize = () => {
+      if (canvasRef.current) {
+        canvasRef.current.width = container.clientWidth;
+        canvasRef.current.height = container.clientHeight;
+      }
+    };
+    updateSize();
+    
+    map.on('resize', updateSize);
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+      map.off('resize', updateSize);
+      if (canvasRef.current && container.contains(canvasRef.current)) {
+        container.removeChild(canvasRef.current);
+      }
+    };
+  }, [map]);
+  
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    
+    const width = canvas.width;
+    const height = canvas.height;
+    const particleCount = Math.min(150, Math.max(30, windSpeed * 8));
+    const dirRad = (windDirection - 90) * Math.PI / 180;
+    
+    const createParticle = (): Particle => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      age: Math.random() * 100,
+      maxAge: 60 + Math.random() * 60,
+      speed: 0.5 + Math.random() * 1.5 + windSpeed * 0.15,
+    });
+    
+    while (particlesRef.current.length < particleCount) {
+      particlesRef.current.push(createParticle());
+    }
+    while (particlesRef.current.length > particleCount) {
+      particlesRef.current.pop();
+    }
+    
+    const animate = () => {
+      if (!ctx || !canvas) return;
+      
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+      ctx.fillRect(0, 0, width, height);
+      
+      for (const p of particlesRef.current) {
+        p.x += Math.cos(dirRad) * p.speed;
+        p.y += Math.sin(dirRad) * p.speed;
+        p.age++;
+        
+        if (p.age > p.maxAge || p.x < -20 || p.x > width + 20 || p.y < -20 || p.y > height + 20) {
+          Object.assign(p, createParticle());
+          const edge = Math.floor(Math.random() * 4);
+          if (edge === 0) { p.x = -5; p.y = Math.random() * height; }
+          else if (edge === 1) { p.x = width + 5; p.y = Math.random() * height; }
+          else if (edge === 2) { p.x = Math.random() * width; p.y = -5; }
+          else { p.x = Math.random() * width; p.y = height + 5; }
+        }
+        
+        const alpha = Math.min(1, (1 - p.age / p.maxAge) * 0.6);
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
+        ctx.fill();
+      }
+      
+      animationRef.current = requestAnimationFrame(animate);
+    };
+    
+    animate();
+    
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+      }
+    };
+  }, [windSpeed, windDirection]);
+  
+  return null;
+}
+
 function WindMapView({ 
   lat, 
   lng, 
@@ -262,265 +414,74 @@ function WindMapView({
   onSearch: () => void;
   isSearching: boolean;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [pendingTransform, setPendingTransform] = useState({ x: 0, y: 0, scale: 1 });
-  const [tilesReady, setTilesReady] = useState(true);
-  const loadedTilesRef = useRef(new Set<string>());
-  const resetTimeoutRef = useRef<number | null>(null);
-  
-  const gestureRef = useRef({
-    startX: 0,
-    startY: 0,
-    offsetX: 0,
-    offsetY: 0,
-    scale: 1,
-    startDistance: 0,
-    pointers: new Map<number, { x: number; y: number }>(),
-    isGesturing: false,
-  });
-  
-  useEffect(() => {
-    const container = containerRef.current;
-    if (!container) return;
-    
-    const updateDimensions = () => {
-      const rect = container.getBoundingClientRect();
-      if (rect.width > 0 && rect.height > 0) {
-        setDimensions({ width: rect.width, height: rect.height });
-      }
-    };
-    
-    updateDimensions();
-    const resizeObserver = new ResizeObserver(updateDimensions);
-    resizeObserver.observe(container);
-    return () => resizeObserver.disconnect();
-  }, []);
-  
-  const applyTransform = useCallback(() => {
-    if (wrapperRef.current) {
-      const g = gestureRef.current;
-      const totalX = pendingTransform.x + g.offsetX;
-      const totalY = pendingTransform.y + g.offsetY;
-      const totalScale = pendingTransform.scale * g.scale;
-      wrapperRef.current.style.transform = `translate(${totalX}px, ${totalY}px) scale(${totalScale})`;
-    }
-  }, [pendingTransform]);
-  
-  useEffect(() => {
-    applyTransform();
-  }, [pendingTransform, applyTransform]);
-  
-  const getPointerDistance = useCallback(() => {
-    const pointers = Array.from(gestureRef.current.pointers.values());
-    if (pointers.length < 2) return 0;
-    const dx = pointers[1].x - pointers[0].x;
-    const dy = pointers[1].y - pointers[0].y;
-    return Math.sqrt(dx * dx + dy * dy);
-  }, []);
-  
-  const handlePointerDown = useCallback((e: React.PointerEvent) => {
-    if ((e.target as HTMLElement).closest('input, button')) return;
-    
-    const g = gestureRef.current;
-    g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    g.isGesturing = true;
-    
-    if (resetTimeoutRef.current) {
-      clearTimeout(resetTimeoutRef.current);
-      resetTimeoutRef.current = null;
-    }
-    
-    if (g.pointers.size === 1) {
-      g.startX = e.clientX;
-      g.startY = e.clientY;
-      setIsDragging(true);
-    } else if (g.pointers.size === 2) {
-      g.startDistance = getPointerDistance();
-    }
-    
-    e.currentTarget.setPointerCapture(e.pointerId);
-  }, [getPointerDistance]);
-  
-  const handlePointerMove = useCallback((e: React.PointerEvent) => {
-    const g = gestureRef.current;
-    if (!g.pointers.has(e.pointerId)) return;
-    
-    g.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
-    
-    if (g.pointers.size === 1) {
-      g.offsetX = e.clientX - g.startX;
-      g.offsetY = e.clientY - g.startY;
-      applyTransform();
-    } else if (g.pointers.size === 2 && g.startDistance > 0) {
-      const currentDistance = getPointerDistance();
-      g.scale = Math.max(0.5, Math.min(2, currentDistance / g.startDistance));
-      applyTransform();
-    }
-  }, [getPointerDistance, applyTransform]);
-  
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
-    const g = gestureRef.current;
-    
-    if (g.pointers.size === 2 && g.startDistance > 0) {
-      const currentDistance = getPointerDistance();
-      if (currentDistance > 0) {
-        const scale = currentDistance / g.startDistance;
-        const zoomDelta = (scale - 1) * 0.5;
-        onZoom(zoomDelta);
-      }
-    }
-    
-    g.pointers.delete(e.pointerId);
-    
-    if (g.pointers.size === 0) {
-      g.isGesturing = false;
-      
-      const finalOffsetX = pendingTransform.x + g.offsetX;
-      const finalOffsetY = pendingTransform.y + g.offsetY;
-      
-      const dragSensitivity = 0.004;
-      if (Math.abs(finalOffsetX) > 5 || Math.abs(finalOffsetY) > 5) {
-        const deltaLat = finalOffsetY * dragSensitivity;
-        const deltaLng = -finalOffsetX * dragSensitivity;
-        
-        setPendingTransform({ x: finalOffsetX, y: finalOffsetY, scale: 1 });
-        setTilesReady(false);
-        
-        onDrag(deltaLat, deltaLng);
-        
-        resetTimeoutRef.current = window.setTimeout(() => {
-          setPendingTransform({ x: 0, y: 0, scale: 1 });
-          setTilesReady(true);
-        }, 300);
-      } else {
-        setPendingTransform({ x: 0, y: 0, scale: 1 });
-      }
-      
-      g.offsetX = 0;
-      g.offsetY = 0;
-      g.scale = 1;
-      setIsDragging(false);
-    } else if (g.pointers.size === 1) {
-      const remaining = Array.from(g.pointers.values())[0];
-      g.startX = remaining.x;
-      g.startY = remaining.y;
-      g.offsetX = 0;
-      g.offsetY = 0;
-      g.scale = 1;
-    }
-    
-    try {
-      e.currentTarget.releasePointerCapture(e.pointerId);
-    } catch {}
-  }, [onDrag, onZoom, getPointerDistance, pendingTransform]);
-  
-  const handleWheel = useCallback((e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.15 : 0.15;
-    onZoom(delta);
-  }, [onZoom]);
-  
-  useEffect(() => {
-    return () => {
-      if (resetTimeoutRef.current) {
-        clearTimeout(resetTimeoutRef.current);
-      }
-    };
-  }, []);
-  
+  const [mapKey] = useState(() => `map-${Date.now()}`);
   const baseColor = getWindColorHex(windSpeed);
   const onshoreWind = isOnshore(windDirection);
+  const leafletZoom = Math.round(8 + (zoom - 1) * 2);
   
-  const tileZoom = Math.min(12, Math.max(6, Math.round(8 + (zoom - 1) * 2)));
-  const safeLat = Math.max(-85, Math.min(85, lat));
-  const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
-  const n = Math.pow(2, tileZoom);
-  const latRad = safeLat * Math.PI / 180;
-  const centerTileX = Math.floor(((safeLng + 180) / 360) * n);
-  const centerTileY = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
-  
-  const tiles: { x: number; y: number; url: string; key: string }[] = [];
-  for (let dy = -2; dy <= 2; dy++) {
-    for (let dx = -2; dx <= 2; dx++) {
-      const tx = ((centerTileX + dx) % n + n) % n;
-      const ty = centerTileY + dy;
-      if (ty >= 0 && ty < n) {
-        tiles.push({
-          x: dx,
-          y: dy,
-          url: `https://tile.openstreetmap.org/${tileZoom}/${tx}/${ty}.png`,
-          key: `${tileZoom}-${tx}-${ty}`,
-        });
-      }
+  const handleMoveEnd = useCallback((newLat: number, newLng: number, newZoom: number) => {
+    const deltaLat = lat - newLat;
+    const deltaLng = newLng - lng;
+    if (Math.abs(deltaLat) > 0.001 || Math.abs(deltaLng) > 0.001) {
+      onDrag(-deltaLat, deltaLng);
     }
-  }
-  
-  const handleTileLoad = useCallback((key: string) => {
-    loadedTilesRef.current.add(key);
-  }, []);
+    if (Math.abs(newZoom - zoom) > 0.1) {
+      onZoom(newZoom - zoom);
+    }
+  }, [lat, lng, zoom, onDrag, onZoom]);
   
   return (
-    <div 
-      ref={containerRef}
-      className={cn(
-        "relative w-full h-full overflow-hidden touch-none select-none",
-        isDragging ? "cursor-grabbing" : "cursor-grab"
-      )}
-      onPointerDown={handlePointerDown}
-      onPointerMove={handlePointerMove}
-      onPointerUp={handlePointerUp}
-      onPointerCancel={handlePointerUp}
-      onWheel={handleWheel}
-    >
-      <div 
-        ref={wrapperRef}
-        className="absolute inset-0 will-change-transform"
-        style={{ transformOrigin: 'center center' }}
-      >
-        <div className="absolute inset-0">
-          {tiles.map((tile) => (
-            <img
-              key={tile.key}
-              src={tile.url}
-              alt=""
-              className="absolute"
-              style={{
-                width: '100%',
-                height: '100%',
-                left: `${tile.x * 100}%`,
-                top: `${tile.y * 100}%`,
-                objectFit: 'cover',
-                filter: 'brightness(0.7) saturate(0.8)',
-              }}
-              draggable={false}
-              onLoad={() => handleTileLoad(tile.key)}
-            />
-          ))}
-        </div>
-        
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `
-              linear-gradient(135deg, ${baseColor}60 0%, transparent 50%),
-              linear-gradient(225deg, #0ea5e940 0%, transparent 50%),
-              linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4) 100%)
-            `,
-          }}
-        />
-        
-        <WindCanvas 
-          windSpeed={windSpeed}
-          windDirection={windDirection}
-          width={dimensions.width}
-          height={dimensions.height}
-        />
-      </div>
+    <div className="relative w-full h-full overflow-hidden">
+      <style>{`
+        .leaflet-container {
+          background: #1e293b !important;
+        }
+        .leaflet-tile {
+          filter: brightness(0.7) saturate(0.8);
+        }
+        .leaflet-control-zoom {
+          display: none !important;
+        }
+        .leaflet-control-attribution {
+          display: none !important;
+        }
+      `}</style>
       
-      <div className="absolute top-3 left-3 right-3 z-20">
+      <MapContainer
+        key={mapKey}
+        center={[lat, lng]}
+        zoom={leafletZoom}
+        style={{ width: '100%', height: '100%' }}
+        zoomControl={false}
+        attributionControl={false}
+      >
+        <TileLayer
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <MapController 
+          lat={lat} 
+          lng={lng} 
+          zoom={zoom}
+          onMoveEnd={handleMoveEnd}
+        />
+        <LeafletWindOverlay 
+          windSpeed={windSpeed} 
+          windDirection={windDirection}
+        />
+      </MapContainer>
+      
+      <div 
+        className="absolute inset-0 pointer-events-none z-[500]"
+        style={{
+          background: `
+            linear-gradient(135deg, ${baseColor}40 0%, transparent 50%),
+            linear-gradient(225deg, #0ea5e930 0%, transparent 50%),
+            linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.3) 100%)
+          `,
+        }}
+      />
+      
+      <div className="absolute top-3 left-3 right-3 z-[600]">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
@@ -544,11 +505,11 @@ function WindMapView({
         </div>
       </div>
       
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-20">
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-[600]">
         <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-lg" />
       </div>
       
-      <div className="absolute left-1/2 top-[58%] -translate-x-1/2 w-[280px] pointer-events-auto z-20">
+      <div className="absolute left-1/2 top-[58%] -translate-x-1/2 w-[280px] pointer-events-auto z-[600]">
         <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 text-white shadow-xl">
           <div className="flex items-start justify-between gap-2 mb-2">
             <div className="min-w-0">
@@ -599,7 +560,7 @@ function WindMapView({
         </div>
       </div>
       
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2 pointer-events-auto z-20">
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 pointer-events-auto z-[600]">
         <Button 
           size="icon" 
           variant="secondary" 
@@ -620,7 +581,7 @@ function WindMapView({
         </Button>
       </div>
       
-      <div className="absolute bottom-4 left-4 pointer-events-none z-20">
+      <div className="absolute bottom-4 left-4 pointer-events-none z-[600]">
         <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg px-2 py-1 text-white text-[10px]">
           Drag to explore
         </div>

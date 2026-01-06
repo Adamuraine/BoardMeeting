@@ -4,7 +4,7 @@ import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Navigation, Lock, MapPin, Search, ChevronLeft, ChevronRight, Compass, Wind, ArrowUp, ArrowDown } from "lucide-react";
+import { Navigation, Lock, MapPin, Search, ChevronLeft, ChevronRight, Compass, ArrowUp, ArrowDown, Plus, Minus, ZoomIn } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PremiumModal } from "@/components/PremiumModal";
@@ -218,6 +218,8 @@ function WindMapView({
   windDirection,
   locationName,
   onDrag,
+  zoom,
+  onZoom,
   searchQuery,
   onSearchChange,
   onSearch,
@@ -229,6 +231,8 @@ function WindMapView({
   windDirection: number;
   locationName: string;
   onDrag: (deltaLat: number, deltaLng: number) => void;
+  zoom: number;
+  onZoom: (delta: number) => void;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearch: () => void;
@@ -238,6 +242,7 @@ function WindMapView({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
+  const lastPinchDistRef = useRef<number | null>(null);
   
   useEffect(() => {
     const updateDimensions = () => {
@@ -254,6 +259,8 @@ function WindMapView({
     return () => window.removeEventListener('resize', updateDimensions);
   }, []);
   
+  const dragSensitivity = 0.02 / zoom;
+  
   const handleMouseDown = (e: React.MouseEvent) => {
     setIsDragging(true);
     lastPosRef.current = { x: e.clientX, y: e.clientY };
@@ -265,8 +272,8 @@ function WindMapView({
     const deltaX = e.clientX - lastPosRef.current.x;
     const deltaY = e.clientY - lastPosRef.current.y;
     
-    const deltaLat = deltaY * 0.01;
-    const deltaLng = -deltaX * 0.01;
+    const deltaLat = deltaY * dragSensitivity;
+    const deltaLng = -deltaX * dragSensitivity;
     
     onDrag(deltaLat, deltaLng);
     lastPosRef.current = { x: e.clientX, y: e.clientY };
@@ -276,63 +283,98 @@ function WindMapView({
     setIsDragging(false);
   };
   
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const delta = e.deltaY > 0 ? -0.2 : 0.2;
+    onZoom(delta);
+  };
+  
+  const getTouchDistance = (touches: React.TouchList) => {
+    if (touches.length < 2) return null;
+    const dx = touches[0].clientX - touches[1].clientX;
+    const dy = touches[0].clientY - touches[1].clientY;
+    return Math.sqrt(dx * dx + dy * dy);
+  };
+  
   const handleTouchStart = (e: React.TouchEvent) => {
-    const touch = e.touches[0];
-    setIsDragging(true);
-    lastPosRef.current = { x: touch.clientX, y: touch.clientY };
+    if (e.touches.length === 2) {
+      lastPinchDistRef.current = getTouchDistance(e.touches);
+    } else if (e.touches.length === 1) {
+      const touch = e.touches[0];
+      setIsDragging(true);
+      lastPosRef.current = { x: touch.clientX, y: touch.clientY };
+    }
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (!isDragging) return;
-    
-    const touch = e.touches[0];
-    const deltaX = touch.clientX - lastPosRef.current.x;
-    const deltaY = touch.clientY - lastPosRef.current.y;
-    
-    const deltaLat = deltaY * 0.01;
-    const deltaLng = -deltaX * 0.01;
-    
-    onDrag(deltaLat, deltaLng);
-    lastPosRef.current = { x: touch.clientX, y: touch.clientY };
+    if (e.touches.length === 2) {
+      const currentDist = getTouchDistance(e.touches);
+      if (currentDist && lastPinchDistRef.current) {
+        const delta = (currentDist - lastPinchDistRef.current) * 0.01;
+        onZoom(delta);
+        lastPinchDistRef.current = currentDist;
+      }
+    } else if (e.touches.length === 1 && isDragging) {
+      const touch = e.touches[0];
+      const deltaX = touch.clientX - lastPosRef.current.x;
+      const deltaY = touch.clientY - lastPosRef.current.y;
+      
+      const deltaLat = deltaY * dragSensitivity;
+      const deltaLng = -deltaX * dragSensitivity;
+      
+      onDrag(deltaLat, deltaLng);
+      lastPosRef.current = { x: touch.clientX, y: touch.clientY };
+    }
   };
   
   const handleTouchEnd = () => {
     setIsDragging(false);
+    lastPinchDistRef.current = null;
   };
   
   const baseColor = getWindColorHex(windSpeed);
   const onshoreWind = isOnshore(windDirection);
+  const scaleLabel = zoom < 1 ? `${Math.round(100 / zoom)} mi` : `${Math.round(50 / zoom)} mi`;
   
   return (
     <div 
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing"
+      className="relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing touch-none"
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
       onMouseLeave={handleMouseUp}
+      onWheel={handleWheel}
       onTouchStart={handleTouchStart}
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
       <div 
-        className="absolute inset-0"
+        className="absolute inset-0 transition-transform duration-150"
         style={{
-          background: `
-            radial-gradient(ellipse at 30% 20%, ${baseColor}99 0%, transparent 50%),
-            radial-gradient(ellipse at 70% 80%, #0ea5e966 0%, transparent 40%),
-            radial-gradient(ellipse at 50% 50%, #06b6d455 0%, transparent 60%),
-            linear-gradient(180deg, #0c4a6e 0%, #0e7490 50%, #0d9488 100%)
-          `,
+          transform: `scale(${zoom})`,
+          transformOrigin: 'center center',
         }}
-      />
-      
-      <AnimatedWindCanvas 
-        windSpeed={windSpeed}
-        windDirection={windDirection}
-        width={dimensions.width}
-        height={dimensions.height}
-      />
+      >
+        <div 
+          className="absolute inset-0"
+          style={{
+            background: `
+              radial-gradient(ellipse at 30% 20%, ${baseColor}99 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, #0ea5e966 0%, transparent 40%),
+              radial-gradient(ellipse at 50% 50%, #06b6d455 0%, transparent 60%),
+              linear-gradient(180deg, #0c4a6e 0%, #0e7490 50%, #0d9488 100%)
+            `,
+          }}
+        />
+        
+        <AnimatedWindCanvas 
+          windSpeed={windSpeed}
+          windDirection={windDirection}
+          width={dimensions.width}
+          height={dimensions.height}
+        />
+      </div>
       
       <div className="absolute top-3 left-3 right-3 z-10">
         <div className="flex gap-2">
@@ -360,7 +402,7 @@ function WindMapView({
       
       <div className="absolute left-4 top-1/3 flex flex-col items-center text-white/70 text-[10px]">
         <div className="h-20 w-[2px] bg-white/40 rounded-full mb-1" />
-        <span>50 mi</span>
+        <span>{scaleLabel}</span>
       </div>
       
       <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
@@ -418,10 +460,35 @@ function WindMapView({
         </div>
       </div>
       
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2">
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 pointer-events-auto">
+        <Button 
+          size="icon" 
+          variant="secondary" 
+          className="h-9 w-9 bg-white/20 backdrop-blur-sm border-0 text-white"
+          onClick={() => onZoom(0.25)}
+          data-testid="button-zoom-in"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+        <Button 
+          size="icon" 
+          variant="secondary" 
+          className="h-9 w-9 bg-white/20 backdrop-blur-sm border-0 text-white"
+          onClick={() => onZoom(-0.25)}
+          data-testid="button-zoom-out"
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
         <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg px-2 py-1 text-white text-xs flex items-center gap-1">
+          <ZoomIn className="h-3 w-3" />
+          <span>{Math.round(zoom * 100)}%</span>
+        </div>
+      </div>
+      
+      <div className="absolute bottom-4 left-4 pointer-events-none">
+        <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg px-2 py-1 text-white text-[10px] flex items-center gap-1">
           <Compass className="h-3 w-3" />
-          <span>Drag to pan</span>
+          <span>Pinch or scroll to zoom</span>
         </div>
       </div>
     </div>
@@ -581,6 +648,7 @@ export function WindModel({ lat: initialLat = 33.1936, lng: initialLng = -117.38
   const [locationName, setLocationName] = useState(initialName);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
+  const [zoom, setZoom] = useState(1);
   
   const isPremium = profile?.isPremium ?? false;
   const maxHours = isPremium ? 168 : 72;
@@ -598,14 +666,27 @@ export function WindModel({ lat: initialLat = 33.1936, lng: initialLng = -117.38
   });
   
   const handleDrag = (deltaLat: number, deltaLng: number) => {
-    setLat(prev => Math.max(-90, Math.min(90, prev + deltaLat)));
+    setLat(prev => {
+      const newLat = Math.max(-90, Math.min(90, prev + deltaLat));
+      return newLat;
+    });
     setLng(prev => {
       let newLng = prev + deltaLng;
       if (newLng > 180) newLng -= 360;
       if (newLng < -180) newLng += 360;
       return newLng;
     });
-    setLocationName(`${lat >= 0 ? 'N' : 'S'}${Math.abs(lat).toFixed(2)}, ${lng >= 0 ? 'E' : 'W'}${Math.abs(lng).toFixed(2)}`);
+    setLocationName((prevName) => {
+      const newLat = Math.max(-90, Math.min(90, lat + deltaLat));
+      let newLng = lng + deltaLng;
+      if (newLng > 180) newLng -= 360;
+      if (newLng < -180) newLng += 360;
+      return `${newLat >= 0 ? 'N' : 'S'}${Math.abs(newLat).toFixed(2)}, ${newLng >= 0 ? 'E' : 'W'}${Math.abs(newLng).toFixed(2)}`;
+    });
+  };
+  
+  const handleZoom = (delta: number) => {
+    setZoom(prev => Math.max(0.25, Math.min(4, prev + delta)));
   };
   
   const handleSearch = async () => {
@@ -651,7 +732,7 @@ export function WindModel({ lat: initialLat = 33.1936, lng: initialLng = -117.38
         <WindSpeedScale />
       </div>
       
-      <div className="flex-1 relative bg-gradient-to-br from-cyan-400 via-teal-500 to-blue-600">
+      <div className="flex-1 min-h-[400px] relative bg-gradient-to-br from-cyan-400 via-teal-500 to-blue-600">
         <WindMapView 
           lat={lat}
           lng={lng}
@@ -659,6 +740,8 @@ export function WindModel({ lat: initialLat = 33.1936, lng: initialLng = -117.38
           windDirection={currentHour?.windDirection || 0}
           locationName={locationName}
           onDrag={handleDrag}
+          zoom={zoom}
+          onZoom={handleZoom}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSearch={handleSearch}

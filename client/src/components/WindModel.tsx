@@ -114,6 +114,64 @@ function WindSpeedScale() {
   );
 }
 
+function MapTileLayer({ lat, lng, zoom, width, height }: { lat: number; lng: number; zoom: number; width: number; height: number }) {
+  const tileZoom = Math.min(18, Math.max(1, Math.round(8 + (zoom - 1) * 3)));
+  
+  const latRad = lat * Math.PI / 180;
+  const n = Math.pow(2, tileZoom);
+  const centerTileX = ((lng + 180) / 360) * n;
+  const centerTileY = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n;
+  
+  const tileSize = 256;
+  const tilesX = Math.ceil(width / tileSize) + 2;
+  const tilesY = Math.ceil(height / tileSize) + 2;
+  
+  const startTileX = Math.floor(centerTileX - tilesX / 2);
+  const startTileY = Math.floor(centerTileY - tilesY / 2);
+  
+  const offsetX = (centerTileX - startTileX - tilesX / 2) * tileSize + width / 2;
+  const offsetY = (centerTileY - startTileY - tilesY / 2) * tileSize + height / 2;
+  
+  const tiles = [];
+  for (let y = 0; y < tilesY; y++) {
+    for (let x = 0; x < tilesX; x++) {
+      const tileX = ((startTileX + x) % n + n) % n;
+      const tileY = startTileY + y;
+      
+      if (tileY >= 0 && tileY < n) {
+        tiles.push({
+          key: `${tileZoom}-${tileX}-${tileY}`,
+          x: x * tileSize + offsetX - tilesX * tileSize / 2,
+          y: y * tileSize + offsetY - tilesY * tileSize / 2,
+          url: `https://tile.openstreetmap.org/${tileZoom}/${tileX}/${tileY}.png`,
+        });
+      }
+    }
+  }
+  
+  if (width === 0 || height === 0) return null;
+  
+  return (
+    <div className="absolute inset-0 overflow-hidden">
+      {tiles.map(tile => (
+        <img
+          key={tile.key}
+          src={tile.url}
+          alt=""
+          className="absolute pointer-events-none"
+          style={{
+            left: tile.x,
+            top: tile.y,
+            width: tileSize,
+            height: tileSize,
+          }}
+          loading="lazy"
+        />
+      ))}
+    </div>
+  );
+}
+
 function AnimatedWindCanvas({ 
   windSpeed, 
   windDirection,
@@ -357,14 +415,14 @@ function WindMapView({
           transformOrigin: 'center center',
         }}
       >
+        <MapTileLayer lat={lat} lng={lng} zoom={zoom} width={dimensions.width} height={dimensions.height} />
+        
         <div 
-          className="absolute inset-0"
+          className="absolute inset-0 pointer-events-none"
           style={{
             background: `
-              radial-gradient(ellipse at 30% 20%, ${baseColor}99 0%, transparent 50%),
-              radial-gradient(ellipse at 70% 80%, #0ea5e966 0%, transparent 40%),
-              radial-gradient(ellipse at 50% 50%, #06b6d455 0%, transparent 60%),
-              linear-gradient(180deg, #0c4a6e 0%, #0e7490 50%, #0d9488 100%)
+              radial-gradient(ellipse at 30% 20%, ${baseColor}40 0%, transparent 50%),
+              radial-gradient(ellipse at 70% 80%, #0ea5e930 0%, transparent 40%)
             `,
           }}
         />

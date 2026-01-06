@@ -139,6 +139,10 @@ export default function Stats() {
   const statsMutation = useMutation({
     mutationFn: async (data: { fastestSpeed?: number; longestWave?: number; biggestWave?: number }) => {
       const res = await apiRequest("PATCH", "/api/profiles/me", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to save stats");
+      }
       return res.json();
     },
     onSuccess: () => {
@@ -146,6 +150,13 @@ export default function Stats() {
       toast({
         title: "Stats Updated",
         description: "Your stats have been saved!",
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to Save",
+        description: error.message,
+        variant: "destructive",
       });
     },
   });

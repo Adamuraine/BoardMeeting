@@ -411,32 +411,24 @@ function WindMapView({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
+      <MapTileLayer lat={lat} lng={lng} zoom={zoom} width={dimensions.width} height={dimensions.height} />
+      
       <div 
-        className="absolute inset-0 transition-transform duration-150"
+        className="absolute inset-0 pointer-events-none"
         style={{
-          transform: `scale(${zoom})`,
-          transformOrigin: 'center center',
+          background: `
+            radial-gradient(ellipse at 30% 20%, ${baseColor}40 0%, transparent 50%),
+            radial-gradient(ellipse at 70% 80%, #0ea5e930 0%, transparent 40%)
+          `,
         }}
-      >
-        <MapTileLayer lat={lat} lng={lng} zoom={zoom} width={dimensions.width} height={dimensions.height} />
-        
-        <div 
-          className="absolute inset-0 pointer-events-none"
-          style={{
-            background: `
-              radial-gradient(ellipse at 30% 20%, ${baseColor}40 0%, transparent 50%),
-              radial-gradient(ellipse at 70% 80%, #0ea5e930 0%, transparent 40%)
-            `,
-          }}
-        />
-        
-        <AnimatedWindCanvas 
-          windSpeed={windSpeed}
-          windDirection={windDirection}
-          width={dimensions.width}
-          height={dimensions.height}
-        />
-      </div>
+      />
+      
+      <AnimatedWindCanvas 
+        windSpeed={windSpeed}
+        windDirection={windDirection}
+        width={dimensions.width}
+        height={dimensions.height}
+      />
       
       <div className="absolute top-3 left-3 right-3 z-10">
         <div className="flex gap-2">

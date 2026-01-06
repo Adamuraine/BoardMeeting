@@ -1,7 +1,7 @@
 import { useTrips, useCreateTrip } from "@/hooks/use-trips";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, MapPin, Car, Anchor, Plane, Users } from "lucide-react";
+import { Plus, Calendar, MapPin, Car, Anchor, Plane, Users, ThumbsUp } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -68,6 +68,7 @@ export default function Trips() {
     if (!trips) return [];
     return trips.filter(trip => {
       if (trip.isVisiting) return false;
+      if (trip.tripType === 'beach_carpool') return false;
       
       if (startFilter && startFilter !== "all") {
         if (flexibleLocation) {
@@ -101,6 +102,11 @@ export default function Trips() {
     return trips.filter(trip => trip.isVisiting);
   }, [trips]);
 
+  const carpoolTrips = useMemo(() => {
+    if (!trips) return [];
+    return trips.filter(trip => !trip.isVisiting && trip.tripType === 'beach_carpool');
+  }, [trips]);
+
   return (
     <Layout>
       <div 
@@ -127,13 +133,17 @@ export default function Trips() {
           </header>
 
         <Tabs defaultValue="trips" className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-2 mb-4">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="trips" data-testid="tab-trips">
-              <Car className="w-4 h-4 mr-2" />
+              <Car className="w-4 h-4 mr-1" />
               Trips
             </TabsTrigger>
+            <TabsTrigger value="carpool" data-testid="tab-carpool">
+              <ThumbsUp className="w-4 h-4 mr-1" />
+              Rides
+            </TabsTrigger>
             <TabsTrigger value="visiting" data-testid="tab-visiting">
-              <Plane className="w-4 h-4 mr-2" />
+              <Plane className="w-4 h-4 mr-1" />
               Visiting
             </TabsTrigger>
           </TabsList>
@@ -240,6 +250,41 @@ export default function Trips() {
             )}
           </TabsContent>
 
+          <TabsContent value="carpool" className="flex-1 space-y-4 mt-0 overflow-y-auto">
+            <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 dark:from-green-600/30 dark:to-emerald-600/30 rounded-xl p-4 border border-green-400/30 dark:border-green-500/40">
+              <div className="flex items-start gap-3">
+                <div className="w-10 h-10 rounded-full bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center shrink-0">
+                  <ThumbsUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm">Need a Ride to the Beach?</h3>
+                  <p className="text-xs text-muted-foreground">
+                    Connect with surfers who can give you a ride to local surf spots. No car? No problem!
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {isLoading ? (
+              <div className="space-y-4">
+                {[1, 2].map(i => <div key={i} className="h-36 bg-muted animate-pulse rounded-2xl" />)}
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {carpoolTrips.map((trip) => (
+                  <CarpoolCard key={trip.id} trip={trip} />
+                ))}
+                {carpoolTrips.length === 0 && (
+                  <div className="text-center py-16 text-muted-foreground">
+                    <Car className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                    <p className="font-medium">No carpool offers yet</p>
+                    <p className="text-sm">Offer a ride or request one!</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </TabsContent>
+
           <TabsContent value="visiting" className="flex-1 space-y-4 mt-0">
             <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 dark:from-amber-600/30 dark:to-orange-600/30 rounded-xl p-4 border border-amber-400/30 dark:border-amber-500/40">
               <div className="flex items-start gap-3">
@@ -324,6 +369,40 @@ function TripCard({ trip }: { trip: any }) {
           {format(new Date(trip.startDate), 'MMM d')}
         </div>
       </div>
+    </div>
+  );
+}
+
+function CarpoolCard({ trip }: { trip: any }) {
+  return (
+    <div className="bg-card rounded-2xl p-4 border border-border shadow-sm hover-elevate" data-testid={`card-carpool-${trip.id}`}>
+      <div className="flex items-start gap-3">
+        <div className="w-12 h-12 rounded-full bg-green-500/20 dark:bg-green-500/30 text-green-600 dark:text-green-400 flex items-center justify-center font-bold text-sm shrink-0">
+          <Car className="w-6 h-6" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 mb-1 flex-wrap">
+            <span className="font-semibold">{trip.organizer?.displayName || "Surfer"}</span>
+            <span className="text-xs bg-green-500/10 text-green-600 dark:text-green-400 px-2 py-0.5 rounded-full font-medium">
+              {trip.hasRide ? "Offering Ride" : "Needs Ride"}
+            </span>
+          </div>
+          <div className="flex items-center text-sm text-muted-foreground mb-2 gap-1">
+            <MapPin className="w-3 h-3 shrink-0" />
+            <span className="font-medium text-foreground truncate">{trip.destination}</span>
+          </div>
+          <div className="flex items-center text-xs text-muted-foreground">
+            <Calendar className="w-3 h-3 mr-1" />
+            {format(new Date(trip.startDate), 'EEE, MMM d')}
+          </div>
+          {trip.description && (
+            <p className="text-sm text-muted-foreground mt-2 line-clamp-2">{trip.description}</p>
+          )}
+        </div>
+      </div>
+      <Button variant="outline" size="sm" className="w-full mt-3">
+        Message
+      </Button>
     </div>
   );
 }
@@ -460,7 +539,8 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="carpool">Carpool</SelectItem>
+                    <SelectItem value="carpool">Carpool (road trip)</SelectItem>
+                    <SelectItem value="beach_carpool">Ride to Beach</SelectItem>
                     <SelectItem value="boat">Boat Trip</SelectItem>
                     <SelectItem value="resort">Resort Stay</SelectItem>
                   </SelectContent>

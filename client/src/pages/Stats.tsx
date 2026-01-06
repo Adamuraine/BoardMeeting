@@ -1,11 +1,13 @@
 import { useState } from "react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown } from "lucide-react";
+import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown, Trophy, MapPin } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -73,6 +75,22 @@ const TRICK_CATEGORIES = {
 const WAVE_SIZES = [1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25, 30, 40, 50];
 const SKILL_LEVELS = ["beginner", "intermediate", "advanced", "pro"] as const;
 
+type TrophyData = {
+  place: number;
+  contestName: string;
+  location: string;
+  category: "amateur" | "pro";
+};
+
+const TROPHY_COLORS: Record<number, string> = {
+  1: "text-yellow-500",
+  2: "text-slate-400",
+  3: "text-amber-600",
+  4: "text-blue-500",
+  5: "text-emerald-500",
+  6: "text-purple-500",
+};
+
 export default function Stats() {
   const { data: profile, isLoading } = useMyProfile();
   const { toast } = useToast();
@@ -81,6 +99,14 @@ export default function Stats() {
   const [editingLongestWave, setEditingLongestWave] = useState(false);
   const [tempSpeed, setTempSpeed] = useState("");
   const [tempLongestWave, setTempLongestWave] = useState("");
+  
+  const [trophyDialogOpen, setTrophyDialogOpen] = useState(false);
+  const [newTrophy, setNewTrophy] = useState<TrophyData>({
+    place: 1,
+    contestName: "",
+    location: "",
+    category: "amateur",
+  });
 
   const skillLevelMutation = useMutation({
     mutationFn: async (skillLevel: string) => {
@@ -157,6 +183,49 @@ export default function Stats() {
     if (!isNaN(numValue)) {
       statsMutation.mutate({ biggestWave: numValue });
     }
+  };
+
+  const trophiesMutation = useMutation({
+    mutationFn: async (trophies: string[]) => {
+      const res = await apiRequest("PATCH", "/api/profiles/me", { trophies });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
+      toast({
+        title: "Trophy Added",
+        description: "Your trophy has been saved to your profile!",
+      });
+    },
+  });
+
+  const parseTrophies = (): TrophyData[] => {
+    if (!profile?.trophies) return [];
+    return profile.trophies.map((t: string) => {
+      try {
+        return JSON.parse(t);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  };
+
+  const addTrophy = () => {
+    if (!newTrophy.contestName || !newTrophy.location) {
+      toast({ title: "Missing info", description: "Please fill in contest name and location", variant: "destructive" });
+      return;
+    }
+    const currentTrophies = profile?.trophies || [];
+    const newTrophyStr = JSON.stringify(newTrophy);
+    trophiesMutation.mutate([...currentTrophies, newTrophyStr]);
+    setNewTrophy({ place: 1, contestName: "", location: "", category: "amateur" });
+    setTrophyDialogOpen(false);
+  };
+
+  const removeTrophy = (index: number) => {
+    const currentTrophies = profile?.trophies || [];
+    const newTrophies = currentTrophies.filter((_: string, i: number) => i !== index);
+    trophiesMutation.mutate(newTrophies);
   };
 
   if (isLoading) {
@@ -269,6 +338,146 @@ export default function Stats() {
                   <span className="text-sm text-muted-foreground italic">Tap "Add Tricks" to log your first trick!</span>
                 )}
               </div>
+            </div>
+            
+            <div className="pt-4 border-t">
+              <div className="flex items-center justify-between mb-3">
+                <h4 className="text-sm font-medium flex items-center gap-2">
+                  <Trophy className="h-4 w-4 text-yellow-500" />
+                  Trophies ({parseTrophies().length})
+                </h4>
+                <Dialog open={trophyDialogOpen} onOpenChange={setTrophyDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline" className="h-8 gap-1" data-testid="button-add-trophy">
+                      <Plus className="h-4 w-4" />
+                      Add Trophy
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-sm">
+                    <DialogHeader>
+                      <DialogTitle className="flex items-center gap-2">
+                        <Trophy className="h-5 w-5 text-yellow-500" />
+                        Add Competition Trophy
+                      </DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4 pt-2">
+                      <div>
+                        <Label className="text-sm mb-2 block">Place Finished</Label>
+                        <div className="flex gap-2">
+                          {[1, 2, 3, 4, 5, 6].map((place) => (
+                            <Button
+                              key={place}
+                              size="icon"
+                              variant={newTrophy.place === place ? "default" : "outline"}
+                              onClick={() => setNewTrophy({ ...newTrophy, place })}
+                              className="relative"
+                              data-testid={`button-place-${place}`}
+                            >
+                              <Trophy className={`h-5 w-5 ${TROPHY_COLORS[place]}`} />
+                              <span className="absolute -bottom-1 -right-1 text-[10px] font-bold bg-background rounded-full w-4 h-4 flex items-center justify-center border">
+                                {place}
+                              </span>
+                            </Button>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="contestName" className="text-sm mb-2 block">Contest Name</Label>
+                        <Input
+                          id="contestName"
+                          placeholder="e.g., US Open of Surfing"
+                          value={newTrophy.contestName}
+                          onChange={(e) => setNewTrophy({ ...newTrophy, contestName: e.target.value })}
+                          data-testid="input-contest-name"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="location" className="text-sm mb-2 block">Event Location</Label>
+                        <Input
+                          id="location"
+                          placeholder="e.g., Huntington Beach, CA"
+                          value={newTrophy.location}
+                          onChange={(e) => setNewTrophy({ ...newTrophy, location: e.target.value })}
+                          data-testid="input-trophy-location"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label className="text-sm mb-2 block">Category</Label>
+                        <div className="flex gap-2">
+                          <Button
+                            variant={newTrophy.category === "amateur" ? "default" : "outline"}
+                            onClick={() => setNewTrophy({ ...newTrophy, category: "amateur" })}
+                            className="flex-1"
+                            data-testid="button-category-amateur"
+                          >
+                            Amateur
+                          </Button>
+                          <Button
+                            variant={newTrophy.category === "pro" ? "default" : "outline"}
+                            onClick={() => setNewTrophy({ ...newTrophy, category: "pro" })}
+                            className="flex-1"
+                            data-testid="button-category-pro"
+                          >
+                            Pro
+                          </Button>
+                        </div>
+                      </div>
+                      
+                      <Button 
+                        className="w-full" 
+                        onClick={addTrophy}
+                        disabled={trophiesMutation.isPending}
+                        data-testid="button-save-trophy"
+                      >
+                        Add Trophy
+                      </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </div>
+              
+              {parseTrophies().length > 0 ? (
+                <div className="space-y-2">
+                  {parseTrophies().map((trophy, index) => (
+                    <div 
+                      key={index}
+                      className="flex items-center gap-3 p-2 rounded-lg bg-muted/50"
+                      data-testid={`trophy-item-${index}`}
+                    >
+                      <div className="relative">
+                        <Trophy className={`h-8 w-8 ${TROPHY_COLORS[trophy.place] || "text-gray-400"}`} />
+                        <span className="absolute -bottom-1 -right-1 text-[10px] font-bold bg-background rounded-full w-4 h-4 flex items-center justify-center border">
+                          {trophy.place}
+                        </span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm truncate">{trophy.contestName}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <MapPin className="h-3 w-3" />
+                          {trophy.location}
+                        </p>
+                      </div>
+                      <Badge variant="outline" className="text-[10px] capitalize shrink-0">
+                        {trophy.category}
+                      </Badge>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 shrink-0"
+                        onClick={() => removeTrophy(index)}
+                        data-testid={`button-remove-trophy-${index}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <span className="text-sm text-muted-foreground italic">No trophies yet. Add your competition wins!</span>
+              )}
             </div>
           </div>
         </CardContent>

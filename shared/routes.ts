@@ -56,7 +56,7 @@ export const api = {
       },
     },
     update: {
-      method: 'PUT' as const,
+      method: 'PATCH' as const,
       path: '/api/profiles/me',
       input: insertProfileSchema.partial(),
       responses: {

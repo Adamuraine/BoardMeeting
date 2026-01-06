@@ -270,60 +270,32 @@ function WindMapView({
     };
   }, []);
   
-  const dragSensitivity = 0.01 / zoom;
+  const dragSensitivity = 0.008;
   
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handlePointerDown = (e: React.PointerEvent) => {
     if ((e.target as HTMLElement).closest('input, button')) return;
+    e.currentTarget.setPointerCapture(e.pointerId);
     setIsDragging(true);
     lastPosRef.current = { x: e.clientX, y: e.clientY };
   };
   
-  const handleMouseMove = (e: React.MouseEvent) => {
+  const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDragging) return;
     
     const deltaX = e.clientX - lastPosRef.current.x;
     const deltaY = e.clientY - lastPosRef.current.y;
     
-    const deltaLat = deltaY * dragSensitivity;
-    const deltaLng = -deltaX * dragSensitivity;
-    
-    onDrag(deltaLat, deltaLng);
-    lastPosRef.current = { x: e.clientX, y: e.clientY };
-  };
-  
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-  
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.2 : 0.2;
-    onZoom(delta);
-  };
-  
-  const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 1) {
-      const touch = e.touches[0];
-      setIsDragging(true);
-      lastPosRef.current = { x: touch.clientX, y: touch.clientY };
-    }
-  };
-  
-  const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 1 && isDragging) {
-      const touch = e.touches[0];
-      const deltaX = touch.clientX - lastPosRef.current.x;
-      const deltaY = touch.clientY - lastPosRef.current.y;
-      
+    if (Math.abs(deltaX) > 2 || Math.abs(deltaY) > 2) {
       const deltaLat = deltaY * dragSensitivity;
       const deltaLng = -deltaX * dragSensitivity;
       
       onDrag(deltaLat, deltaLng);
-      lastPosRef.current = { x: touch.clientX, y: touch.clientY };
+      lastPosRef.current = { x: e.clientX, y: e.clientY };
     }
   };
   
-  const handleTouchEnd = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
+    e.currentTarget.releasePointerCapture(e.pointerId);
     setIsDragging(false);
   };
   
@@ -346,14 +318,10 @@ function WindMapView({
         "relative w-full h-full overflow-hidden touch-none select-none",
         isDragging ? "cursor-grabbing" : "cursor-grab"
       )}
-      onMouseDown={handleMouseDown}
-      onMouseMove={handleMouseMove}
-      onMouseUp={handleMouseUp}
-      onMouseLeave={handleMouseUp}
-      onWheel={handleWheel}
-      onTouchStart={handleTouchStart}
-      onTouchMove={handleTouchMove}
-      onTouchEnd={handleTouchEnd}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onPointerUp={handlePointerUp}
+      onPointerCancel={handlePointerUp}
     >
       <div 
         className="absolute inset-0"

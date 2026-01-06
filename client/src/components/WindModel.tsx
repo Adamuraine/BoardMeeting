@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef, useCallback, memo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Navigation, Lock, MapPin, Search, ChevronLeft, ChevronRight, Compass, ArrowUp, ArrowDown, Plus, Minus, ZoomIn } from "lucide-react";
+import { Navigation, Lock, MapPin, Search, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Minus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PremiumModal } from "@/components/PremiumModal";
@@ -41,10 +41,10 @@ async function fetchHourlyWindData(lat: number, lng: number): Promise<HourlyWind
   for (let i = 0; i < hourly.time.length; i++) {
     result.push({
       time: new Date(hourly.time[i]),
-      windSpeed: Math.round(hourly.wind_speed_10m[i] * 10) / 10,
+      windSpeed: Math.round(hourly.wind_speed_10m[i] * 0.621371 * 10) / 10,
       windDirection: hourly.wind_direction_10m[i],
-      windGusts: Math.round(hourly.wind_gusts_10m[i] * 10) / 10,
-      temperature: Math.round(hourly.temperature_2m[i]),
+      windGusts: Math.round(hourly.wind_gusts_10m[i] * 0.621371 * 10) / 10,
+      temperature: Math.round(hourly.temperature_2m[i] * 9/5 + 32),
     });
   }
   
@@ -114,68 +114,7 @@ function WindSpeedScale() {
   );
 }
 
-const MapTileLayer = memo(function MapTileLayer({ lat, lng, zoom, width, height }: { lat: number; lng: number; zoom: number; width: number; height: number }) {
-  if (width === 0 || height === 0) return null;
-  
-  const safeLat = Math.max(-85, Math.min(85, lat));
-  const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
-  
-  const tileZoom = Math.min(10, Math.max(3, Math.round(5 + (zoom - 1) * 2)));
-  
-  const latRad = safeLat * Math.PI / 180;
-  const n = Math.pow(2, tileZoom);
-  const centerTileX = ((safeLng + 180) / 360) * n;
-  const centerTileY = (1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n;
-  
-  const tileSize = 256;
-  const tilesX = Math.ceil(width / tileSize) + 2;
-  const tilesY = Math.ceil(height / tileSize) + 2;
-  
-  const startTileX = Math.floor(centerTileX - tilesX / 2);
-  const startTileY = Math.floor(centerTileY - tilesY / 2);
-  
-  const offsetX = (centerTileX - startTileX - tilesX / 2) * tileSize + width / 2;
-  const offsetY = (centerTileY - startTileY - tilesY / 2) * tileSize + height / 2;
-  
-  const tiles = [];
-  for (let y = 0; y < tilesY; y++) {
-    for (let x = 0; x < tilesX; x++) {
-      const tileX = ((startTileX + x) % n + n) % n;
-      const tileY = startTileY + y;
-      
-      if (tileY >= 0 && tileY < n) {
-        tiles.push({
-          key: `${tileZoom}-${tileX}-${tileY}`,
-          x: x * tileSize + offsetX - tilesX * tileSize / 2,
-          y: y * tileSize + offsetY - tilesY * tileSize / 2,
-          url: `https://tile.openstreetmap.org/${tileZoom}/${tileX}/${tileY}.png`,
-        });
-      }
-    }
-  }
-  
-  return (
-    <div className="absolute inset-0 overflow-hidden bg-slate-800">
-      {tiles.map(tile => (
-        <img
-          key={tile.key}
-          src={tile.url}
-          alt=""
-          className="absolute pointer-events-none"
-          style={{
-            left: tile.x,
-            top: tile.y,
-            width: tileSize,
-            height: tileSize,
-          }}
-          onError={(e) => { e.currentTarget.style.display = 'none'; }}
-        />
-      ))}
-    </div>
-  );
-});
-
-function AnimatedWindCanvas({ 
+function WindCanvas({ 
   windSpeed, 
   windDirection,
   width,
@@ -190,10 +129,10 @@ function AnimatedWindCanvas({
   const particlesRef = useRef<Particle[]>([]);
   const animationRef = useRef<number>();
   
-  const createParticle = useCallback((width: number, height: number): Particle => {
+  const createParticle = useCallback((w: number, h: number): Particle => {
     return {
-      x: Math.random() * width,
-      y: Math.random() * height,
+      x: Math.random() * w,
+      y: Math.random() * h,
       age: Math.random() * 60,
       maxAge: 80 + Math.random() * 80,
       speed: 1 + Math.random() * 2,
@@ -202,7 +141,7 @@ function AnimatedWindCanvas({
   
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || width === 0 || height === 0) return;
+    if (!canvas || width <= 0 || height <= 0) return;
     
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
@@ -210,7 +149,7 @@ function AnimatedWindCanvas({
     canvas.width = width;
     canvas.height = height;
     
-    const particleCount = Math.min(500, Math.floor(width * height / 800));
+    const particleCount = Math.min(400, Math.floor(width * height / 1000));
     particlesRef.current = Array.from({ length: particleCount }, () => 
       createParticle(width, height)
     );
@@ -240,12 +179,12 @@ function AnimatedWindCanvas({
         
         const fadeIn = Math.min(1, particle.age / 15);
         const fadeOut = Math.max(0, 1 - (particle.age - particle.maxAge + 30) / 30);
-        const alpha = Math.min(fadeIn, fadeOut) * 0.8;
+        const alpha = Math.min(fadeIn, fadeOut) * 0.9;
         
-        const tailLength = 12;
+        const tailLength = 15;
         ctx.beginPath();
         ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.lineWidth = 1.5;
+        ctx.lineWidth = 2;
         ctx.lineCap = 'round';
         ctx.moveTo(particle.x - moveX * tailLength, particle.y - moveY * tailLength);
         ctx.lineTo(particle.x, particle.y);
@@ -264,11 +203,14 @@ function AnimatedWindCanvas({
     };
   }, [width, height, windDirection, windSpeed, createParticle]);
   
+  if (width <= 0 || height <= 0) return null;
+  
   return (
     <canvas 
       ref={canvasRef}
-      className="absolute inset-0 pointer-events-none"
-      style={{ width, height }}
+      className="absolute inset-0 pointer-events-none z-10"
+      width={width}
+      height={height}
     />
   );
 }
@@ -304,26 +246,31 @@ function WindMapView({
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
-  const lastPinchDistRef = useRef<number | null>(null);
   
   useEffect(() => {
     const updateDimensions = () => {
       if (containerRef.current) {
+        const rect = containerRef.current.getBoundingClientRect();
         setDimensions({
-          width: containerRef.current.offsetWidth,
-          height: containerRef.current.offsetHeight,
+          width: rect.width,
+          height: rect.height,
         });
       }
     };
     
     updateDimensions();
+    const timer = setTimeout(updateDimensions, 100);
     window.addEventListener('resize', updateDimensions);
-    return () => window.removeEventListener('resize', updateDimensions);
+    return () => {
+      window.removeEventListener('resize', updateDimensions);
+      clearTimeout(timer);
+    };
   }, []);
   
-  const dragSensitivity = 0.02 / zoom;
+  const dragSensitivity = 0.01 / zoom;
   
   const handleMouseDown = (e: React.MouseEvent) => {
+    if ((e.target as HTMLElement).closest('input, button')) return;
     setIsDragging(true);
     lastPosRef.current = { x: e.clientX, y: e.clientY };
   };
@@ -351,17 +298,8 @@ function WindMapView({
     onZoom(delta);
   };
   
-  const getTouchDistance = (touches: React.TouchList) => {
-    if (touches.length < 2) return null;
-    const dx = touches[0].clientX - touches[1].clientX;
-    const dy = touches[0].clientY - touches[1].clientY;
-    return Math.sqrt(dx * dx + dy * dy);
-  };
-  
   const handleTouchStart = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      lastPinchDistRef.current = getTouchDistance(e.touches);
-    } else if (e.touches.length === 1) {
+    if (e.touches.length === 1) {
       const touch = e.touches[0];
       setIsDragging(true);
       lastPosRef.current = { x: touch.clientX, y: touch.clientY };
@@ -369,14 +307,7 @@ function WindMapView({
   };
   
   const handleTouchMove = (e: React.TouchEvent) => {
-    if (e.touches.length === 2) {
-      const currentDist = getTouchDistance(e.touches);
-      if (currentDist && lastPinchDistRef.current) {
-        const delta = (currentDist - lastPinchDistRef.current) * 0.01;
-        onZoom(delta);
-        lastPinchDistRef.current = currentDist;
-      }
-    } else if (e.touches.length === 1 && isDragging) {
+    if (e.touches.length === 1 && isDragging) {
       const touch = e.touches[0];
       const deltaX = touch.clientX - lastPosRef.current.x;
       const deltaY = touch.clientY - lastPosRef.current.y;
@@ -391,17 +322,27 @@ function WindMapView({
   
   const handleTouchEnd = () => {
     setIsDragging(false);
-    lastPinchDistRef.current = null;
   };
   
   const baseColor = getWindColorHex(windSpeed);
   const onshoreWind = isOnshore(windDirection);
-  const scaleLabel = zoom < 1 ? `${Math.round(100 / zoom)} mi` : `${Math.round(50 / zoom)} mi`;
+  
+  const tileZoom = Math.min(12, Math.max(6, Math.round(8 + (zoom - 1) * 2)));
+  const safeLat = Math.max(-85, Math.min(85, lat));
+  const safeLng = ((lng + 180) % 360 + 360) % 360 - 180;
+  const n = Math.pow(2, tileZoom);
+  const latRad = safeLat * Math.PI / 180;
+  const tileX = Math.floor(((safeLng + 180) / 360) * n);
+  const tileY = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
+  const tileUrl = `https://tile.openstreetmap.org/${tileZoom}/${tileX}/${tileY}.png`;
   
   return (
     <div 
       ref={containerRef}
-      className="relative w-full h-full overflow-hidden cursor-grab active:cursor-grabbing touch-none"
+      className={cn(
+        "relative w-full h-full overflow-hidden touch-none select-none",
+        isDragging ? "cursor-grabbing" : "cursor-grab"
+      )}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
       onMouseUp={handleMouseUp}
@@ -411,26 +352,35 @@ function WindMapView({
       onTouchMove={handleTouchMove}
       onTouchEnd={handleTouchEnd}
     >
-      <MapTileLayer lat={lat} lng={lng} zoom={zoom} width={dimensions.width} height={dimensions.height} />
+      <div 
+        className="absolute inset-0"
+        style={{
+          backgroundImage: `url(${tileUrl})`,
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          filter: 'brightness(0.7) saturate(0.8)',
+        }}
+      />
       
       <div 
         className="absolute inset-0 pointer-events-none"
         style={{
           background: `
-            radial-gradient(ellipse at 30% 20%, ${baseColor}40 0%, transparent 50%),
-            radial-gradient(ellipse at 70% 80%, #0ea5e930 0%, transparent 40%)
+            linear-gradient(135deg, ${baseColor}60 0%, transparent 50%),
+            linear-gradient(225deg, #0ea5e940 0%, transparent 50%),
+            linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.4) 100%)
           `,
         }}
       />
       
-      <AnimatedWindCanvas 
+      <WindCanvas 
         windSpeed={windSpeed}
         windDirection={windDirection}
         width={dimensions.width}
         height={dimensions.height}
       />
       
-      <div className="absolute top-3 left-3 right-3 z-10">
+      <div className="absolute top-3 left-3 right-3 z-20">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
@@ -454,25 +404,20 @@ function WindMapView({
         </div>
       </div>
       
-      <div className="absolute left-4 top-1/3 flex flex-col items-center text-white/70 text-[10px]">
-        <div className="h-20 w-[2px] bg-white/40 rounded-full mb-1" />
-        <span>{scaleLabel}</span>
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-20">
+        <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-lg" />
       </div>
       
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none">
-        <div className="w-5 h-5 rounded-full bg-blue-500 border-3 border-white shadow-lg animate-pulse" />
-      </div>
-      
-      <div className="absolute left-1/2 top-[60%] -translate-x-1/2 w-[280px] pointer-events-auto">
+      <div className="absolute left-1/2 top-[58%] -translate-x-1/2 w-[280px] pointer-events-auto z-20">
         <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 text-white shadow-xl">
-          <div className="flex items-start justify-between mb-2">
-            <div>
-              <p className="text-sm font-medium opacity-90 mb-1">{locationName}</p>
+          <div className="flex items-start justify-between gap-2 mb-2">
+            <div className="min-w-0">
+              <p className="text-sm font-medium opacity-90 mb-1 truncate">{locationName}</p>
               <p className="text-xs text-white/60">
-                {lat >= 0 ? 'N' : 'S'} {Math.abs(lat).toFixed(4)}, {lng >= 0 ? 'E' : 'W'} {Math.abs(lng).toFixed(4)}
+                {lat >= 0 ? 'N' : 'S'} {Math.abs(lat).toFixed(2)}, {lng >= 0 ? 'E' : 'W'} {Math.abs(lng).toFixed(2)}
               </p>
             </div>
-            <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-400">
+            <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-400 shrink-0">
               <MapPin className="h-4 w-4" />
             </Button>
           </div>
@@ -514,7 +459,7 @@ function WindMapView({
         </div>
       </div>
       
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2 pointer-events-auto">
+      <div className="absolute bottom-4 right-4 flex flex-col gap-2 pointer-events-auto z-20">
         <Button 
           size="icon" 
           variant="secondary" 
@@ -533,16 +478,11 @@ function WindMapView({
         >
           <Minus className="h-4 w-4" />
         </Button>
-        <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg px-2 py-1 text-white text-xs flex items-center gap-1">
-          <ZoomIn className="h-3 w-3" />
-          <span>{Math.round(zoom * 100)}%</span>
-        </div>
       </div>
       
-      <div className="absolute bottom-4 left-4 pointer-events-none">
-        <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg px-2 py-1 text-white text-[10px] flex items-center gap-1">
-          <Compass className="h-3 w-3" />
-          <span>Pinch or scroll to zoom</span>
+      <div className="absolute bottom-4 left-4 pointer-events-none z-20">
+        <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg px-2 py-1 text-white text-[10px]">
+          Drag to explore
         </div>
       </div>
     </div>
@@ -614,35 +554,25 @@ function HourlyTimeline({
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {data.map((hour, i) => {
-          const dateStr = format(hour.time, "EEE, MMM d");
+          const dateStr = format(hour.time, 'EEE M/d');
           const showDate = dateStr !== currentDate;
           if (showDate) currentDate = dateStr;
-          const hourStr = format(hour.time, "ha").toLowerCase();
+          
+          const hourStr = format(hour.time, 'ha').toLowerCase();
           const isSelected = i === selectedIndex;
           const isLocked = i >= maxHours;
-          const onshoreWind = isOnshore(hour.windDirection);
           const windColor = getWindColorHex(hour.windSpeed);
+          const onshoreWind = isOnshore(hour.windDirection);
           
           return (
-            <div key={i} className="flex flex-col items-center min-w-[44px]" data-index={i}>
+            <div key={i} className="flex flex-col items-center">
               {showDate && (
-                <div className="text-[9px] text-white/50 mb-1 whitespace-nowrap px-1 flex items-center gap-1">
-                  {isLocked && (
-                    <span className="bg-amber-500/80 text-white text-[8px] px-1 rounded">PRO</span>
-                  )}
-                  <span>{format(hour.time, "EEE")}</span>
-                </div>
+                <div className="text-[9px] text-white/50 mb-1 whitespace-nowrap">{dateStr}</div>
               )}
-              {!showDate && <div className="h-4" />}
-              
               <button
-                onClick={() => {
-                  if (isLocked) {
-                    onShowPremium();
-                  } else {
-                    onSelectHour(i);
-                  }
-                }}
+                data-index={i}
+                onClick={() => !isLocked && onSelectHour(i)}
+                disabled={isLocked}
                 className={cn(
                   "flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-all",
                   isSelected 
@@ -693,7 +623,7 @@ interface WindModelProps {
   locationName?: string;
 }
 
-export function WindModel({ lat: initialLat = 33.1936, lng: initialLng = -117.3831, locationName: initialName = "Oceanside, CA" }: WindModelProps) {
+export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, locationName: initialName = "Oceanside, CA" }: WindModelProps) {
   const { data: profile } = useMyProfile();
   const [selectedHour, setSelectedHour] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
@@ -713,35 +643,26 @@ export function WindModel({ lat: initialLat = 33.1936, lng: initialLng = -117.38
     }
   }, [maxHours, selectedHour]);
   
-  const { data: hourlyData, isLoading } = useQuery({
+  const { data: hourlyData, isLoading, refetch } = useQuery({
     queryKey: ['hourly-wind-data', lat, lng],
     queryFn: () => fetchHourlyWindData(lat, lng),
-    staleTime: 1000 * 60 * 30,
+    staleTime: 1000 * 60 * 15,
   });
   
-  const handleDrag = (deltaLat: number, deltaLng: number) => {
-    setLat(prev => {
-      const newLat = Math.max(-90, Math.min(90, prev + deltaLat));
-      return newLat;
-    });
+  const handleDrag = useCallback((deltaLat: number, deltaLng: number) => {
+    setLat(prev => Math.max(-85, Math.min(85, prev + deltaLat)));
     setLng(prev => {
       let newLng = prev + deltaLng;
       if (newLng > 180) newLng -= 360;
       if (newLng < -180) newLng += 360;
       return newLng;
     });
-    setLocationName((prevName) => {
-      const newLat = Math.max(-90, Math.min(90, lat + deltaLat));
-      let newLng = lng + deltaLng;
-      if (newLng > 180) newLng -= 360;
-      if (newLng < -180) newLng += 360;
-      return `${newLat >= 0 ? 'N' : 'S'}${Math.abs(newLat).toFixed(2)}, ${newLng >= 0 ? 'E' : 'W'}${Math.abs(newLng).toFixed(2)}`;
-    });
-  };
+    setLocationName(`${Math.abs(lat + deltaLat).toFixed(2)}${lat + deltaLat >= 0 ? 'N' : 'S'}, ${Math.abs(lng + deltaLng).toFixed(2)}${lng + deltaLng >= 0 ? 'E' : 'W'}`);
+  }, [lat, lng]);
   
-  const handleZoom = (delta: number) => {
-    setZoom(prev => Math.max(0.25, Math.min(4, prev + delta)));
-  };
+  const handleZoom = useCallback((delta: number) => {
+    setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
+  }, []);
   
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -755,6 +676,7 @@ export function WindModel({ lat: initialLat = 33.1936, lng: initialLng = -117.38
       setLng(result.lng);
       setLocationName(result.name);
       setSearchQuery("");
+      refetch();
     }
   };
   
@@ -786,7 +708,7 @@ export function WindModel({ lat: initialLat = 33.1936, lng: initialLng = -117.38
         <WindSpeedScale />
       </div>
       
-      <div className="flex-1 min-h-[400px] relative bg-gradient-to-br from-cyan-400 via-teal-500 to-blue-600">
+      <div className="flex-1 min-h-[400px] relative bg-gradient-to-br from-cyan-500 via-teal-600 to-blue-700">
         <WindMapView 
           lat={lat}
           lng={lng}

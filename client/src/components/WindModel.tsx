@@ -158,8 +158,7 @@ function AnimatedWindCanvas({
     const speedFactor = Math.max(0.5, windSpeed / 20);
     
     const animate = () => {
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
-      ctx.fillRect(0, 0, width, height);
+      ctx.clearRect(0, 0, width, height);
       
       particlesRef.current.forEach((particle, i) => {
         particle.age++;
@@ -180,12 +179,13 @@ function AnimatedWindCanvas({
         
         const fadeIn = Math.min(1, particle.age / 20);
         const fadeOut = Math.max(0, 1 - (particle.age - particle.maxAge + 20) / 20);
-        const alpha = Math.min(fadeIn, fadeOut) * 0.7;
+        const alpha = Math.min(fadeIn, fadeOut) * 0.6;
         
+        const tailLength = 8;
         ctx.beginPath();
         ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.lineWidth = 1.5;
-        ctx.moveTo(particle.x - moveX * 3, particle.y - moveY * 3);
+        ctx.lineWidth = 1;
+        ctx.moveTo(particle.x - moveX * tailLength, particle.y - moveY * tailLength);
         ctx.lineTo(particle.x, particle.y);
         ctx.stroke();
       });

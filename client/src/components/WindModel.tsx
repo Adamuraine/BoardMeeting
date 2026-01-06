@@ -243,27 +243,30 @@ function WindMapView({
   isSearching: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
   const [isDragging, setIsDragging] = useState(false);
   const lastPosRef = useRef({ x: 0, y: 0 });
   
   useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    
     const updateDimensions = () => {
-      if (containerRef.current) {
-        const rect = containerRef.current.getBoundingClientRect();
-        setDimensions({
-          width: rect.width,
-          height: rect.height,
-        });
+      const rect = container.getBoundingClientRect();
+      if (rect.width > 0 && rect.height > 0) {
+        setDimensions({ width: rect.width, height: rect.height });
       }
     };
     
     updateDimensions();
-    const timer = setTimeout(updateDimensions, 100);
-    window.addEventListener('resize', updateDimensions);
+    
+    const resizeObserver = new ResizeObserver(() => {
+      updateDimensions();
+    });
+    resizeObserver.observe(container);
+    
     return () => {
-      window.removeEventListener('resize', updateDimensions);
-      clearTimeout(timer);
+      resizeObserver.disconnect();
     };
   }, []);
   

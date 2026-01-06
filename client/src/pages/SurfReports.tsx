@@ -652,7 +652,7 @@ export default function SurfReports() {
     }
   };
 
-  const [activeTab, setActiveTab] = useState("surf");
+  const [activeTab, setActiveTab] = useState("wind");
   
   return (
     <Layout>

@@ -243,16 +243,15 @@ function WindMapView({
   isSearching: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const tileGridRef = useRef<HTMLDivElement>(null);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 400, height: 400 });
   const [isDragging, setIsDragging] = useState(false);
+  const [visualOffset, setVisualOffset] = useState({ x: 0, y: 0 });
+  const [visualScale, setVisualScale] = useState(1);
   
   const gestureRef = useRef({
     startX: 0,
     startY: 0,
-    offsetX: 0,
-    offsetY: 0,
-    startZoom: 1,
     startDistance: 0,
     pointers: new Map<number, { x: number; y: number }>(),
   });
@@ -269,25 +268,9 @@ function WindMapView({
     };
     
     updateDimensions();
-    
     const resizeObserver = new ResizeObserver(updateDimensions);
     resizeObserver.observe(container);
-    
     return () => resizeObserver.disconnect();
-  }, []);
-  
-  const applyTransform = useCallback((offsetX: number, offsetY: number, scale: number) => {
-    if (tileGridRef.current) {
-      tileGridRef.current.style.transform = `translate(${offsetX}px, ${offsetY}px) scale(${scale})`;
-    }
-  }, []);
-  
-  const resetTransform = useCallback(() => {
-    if (tileGridRef.current) {
-      tileGridRef.current.style.transform = '';
-    }
-    gestureRef.current.offsetX = 0;
-    gestureRef.current.offsetY = 0;
   }, []);
   
   const getPointerDistance = useCallback(() => {
@@ -307,16 +290,13 @@ function WindMapView({
     if (gesture.pointers.size === 1) {
       gesture.startX = e.clientX;
       gesture.startY = e.clientY;
-      gesture.offsetX = 0;
-      gesture.offsetY = 0;
       setIsDragging(true);
     } else if (gesture.pointers.size === 2) {
       gesture.startDistance = getPointerDistance();
-      gesture.startZoom = zoom;
     }
     
     e.currentTarget.setPointerCapture(e.pointerId);
-  }, [zoom, getPointerDistance]);
+  }, [getPointerDistance]);
   
   const handlePointerMove = useCallback((e: React.PointerEvent) => {
     const gesture = gestureRef.current;
@@ -327,25 +307,20 @@ function WindMapView({
     if (gesture.pointers.size === 1) {
       const offsetX = e.clientX - gesture.startX;
       const offsetY = e.clientY - gesture.startY;
-      gesture.offsetX = offsetX;
-      gesture.offsetY = offsetY;
-      applyTransform(offsetX, offsetY, 1);
-    } else if (gesture.pointers.size === 2) {
+      setVisualOffset({ x: offsetX, y: offsetY });
+    } else if (gesture.pointers.size === 2 && gesture.startDistance > 0) {
       const currentDistance = getPointerDistance();
-      if (gesture.startDistance > 0) {
-        const scale = currentDistance / gesture.startDistance;
-        const clampedScale = Math.max(0.5, Math.min(2, scale));
-        applyTransform(gesture.offsetX, gesture.offsetY, clampedScale);
-      }
+      const scale = Math.max(0.5, Math.min(2, currentDistance / gesture.startDistance));
+      setVisualScale(scale);
     }
-  }, [applyTransform, getPointerDistance]);
+  }, [getPointerDistance]);
   
   const handlePointerUp = useCallback((e: React.PointerEvent) => {
     const gesture = gestureRef.current;
     
-    if (gesture.pointers.size === 2) {
+    if (gesture.pointers.size === 2 && gesture.startDistance > 0) {
       const currentDistance = getPointerDistance();
-      if (gesture.startDistance > 0 && currentDistance > 0) {
+      if (currentDistance > 0) {
         const scale = currentDistance / gesture.startDistance;
         const zoomDelta = (scale - 1) * 0.5;
         onZoom(zoomDelta);
@@ -355,24 +330,27 @@ function WindMapView({
     gesture.pointers.delete(e.pointerId);
     
     if (gesture.pointers.size === 0) {
-      const dragSensitivity = 0.003;
-      if (Math.abs(gesture.offsetX) > 5 || Math.abs(gesture.offsetY) > 5) {
-        const deltaLat = gesture.offsetY * dragSensitivity;
-        const deltaLng = -gesture.offsetX * dragSensitivity;
+      const dragSensitivity = 0.004;
+      if (Math.abs(visualOffset.x) > 5 || Math.abs(visualOffset.y) > 5) {
+        const deltaLat = visualOffset.y * dragSensitivity;
+        const deltaLng = -visualOffset.x * dragSensitivity;
         onDrag(deltaLat, deltaLng);
       }
-      resetTransform();
+      setVisualOffset({ x: 0, y: 0 });
+      setVisualScale(1);
       setIsDragging(false);
     } else if (gesture.pointers.size === 1) {
       const remaining = Array.from(gesture.pointers.values())[0];
-      gesture.startX = remaining.x - gesture.offsetX;
-      gesture.startY = remaining.y - gesture.offsetY;
+      gesture.startX = remaining.x;
+      gesture.startY = remaining.y;
+      setVisualOffset({ x: 0, y: 0 });
+      setVisualScale(1);
     }
     
     try {
       e.currentTarget.releasePointerCapture(e.pointerId);
     } catch {}
-  }, [onDrag, onZoom, resetTransform, getPointerDistance]);
+  }, [onDrag, onZoom, visualOffset, getPointerDistance]);
   
   const handleWheel = useCallback((e: React.WheelEvent) => {
     e.preventDefault();
@@ -391,9 +369,9 @@ function WindMapView({
   const centerTileX = Math.floor(((safeLng + 180) / 360) * n);
   const centerTileY = Math.floor((1 - Math.log(Math.tan(latRad) + 1 / Math.cos(latRad)) / Math.PI) / 2 * n);
   
-  const tiles: { x: number; y: number; url: string }[] = [];
-  for (let dy = -1; dy <= 1; dy++) {
-    for (let dx = -1; dx <= 1; dx++) {
+  const tiles: { x: number; y: number; url: string; key: string }[] = [];
+  for (let dy = -2; dy <= 2; dy++) {
+    for (let dx = -2; dx <= 2; dx++) {
       const tx = ((centerTileX + dx) % n + n) % n;
       const ty = centerTileY + dy;
       if (ty >= 0 && ty < n) {
@@ -401,6 +379,7 @@ function WindMapView({
           x: dx,
           y: dy,
           url: `https://tile.openstreetmap.org/${tileZoom}/${tx}/${ty}.png`,
+          key: `${tileZoom}-${tx}-${ty}`,
         });
       }
     }
@@ -420,26 +399,32 @@ function WindMapView({
       onWheel={handleWheel}
     >
       <div 
-        ref={tileGridRef}
-        className="absolute inset-0 will-change-transform"
-        style={{ transformOrigin: 'center center' }}
+        ref={wrapperRef}
+        className="absolute inset-0"
+        style={{ 
+          transform: `translate(${visualOffset.x}px, ${visualOffset.y}px) scale(${visualScale})`,
+          transformOrigin: 'center center',
+        }}
       >
-        {tiles.map((tile) => (
-          <div
-            key={`${tile.x}-${tile.y}`}
-            className="absolute"
-            style={{
-              width: '100%',
-              height: '100%',
-              left: `${tile.x * 100}%`,
-              top: `${tile.y * 100}%`,
-              backgroundImage: `url(${tile.url})`,
-              backgroundSize: 'cover',
-              backgroundPosition: 'center',
-              filter: 'brightness(0.7) saturate(0.8)',
-            }}
-          />
-        ))}
+        <div className="absolute inset-0">
+          {tiles.map((tile) => (
+            <img
+              key={tile.key}
+              src={tile.url}
+              alt=""
+              className="absolute"
+              style={{
+                width: '100%',
+                height: '100%',
+                left: `${tile.x * 100}%`,
+                top: `${tile.y * 100}%`,
+                objectFit: 'cover',
+                filter: 'brightness(0.7) saturate(0.8)',
+              }}
+              draggable={false}
+            />
+          ))}
+        </div>
         
         <div 
           className="absolute inset-0 pointer-events-none"
@@ -451,14 +436,14 @@ function WindMapView({
             `,
           }}
         />
+        
+        <WindCanvas 
+          windSpeed={windSpeed}
+          windDirection={windDirection}
+          width={dimensions.width}
+          height={dimensions.height}
+        />
       </div>
-      
-      <WindCanvas 
-        windSpeed={windSpeed}
-        windDirection={windDirection}
-        width={dimensions.width}
-        height={dimensions.height}
-      />
       
       <div className="absolute top-3 left-3 right-3 z-20">
         <div className="flex gap-2">
@@ -713,9 +698,43 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [zoom, setZoom] = useState(1);
+  const [geolocating, setGeolocating] = useState(false);
   
   const isPremium = profile?.isPremium ?? false;
   const maxHours = isPremium ? 168 : 72;
+  
+  useEffect(() => {
+    if ('geolocation' in navigator) {
+      setGeolocating(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const userLat = position.coords.latitude;
+          const userLng = position.coords.longitude;
+          setLat(userLat);
+          setLng(userLng);
+          
+          try {
+            const response = await fetch(
+              `https://geocoding-api.open-meteo.com/v1/search?name=&latitude=${userLat}&longitude=${userLng}&count=1&language=en&format=json`
+            );
+            const reverseResult = await geocodeLocation(`${userLat.toFixed(2)}, ${userLng.toFixed(2)}`);
+            if (reverseResult) {
+              setLocationName(reverseResult.name);
+            } else {
+              setLocationName(`${Math.abs(userLat).toFixed(2)}${userLat >= 0 ? 'N' : 'S'}, ${Math.abs(userLng).toFixed(2)}${userLng >= 0 ? 'W' : 'E'}`);
+            }
+          } catch {
+            setLocationName(`${Math.abs(userLat).toFixed(2)}${userLat >= 0 ? 'N' : 'S'}, ${Math.abs(userLng).toFixed(2)}${userLng >= 0 ? 'W' : 'E'}`);
+          }
+          setGeolocating(false);
+        },
+        () => {
+          setGeolocating(false);
+        },
+        { enableHighAccuracy: false, timeout: 5000, maximumAge: 300000 }
+      );
+    }
+  }, []);
   
   useEffect(() => {
     if (selectedHour >= maxHours) {

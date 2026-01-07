@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown, Trophy, MapPin, Timer } from "lucide-react";
+import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown, Trophy, MapPin, Timer, Compass, Sailboat, Hotel, Snowflake, Tent, Sunrise, PartyPopper, Beer, Palmtree } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -94,6 +94,19 @@ const SURF_CONDITIONS = [
   { id: "waist-chest", label: "Waist-Chest 3-4ft", description: "Fun sessions", color: "bg-cyan-500" },
   { id: "knee-waist", label: "Knee-Waist 2-3ft", description: "Mellow waves", color: "bg-amber-500" },
   { id: "flat-knee", label: "Flat-Knee 1-2ft", description: "Longboard days", color: "bg-slate-400" },
+];
+
+const TRIP_EXPECTATIONS = [
+  { id: "all-surfing", label: "All surfing, all day", icon: "waves" },
+  { id: "beers-dinner", label: "A few beers at dinner", icon: "beer" },
+  { id: "party-late", label: "Lots of partying, wake up late and surf", icon: "party" },
+  { id: "early-bird", label: "Wake up early, surf as long as possible", icon: "sunrise" },
+  { id: "guided-tours", label: "Guided surf tours to find the best waves", icon: "compass" },
+  { id: "boat-trips", label: "Boat trips to outer reefs", icon: "boat" },
+  { id: "resort-chill", label: "Stay at resort and surf whenever", icon: "resort" },
+  { id: "bar-pool", label: "Happy as long as there's a bar and pool", icon: "pool" },
+  { id: "need-ac", label: "Must have air conditioning", icon: "ac" },
+  { id: "rough-it", label: "Ok roughing it", icon: "tent" },
 ];
 
 const TROPHY_COLORS: Record<number, string> = {
@@ -298,6 +311,44 @@ export default function Stats() {
     }
     
     enduranceMutation.mutate(newEndurance.map(e => JSON.stringify(e)));
+  };
+
+  const tripExpectationsMutation = useMutation({
+    mutationFn: async (tripExpectations: string[]) => {
+      const res = await apiRequest("PATCH", "/api/profiles/me", { tripExpectations });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
+      toast({
+        title: "Trip Preferences Saved",
+        description: "Your surf trip expectations have been updated!",
+      });
+    },
+  });
+
+  const toggleTripExpectation = (expectationId: string) => {
+    const current = profile?.tripExpectations || [];
+    const newExpectations = current.includes(expectationId)
+      ? current.filter((e: string) => e !== expectationId)
+      : [...current, expectationId];
+    tripExpectationsMutation.mutate(newExpectations);
+  };
+
+  const getTripExpectationIcon = (iconName: string) => {
+    switch (iconName) {
+      case "waves": return <Waves className="h-4 w-4" />;
+      case "beer": return <Beer className="h-4 w-4" />;
+      case "party": return <PartyPopper className="h-4 w-4" />;
+      case "sunrise": return <Sunrise className="h-4 w-4" />;
+      case "compass": return <Compass className="h-4 w-4" />;
+      case "boat": return <Sailboat className="h-4 w-4" />;
+      case "resort": return <Hotel className="h-4 w-4" />;
+      case "pool": return <Palmtree className="h-4 w-4" />;
+      case "ac": return <Snowflake className="h-4 w-4" />;
+      case "tent": return <Tent className="h-4 w-4" />;
+      default: return <Check className="h-4 w-4" />;
+    }
   };
 
   if (isLoading) {
@@ -590,6 +641,45 @@ export default function Stats() {
                         <span>10+ hrs</span>
                       </div>
                     </div>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium mb-2 flex items-center gap-2">
+                <Palmtree className="h-4 w-4 text-amber-500" />
+                Perfect Surf Trip Expectations
+              </h4>
+              <p className="text-xs text-muted-foreground mb-4">
+                Select all that match your vibe - we'll pair you with like-minded surfers
+              </p>
+              <div className="space-y-2">
+                {TRIP_EXPECTATIONS.map((expectation) => {
+                  const isSelected = profile?.tripExpectations?.includes(expectation.id);
+                  
+                  return (
+                    <button
+                      key={expectation.id}
+                      onClick={() => toggleTripExpectation(expectation.id)}
+                      className={`w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all ${
+                        isSelected 
+                          ? "bg-primary/10 border-2 border-primary" 
+                          : "bg-muted/30 border-2 border-transparent hover:bg-muted/50"
+                      }`}
+                      disabled={tripExpectationsMutation.isPending}
+                      data-testid={`button-trip-${expectation.id}`}
+                    >
+                      <div className={`p-2 rounded-full ${isSelected ? "bg-primary text-primary-foreground" : "bg-muted"}`}>
+                        {getTripExpectationIcon(expectation.icon)}
+                      </div>
+                      <span className={`text-sm flex-1 ${isSelected ? "font-medium" : ""}`}>
+                        {expectation.label}
+                      </span>
+                      {isSelected && (
+                        <Check className="h-4 w-4 text-primary" />
+                      )}
+                    </button>
                   );
                 })}
               </div>

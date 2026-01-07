@@ -24,6 +24,7 @@ export const profiles = pgTable("profiles", {
   isPremium: boolean("is_premium").default(false),
   topBuddyIds: text("top_buddy_ids").array(), // Top 10 favorite buddies (user IDs)
   buddiesPublic: boolean("buddies_public").default(true), // Whether buddies list is public
+  endurance: text("endurance").array(), // JSON strings: {condition: string, hours: number}
 });
 
 // === SWIPES ===

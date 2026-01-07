@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown, Trophy, MapPin } from "lucide-react";
+import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown, Trophy, MapPin, Timer } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -81,6 +81,18 @@ type TrophyData = {
   location: string;
   category: "amateur" | "pro";
 };
+
+type EnduranceData = {
+  condition: string;
+  hours: number;
+};
+
+const SURF_CONDITIONS = [
+  { id: "epic-overhead", label: "Epic 4-6ft+", description: "Overhead barrels", color: "from-emerald-500 to-teal-500" },
+  { id: "fun-medium", label: "Fun 3-4ft", description: "Solid waves", color: "from-blue-500 to-cyan-500" },
+  { id: "small-mellow", label: "Small 2-3ft", description: "Mellow sessions", color: "from-amber-500 to-orange-500" },
+  { id: "tiny-mushy", label: "Tiny 1-2ft", description: "Knee-high slop", color: "from-slate-400 to-slate-500" },
+];
 
 const TROPHY_COLORS: Record<number, string> = {
   1: "text-yellow-500",
@@ -237,6 +249,53 @@ export default function Stats() {
     const currentTrophies = profile?.trophies || [];
     const newTrophies = currentTrophies.filter((_: string, i: number) => i !== index);
     trophiesMutation.mutate(newTrophies);
+  };
+
+  const enduranceMutation = useMutation({
+    mutationFn: async (endurance: string[]) => {
+      const res = await apiRequest("PATCH", "/api/profiles/me", { endurance });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
+      toast({
+        title: "Endurance Updated",
+        description: "Your session endurance has been saved!",
+      });
+    },
+  });
+
+  const parseEndurance = (): EnduranceData[] => {
+    if (!profile?.endurance) return [];
+    return profile.endurance.map((e: string) => {
+      try {
+        return JSON.parse(e);
+      } catch {
+        return null;
+      }
+    }).filter(Boolean);
+  };
+
+  const getEnduranceHours = (conditionId: string): number => {
+    const enduranceData = parseEndurance();
+    const found = enduranceData.find(e => e.condition === conditionId);
+    return found?.hours || 0;
+  };
+
+  const updateEndurance = (conditionId: string, hours: number) => {
+    const currentEndurance = parseEndurance();
+    const existing = currentEndurance.find(e => e.condition === conditionId);
+    let newEndurance: EnduranceData[];
+    
+    if (existing) {
+      newEndurance = currentEndurance.map(e => 
+        e.condition === conditionId ? { ...e, hours } : e
+      );
+    } else {
+      newEndurance = [...currentEndurance, { condition: conditionId, hours }];
+    }
+    
+    enduranceMutation.mutate(newEndurance.map(e => JSON.stringify(e)));
   };
 
   if (isLoading) {
@@ -489,6 +548,57 @@ export default function Stats() {
               ) : (
                 <span className="text-sm text-muted-foreground italic">No trophies yet. Add your competition wins!</span>
               )}
+            </div>
+            
+            <div className="pt-4 border-t">
+              <h4 className="text-sm font-medium mb-3 flex items-center gap-2">
+                <Timer className="h-4 w-4 text-cyan-500" />
+                Session Endurance
+              </h4>
+              <p className="text-xs text-muted-foreground mb-4">
+                How long do you typically stay in the water for each condition?
+              </p>
+              <div className="space-y-4">
+                {SURF_CONDITIONS.map((condition) => {
+                  const hours = getEnduranceHours(condition.id);
+                  const maxHours = 10;
+                  const percentage = (hours / maxHours) * 100;
+                  
+                  return (
+                    <div key={condition.id} className="space-y-2" data-testid={`endurance-${condition.id}`}>
+                      <div className="flex items-center justify-between text-sm">
+                        <div>
+                          <span className="font-medium">{condition.label}</span>
+                          <span className="text-muted-foreground text-xs ml-2">{condition.description}</span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <Select 
+                            value={hours > 0 ? String(hours) : undefined}
+                            onValueChange={(val) => updateEndurance(condition.id, parseInt(val))}
+                          >
+                            <SelectTrigger className="h-7 w-20 text-sm" data-testid={`select-endurance-${condition.id}`}>
+                              <SelectValue placeholder="0 hrs" />
+                            </SelectTrigger>
+                            <SelectContent className="bg-background border">
+                              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map((h) => (
+                                <SelectItem key={h} value={String(h)} data-testid={`option-hours-${h}`}>
+                                  {h} {h === 1 ? 'hr' : 'hrs'}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      <div className="h-3 bg-secondary rounded-full overflow-hidden">
+                        <div 
+                          className={`h-full bg-gradient-to-r ${condition.color} transition-all duration-500`}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </div>
           </div>
         </CardContent>

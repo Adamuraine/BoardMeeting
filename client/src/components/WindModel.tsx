@@ -255,12 +255,34 @@ function MapController({
   const lastProgrammaticMoveRef = useRef(0);
   const isUserGestureRef = useRef(false);
   const debounceTimeoutRef = useRef<number | null>(null);
+  const mapReadyRef = useRef(false);
   
   useEffect(() => {
+    const checkReady = () => {
+      try {
+        map.getCenter();
+        mapReadyRef.current = true;
+      } catch {
+        mapReadyRef.current = false;
+      }
+    };
+    
+    checkReady();
+    map.whenReady(() => {
+      mapReadyRef.current = true;
+    });
+  }, [map]);
+  
+  useEffect(() => {
+    if (!mapReadyRef.current) return;
     if (programmaticMoveId > lastProgrammaticMoveRef.current) {
       lastProgrammaticMoveRef.current = programmaticMoveId;
       isUserGestureRef.current = false;
-      map.setView([lat, lng], Math.round(8 + (zoom - 1) * 2), { animate: true });
+      try {
+        map.setView([lat, lng], Math.round(8 + (zoom - 1) * 2), { animate: true });
+      } catch {
+        // Map not ready, ignore
+      }
     }
   }, [lat, lng, zoom, programmaticMoveId, map]);
   
@@ -269,17 +291,21 @@ function MapController({
       isUserGestureRef.current = true;
     },
     moveend: () => {
-      if (!isUserGestureRef.current) return;
+      if (!isUserGestureRef.current || !mapReadyRef.current) return;
       
       if (debounceTimeoutRef.current) {
         clearTimeout(debounceTimeoutRef.current);
       }
       
       debounceTimeoutRef.current = window.setTimeout(() => {
-        const center = map.getCenter();
-        const z = map.getZoom();
-        const normalizedZoom = (z - 8) / 2 + 1;
-        onMoveEnd(center.lat, center.lng, normalizedZoom);
+        try {
+          const center = map.getCenter();
+          const z = map.getZoom();
+          const normalizedZoom = (z - 8) / 2 + 1;
+          onMoveEnd(center.lat, center.lng, normalizedZoom);
+        } catch {
+          // Map not ready, ignore
+        }
         isUserGestureRef.current = false;
       }, 300);
     },

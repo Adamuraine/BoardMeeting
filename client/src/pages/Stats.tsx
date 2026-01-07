@@ -134,6 +134,7 @@ export default function Stats() {
     location: "",
     category: "amateur",
   });
+  const [localEndurance, setLocalEndurance] = useState<Record<string, number>>({});
 
   const skillLevelMutation = useMutation({
     mutationFn: async (skillLevel: string) => {
@@ -273,10 +274,6 @@ export default function Stats() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
-      toast({
-        title: "Endurance Updated",
-        description: "Your session endurance has been saved!",
-      });
     },
   });
 
@@ -292,12 +289,19 @@ export default function Stats() {
   };
 
   const getEnduranceHours = (conditionId: string): number => {
+    if (localEndurance[conditionId] !== undefined) {
+      return localEndurance[conditionId];
+    }
     const enduranceData = parseEndurance();
     const found = enduranceData.find(e => e.condition === conditionId);
     return found?.hours || 0;
   };
 
-  const updateEndurance = (conditionId: string, hours: number) => {
+  const handleEnduranceChange = (conditionId: string, hours: number) => {
+    setLocalEndurance(prev => ({ ...prev, [conditionId]: hours }));
+  };
+
+  const commitEndurance = (conditionId: string, hours: number) => {
     const currentEndurance = parseEndurance();
     const existing = currentEndurance.find(e => e.condition === conditionId);
     let newEndurance: EnduranceData[];
@@ -311,6 +315,11 @@ export default function Stats() {
     }
     
     enduranceMutation.mutate(newEndurance.map(e => JSON.stringify(e)));
+    setLocalEndurance(prev => {
+      const next = { ...prev };
+      delete next[conditionId];
+      return next;
+    });
   };
 
   const tripExpectationsMutation = useMutation({
@@ -628,7 +637,8 @@ export default function Stats() {
                       </div>
                       <Slider
                         value={[hours]}
-                        onValueChange={(val) => updateEndurance(condition.id, val[0])}
+                        onValueChange={(val) => handleEnduranceChange(condition.id, val[0])}
+                        onValueCommit={(val) => commitEndurance(condition.id, val[0])}
                         max={10}
                         min={0}
                         step={1}

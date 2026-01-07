@@ -242,32 +242,56 @@ function MapController({
   lat, 
   lng, 
   zoom,
+  programmaticMoveId,
   onMoveEnd 
 }: { 
   lat: number; 
   lng: number; 
   zoom: number;
+  programmaticMoveId: number;
   onMoveEnd: (lat: number, lng: number, zoom: number) => void;
 }) {
   const map = useMap();
-  const isFirstRender = useRef(true);
+  const lastProgrammaticMoveRef = useRef(0);
+  const isUserGestureRef = useRef(false);
+  const debounceTimeoutRef = useRef<number | null>(null);
   
   useEffect(() => {
-    if (isFirstRender.current) {
-      isFirstRender.current = false;
-      return;
+    if (programmaticMoveId > lastProgrammaticMoveRef.current) {
+      lastProgrammaticMoveRef.current = programmaticMoveId;
+      isUserGestureRef.current = false;
+      map.setView([lat, lng], Math.round(8 + (zoom - 1) * 2), { animate: true });
     }
-    map.setView([lat, lng], Math.round(8 + (zoom - 1) * 2), { animate: true });
-  }, [lat, lng, zoom, map]);
+  }, [lat, lng, zoom, programmaticMoveId, map]);
   
   useMapEvents({
+    movestart: () => {
+      isUserGestureRef.current = true;
+    },
     moveend: () => {
-      const center = map.getCenter();
-      const z = map.getZoom();
-      const normalizedZoom = (z - 8) / 2 + 1;
-      onMoveEnd(center.lat, center.lng, normalizedZoom);
+      if (!isUserGestureRef.current) return;
+      
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+      
+      debounceTimeoutRef.current = window.setTimeout(() => {
+        const center = map.getCenter();
+        const z = map.getZoom();
+        const normalizedZoom = (z - 8) / 2 + 1;
+        onMoveEnd(center.lat, center.lng, normalizedZoom);
+        isUserGestureRef.current = false;
+      }, 300);
     },
   });
+  
+  useEffect(() => {
+    return () => {
+      if (debounceTimeoutRef.current) {
+        clearTimeout(debounceTimeoutRef.current);
+      }
+    };
+  }, []);
   
   return null;
 }
@@ -393,26 +417,28 @@ function WindMapView({
   windSpeed, 
   windDirection,
   locationName,
-  onDrag,
+  onPositionChange,
   zoom,
-  onZoom,
+  programmaticMoveId,
   searchQuery,
   onSearchChange,
   onSearch,
-  isSearching
+  isSearching,
+  onZoomButton
 }: { 
   lat: number; 
   lng: number; 
   windSpeed: number; 
   windDirection: number;
   locationName: string;
-  onDrag: (deltaLat: number, deltaLng: number) => void;
+  onPositionChange: (lat: number, lng: number, zoom: number) => void;
   zoom: number;
-  onZoom: (delta: number) => void;
+  programmaticMoveId: number;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearch: () => void;
   isSearching: boolean;
+  onZoomButton: (delta: number) => void;
 }) {
   const [mapKey] = useState(() => `map-${Date.now()}`);
   const baseColor = getWindColorHex(windSpeed);
@@ -420,15 +446,8 @@ function WindMapView({
   const leafletZoom = Math.round(8 + (zoom - 1) * 2);
   
   const handleMoveEnd = useCallback((newLat: number, newLng: number, newZoom: number) => {
-    const deltaLat = lat - newLat;
-    const deltaLng = newLng - lng;
-    if (Math.abs(deltaLat) > 0.001 || Math.abs(deltaLng) > 0.001) {
-      onDrag(-deltaLat, deltaLng);
-    }
-    if (Math.abs(newZoom - zoom) > 0.1) {
-      onZoom(newZoom - zoom);
-    }
-  }, [lat, lng, zoom, onDrag, onZoom]);
+    onPositionChange(newLat, newLng, newZoom);
+  }, [onPositionChange]);
   
   return (
     <div className="relative w-full h-full overflow-hidden">
@@ -462,6 +481,7 @@ function WindMapView({
           lat={lat} 
           lng={lng} 
           zoom={zoom}
+          programmaticMoveId={programmaticMoveId}
           onMoveEnd={handleMoveEnd}
         />
         <LeafletWindOverlay 
@@ -565,7 +585,7 @@ function WindMapView({
           size="icon" 
           variant="secondary" 
           className="h-9 w-9 bg-white/20 backdrop-blur-sm border-0 text-white"
-          onClick={() => onZoom(0.25)}
+          onClick={() => onZoomButton(0.25)}
           data-testid="button-zoom-in"
         >
           <Plus className="h-4 w-4" />
@@ -574,7 +594,7 @@ function WindMapView({
           size="icon" 
           variant="secondary" 
           className="h-9 w-9 bg-white/20 backdrop-blur-sm border-0 text-white"
-          onClick={() => onZoom(-0.25)}
+          onClick={() => onZoomButton(-0.25)}
           data-testid="button-zoom-out"
         >
           <Minus className="h-4 w-4" />
@@ -735,6 +755,7 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
   const [isSearching, setIsSearching] = useState(false);
   const [zoom, setZoom] = useState(1);
   const [geolocating, setGeolocating] = useState(false);
+  const [programmaticMoveId, setProgrammaticMoveId] = useState(0);
   
   const isPremium = profile?.isPremium ?? false;
   const maxHours = isPremium ? 168 : 72;
@@ -748,6 +769,7 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
           const userLng = position.coords.longitude;
           setLat(userLat);
           setLng(userLng);
+          setProgrammaticMoveId(prev => prev + 1);
           
           try {
             const response = await fetch(
@@ -784,19 +806,19 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
     staleTime: 1000 * 60 * 15,
   });
   
-  const handleDrag = useCallback((deltaLat: number, deltaLng: number) => {
-    setLat(prev => Math.max(-85, Math.min(85, prev + deltaLat)));
-    setLng(prev => {
-      let newLng = prev + deltaLng;
-      if (newLng > 180) newLng -= 360;
-      if (newLng < -180) newLng += 360;
-      return newLng;
-    });
-    setLocationName(`${Math.abs(lat + deltaLat).toFixed(2)}${lat + deltaLat >= 0 ? 'N' : 'S'}, ${Math.abs(lng + deltaLng).toFixed(2)}${lng + deltaLng >= 0 ? 'E' : 'W'}`);
-  }, [lat, lng]);
+  const handlePositionChange = useCallback((newLat: number, newLng: number, newZoom: number) => {
+    setLat(newLat);
+    setLng(newLng);
+    setZoom(newZoom);
+    setLocationName(`${Math.abs(newLat).toFixed(2)}${newLat >= 0 ? 'N' : 'S'}, ${Math.abs(newLng).toFixed(2)}${newLng >= 0 ? 'E' : 'W'}`);
+  }, []);
   
-  const handleZoom = useCallback((delta: number) => {
-    setZoom(prev => Math.max(0.5, Math.min(3, prev + delta)));
+  const handleZoomButton = useCallback((delta: number) => {
+    setZoom(prev => {
+      const newZoom = Math.max(0.5, Math.min(3, prev + delta));
+      return newZoom;
+    });
+    setProgrammaticMoveId(prev => prev + 1);
   }, []);
   
   const handleSearch = async () => {
@@ -811,6 +833,7 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
       setLng(result.lng);
       setLocationName(result.name);
       setSearchQuery("");
+      setProgrammaticMoveId(prev => prev + 1);
       refetch();
     }
   };
@@ -850,13 +873,14 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
           windSpeed={currentHour?.windSpeed || 0}
           windDirection={currentHour?.windDirection || 0}
           locationName={locationName}
-          onDrag={handleDrag}
+          onPositionChange={handlePositionChange}
           zoom={zoom}
-          onZoom={handleZoom}
+          programmaticMoveId={programmaticMoveId}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}
           onSearch={handleSearch}
           isSearching={isSearching}
+          onZoomButton={handleZoomButton}
         />
       </div>
       

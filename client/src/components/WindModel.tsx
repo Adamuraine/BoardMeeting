@@ -240,28 +240,31 @@ function WindCanvas({
 
 function MapController({ 
   flyToTarget,
-  onPositionUpdate
+  onForecastCoordsUpdate
 }: { 
-  flyToTarget: { lat: number; lng: number; zoom: number; id: number } | null;
-  onPositionUpdate: (lat: number, lng: number, zoom: number) => void;
+  flyToTarget: { lat: number; lng: number; id: number } | null;
+  onForecastCoordsUpdate: (lat: number, lng: number) => void;
 }) {
   const map = useMap();
   const lastFlyToId = useRef(0);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
   
   useEffect(() => {
     if (flyToTarget && flyToTarget.id > lastFlyToId.current) {
       lastFlyToId.current = flyToTarget.id;
-      const leafletZoom = Math.round(8 + (flyToTarget.zoom - 1) * 2);
-      map.flyTo([flyToTarget.lat, flyToTarget.lng], leafletZoom, { duration: 0.5 });
+      map.flyTo([flyToTarget.lat, flyToTarget.lng], map.getZoom(), { duration: 0.5 });
     }
   }, [flyToTarget, map]);
   
   useMapEvents({
     moveend: () => {
-      const center = map.getCenter();
-      const z = map.getZoom();
-      const normalizedZoom = (z - 8) / 2 + 1;
-      onPositionUpdate(center.lat, center.lng, normalizedZoom);
+      if (debounceRef.current) {
+        clearTimeout(debounceRef.current);
+      }
+      debounceRef.current = setTimeout(() => {
+        const center = map.getCenter();
+        onForecastCoordsUpdate(center.lat, center.lng);
+      }, 300);
     },
   });
   
@@ -384,27 +387,29 @@ function LeafletWindOverlay({
 }
 
 function WindMapView({ 
-  lat, 
-  lng, 
+  initialLat, 
+  initialLng, 
+  forecastLat,
+  forecastLng,
   windSpeed, 
   windDirection,
   locationName,
-  onPositionUpdate,
-  zoom,
+  onForecastCoordsUpdate,
   flyToTarget,
   searchQuery,
   onSearchChange,
   onSearch,
   isSearching
 }: { 
-  lat: number; 
-  lng: number; 
+  initialLat: number; 
+  initialLng: number; 
+  forecastLat: number;
+  forecastLng: number;
   windSpeed: number; 
   windDirection: number;
   locationName: string;
-  onPositionUpdate: (lat: number, lng: number, zoom: number) => void;
-  zoom: number;
-  flyToTarget: { lat: number; lng: number; zoom: number; id: number } | null;
+  onForecastCoordsUpdate: (lat: number, lng: number) => void;
+  flyToTarget: { lat: number; lng: number; id: number } | null;
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearch: () => void;
@@ -413,7 +418,6 @@ function WindMapView({
   const mapRef = useRef<L.Map | null>(null);
   const baseColor = getWindColorHex(windSpeed);
   const onshoreWind = isOnshore(windDirection);
-  const leafletZoom = Math.round(8 + (zoom - 1) * 2);
   
   const handleZoomIn = useCallback(() => {
     if (mapRef.current) {
@@ -446,8 +450,8 @@ function WindMapView({
       
       <MapContainer
         ref={mapRef}
-        center={[lat, lng]}
-        zoom={leafletZoom}
+        center={[initialLat, initialLng]}
+        zoom={10}
         style={{ width: '100%', height: '100%' }}
         zoomControl={false}
         attributionControl={false}
@@ -457,7 +461,7 @@ function WindMapView({
         />
         <MapController 
           flyToTarget={flyToTarget}
-          onPositionUpdate={onPositionUpdate}
+          onForecastCoordsUpdate={onForecastCoordsUpdate}
         />
         <LeafletWindOverlay 
           windSpeed={windSpeed} 
@@ -510,7 +514,7 @@ function WindMapView({
             <div className="min-w-0">
               <p className="text-sm font-medium opacity-90 mb-1 truncate">{locationName}</p>
               <p className="text-xs text-white/60">
-                {lat >= 0 ? 'N' : 'S'} {Math.abs(lat).toFixed(2)}, {lng >= 0 ? 'E' : 'W'} {Math.abs(lng).toFixed(2)}
+                {forecastLat >= 0 ? 'N' : 'S'} {Math.abs(forecastLat).toFixed(2)}, {forecastLng >= 0 ? 'E' : 'W'} {Math.abs(forecastLng).toFixed(2)}
               </p>
             </div>
             <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-400 shrink-0">
@@ -719,17 +723,17 @@ interface WindModelProps {
   locationName?: string;
 }
 
-export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, locationName: initialName = "Oceanside, CA" }: WindModelProps) {
+export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locationName: initialName = "Oceanside, CA" }: WindModelProps) {
   const { data: profile } = useMyProfile();
   const [selectedHour, setSelectedHour] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
-  const [lat, setLat] = useState(initialLat);
-  const [lng, setLng] = useState(initialLng);
+  const [forecastLat, setForecastLat] = useState(propLat);
+  const [forecastLng, setForecastLng] = useState(propLng);
   const [locationName, setLocationName] = useState(initialName);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [flyToTarget, setFlyToTarget] = useState<{ lat: number; lng: number; zoom: number; id: number } | null>(null);
+  const [flyToTarget, setFlyToTarget] = useState<{ lat: number; lng: number; id: number } | null>(null);
+  const initialCoordsRef = useRef({ lat: propLat, lng: propLng });
   
   const isPremium = profile?.isPremium ?? false;
   const maxHours = isPremium ? 168 : 72;
@@ -740,9 +744,9 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
         async (position) => {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
-          setLat(userLat);
-          setLng(userLng);
-          setFlyToTarget({ lat: userLat, lng: userLng, zoom: 1, id: Date.now() });
+          setForecastLat(userLat);
+          setForecastLng(userLng);
+          setFlyToTarget({ lat: userLat, lng: userLng, id: Date.now() });
           
           try {
             const reverseResult = await geocodeLocation(`${userLat.toFixed(2)}, ${userLng.toFixed(2)}`);
@@ -769,16 +773,15 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
     }
   }, [maxHours, selectedHour]);
   
-  const { data: hourlyData, isLoading, refetch } = useQuery({
-    queryKey: ['hourly-wind-data', lat, lng],
-    queryFn: () => fetchHourlyWindData(lat, lng),
+  const { data: hourlyData, isLoading } = useQuery({
+    queryKey: ['hourly-wind-data', forecastLat, forecastLng],
+    queryFn: () => fetchHourlyWindData(forecastLat, forecastLng),
     staleTime: 1000 * 60 * 15,
   });
   
-  const handlePositionUpdate = useCallback((newLat: number, newLng: number, newZoom: number) => {
-    setLat(newLat);
-    setLng(newLng);
-    setZoom(newZoom);
+  const handleForecastCoordsUpdate = useCallback((newLat: number, newLng: number) => {
+    setForecastLat(newLat);
+    setForecastLng(newLng);
     setLocationName(`${Math.abs(newLat).toFixed(2)}${newLat >= 0 ? 'N' : 'S'}, ${Math.abs(newLng).toFixed(2)}${newLng >= 0 ? 'E' : 'W'}`);
   }, []);
   
@@ -790,12 +793,11 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
     setIsSearching(false);
     
     if (result) {
-      setLat(result.lat);
-      setLng(result.lng);
+      setForecastLat(result.lat);
+      setForecastLng(result.lng);
       setLocationName(result.name);
       setSearchQuery("");
-      setFlyToTarget({ lat: result.lat, lng: result.lng, zoom, id: Date.now() });
-      refetch();
+      setFlyToTarget({ lat: result.lat, lng: result.lng, id: Date.now() });
     }
   };
   
@@ -829,13 +831,14 @@ export function WindModel({ lat: initialLat = 33.19, lng: initialLng = -117.39, 
       
       <div className="flex-1 min-h-[400px] relative bg-gradient-to-br from-cyan-500 via-teal-600 to-blue-700">
         <WindMapView 
-          lat={lat}
-          lng={lng}
+          initialLat={initialCoordsRef.current.lat}
+          initialLng={initialCoordsRef.current.lng}
+          forecastLat={forecastLat}
+          forecastLng={forecastLng}
           windSpeed={currentHour?.windSpeed || 0}
           windDirection={currentHour?.windDirection || 0}
           locationName={locationName}
-          onPositionUpdate={handlePositionUpdate}
-          zoom={zoom}
+          onForecastCoordsUpdate={handleForecastCoordsUpdate}
           flyToTarget={flyToTarget}
           searchQuery={searchQuery}
           onSearchChange={setSearchQuery}

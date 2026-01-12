@@ -340,18 +340,13 @@ export default function Trips() {
                     })}
                   </div>
                   <Button 
-                    onClick={() => {
+                    onClick={async () => {
                       if (createdTripId && selectedActivities.length > 0) {
                         updateActivities.mutate({ 
                           tripId: createdTripId, 
                           activities: selectedActivities 
                         }, {
                           onSuccess: () => {
-                            setTripDetailsOpen(false);
-                            setSelectedActivities([]);
-                            setCreatedTripId(null);
-                          },
-                          onError: () => {
                             setTripDetailsOpen(false);
                             setSelectedActivities([]);
                             setCreatedTripId(null);

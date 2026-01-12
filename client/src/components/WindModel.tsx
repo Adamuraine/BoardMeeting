@@ -26,6 +26,7 @@ type Particle = {
   age: number;
   maxAge: number;
   speed: number;
+  path: { x: number; y: number }[];
 };
 
 async function fetchHourlyWindData(lat: number, lng: number): Promise<HourlyWindData[]> {
@@ -153,12 +154,15 @@ function WindCanvas({
   const animationRef = useRef<number>();
   
   const createParticle = useCallback((w: number, h: number): Particle => {
+    const x = Math.random() * w;
+    const y = Math.random() * h;
     return {
-      x: Math.random() * w,
-      y: Math.random() * h,
+      x,
+      y,
       age: Math.random() * 60,
       maxAge: 80 + Math.random() * 80,
       speed: 1 + Math.random() * 2,
+      path: [{ x, y }],
     };
   }, []);
   
@@ -326,22 +330,36 @@ function LeafletWindOverlay({
     
     const width = canvas.width;
     const height = canvas.height;
-    const particleCount = Math.min(150, Math.max(30, windSpeed * 8));
+    const particleCount = Math.min(200, Math.max(80, windSpeed * 10));
     const dirRad = (windDirection - 90) * Math.PI / 180;
+    const tailLength = 12;
     
-    const createParticle = (): Particle => ({
-      x: Math.random() * width,
-      y: Math.random() * height,
-      age: Math.random() * 100,
-      maxAge: 60 + Math.random() * 60,
-      speed: 0.5 + Math.random() * 1.5 + windSpeed * 0.15,
-    });
+    const getWindColor = (speed: number): string => {
+      if (speed < 5) return 'rgba(147, 197, 253, 0.8)';
+      if (speed < 10) return 'rgba(110, 231, 183, 0.8)';
+      if (speed < 15) return 'rgba(134, 239, 172, 0.8)';
+      if (speed < 20) return 'rgba(253, 224, 71, 0.8)';
+      if (speed < 25) return 'rgba(253, 186, 116, 0.8)';
+      if (speed < 30) return 'rgba(248, 113, 113, 0.8)';
+      return 'rgba(239, 68, 68, 0.8)';
+    };
     
-    while (particlesRef.current.length < particleCount) {
+    const createParticle = (): Particle => {
+      const x = Math.random() * width;
+      const y = Math.random() * height;
+      return {
+        x,
+        y,
+        age: Math.random() * 80,
+        maxAge: 80 + Math.random() * 60,
+        speed: 1.5 + Math.random() * 2 + windSpeed * 0.2,
+        path: [{ x, y }],
+      };
+    };
+    
+    particlesRef.current = [];
+    for (let i = 0; i < particleCount; i++) {
       particlesRef.current.push(createParticle());
-    }
-    while (particlesRef.current.length > particleCount) {
-      particlesRef.current.pop();
     }
     
     const animate = () => {
@@ -349,25 +367,48 @@ function LeafletWindOverlay({
       
       ctx.clearRect(0, 0, width, height);
       
+      const baseColor = getWindColor(windSpeed);
+      
       for (const p of particlesRef.current) {
-        p.x += Math.cos(dirRad) * p.speed;
-        p.y += Math.sin(dirRad) * p.speed;
+        const moveX = Math.cos(dirRad) * p.speed;
+        const moveY = Math.sin(dirRad) * p.speed;
+        
+        p.x += moveX;
+        p.y += moveY;
         p.age++;
         
-        if (p.age > p.maxAge || p.x < -20 || p.x > width + 20 || p.y < -20 || p.y > height + 20) {
-          Object.assign(p, createParticle());
-          const edge = Math.floor(Math.random() * 4);
-          if (edge === 0) { p.x = -5; p.y = Math.random() * height; }
-          else if (edge === 1) { p.x = width + 5; p.y = Math.random() * height; }
-          else if (edge === 2) { p.x = Math.random() * width; p.y = -5; }
-          else { p.x = Math.random() * width; p.y = height + 5; }
+        p.path.push({ x: p.x, y: p.y });
+        if (p.path.length > tailLength) {
+          p.path.shift();
         }
         
-        const alpha = Math.min(1, (1 - p.age / p.maxAge) * 0.7);
+        if (p.age > p.maxAge || p.x < -50 || p.x > width + 50 || p.y < -50 || p.y > height + 50) {
+          const newP = createParticle();
+          const edge = Math.floor(Math.random() * 4);
+          if (edge === 0) { newP.x = -10; newP.y = Math.random() * height; }
+          else if (edge === 1) { newP.x = width + 10; newP.y = Math.random() * height; }
+          else if (edge === 2) { newP.x = Math.random() * width; newP.y = -10; }
+          else { newP.x = Math.random() * width; newP.y = height + 10; }
+          newP.path = [{ x: newP.x, y: newP.y }];
+          Object.assign(p, newP);
+          continue;
+        }
+        
+        if (p.path.length < 2) continue;
+        
+        const fadeIn = Math.min(1, p.age / 20);
+        const fadeOut = Math.max(0, 1 - (p.age - p.maxAge + 40) / 40);
+        const alpha = Math.min(fadeIn, fadeOut);
+        
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
-        ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.fill();
+        ctx.moveTo(p.path[0].x, p.path[0].y);
+        for (let i = 1; i < p.path.length; i++) {
+          ctx.lineTo(p.path[i].x, p.path[i].y);
+        }
+        ctx.strokeStyle = baseColor.replace('0.8', String(alpha * 0.9));
+        ctx.lineWidth = 1.5;
+        ctx.lineCap = 'round';
+        ctx.stroke();
       }
       
       animationRef.current = requestAnimationFrame(animate);

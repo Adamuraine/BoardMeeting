@@ -291,6 +291,29 @@ export async function registerRoutes(
     }
   });
 
+  app.patch("/api/trips/:id/activities", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    try {
+      const { activities } = req.body;
+      if (!Array.isArray(activities)) {
+        return res.status(400).json({ message: "Activities must be an array" });
+      }
+      const trip = await storage.updateTripActivities(tripId, userId, activities);
+      res.json(trip);
+    } catch (err: any) {
+      console.error("Failed to update trip activities:", err);
+      if (err.message === "Trip not found") {
+        return res.status(404).json({ message: "Trip not found" });
+      }
+      if (err.message === "Not authorized to update this trip") {
+        return res.status(403).json({ message: "Not authorized to update this trip" });
+      }
+      res.status(500).json({ message: "Failed to update trip activities" });
+    }
+  });
+
   // === PREMIUM ===
   app.post(api.premium.upgrade.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

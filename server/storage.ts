@@ -65,6 +65,9 @@ export interface IStorage {
   deleteUserAccount(userId: string): Promise<void>;
   submitFeedback(userId: string, content: string): Promise<Feedback>;
   
+  // Trip Activities
+  updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
+  
   // Seeding
   seedLocations(): Promise<void>;
 }
@@ -584,6 +587,18 @@ export class DatabaseStorage implements IStorage {
       content,
     }).returning();
     return newFeedback;
+  }
+
+  async updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip> {
+    const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+    if (!trip) throw new Error("Trip not found");
+    if (trip.organizerId !== userId) throw new Error("Not authorized to update this trip");
+    
+    const [updated] = await db.update(trips)
+      .set({ activities })
+      .where(eq(trips.id, tripId))
+      .returning();
+    return updated;
   }
 
   async seedMockPosts(locationIds: number[]): Promise<void> {

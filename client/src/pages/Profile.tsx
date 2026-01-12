@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf } from "lucide-react";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -625,6 +625,58 @@ export default function Profile() {
                   <Users className="h-12 w-12 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">No surf buddies yet!</p>
                   <p className="text-xs mt-1">Match with other surfers to add them here</p>
+                </div>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+                <Plane className="h-4 w-4" />
+                Your Trips ({myTrips.length})
+              </h3>
+              {myTrips.length > 0 ? (
+                <div className="space-y-2">
+                  {myTrips.map((trip: Trip) => {
+                    const activityIcons: Record<string, typeof Sailboat> = {
+                      surfboard: Sailboat, sandals: Footprints, beer: Beer, 
+                      umbrella: Umbrella, boat: Anchor, fishing: Fish, leaf: Leaf
+                    };
+                    return (
+                      <div 
+                        key={trip.id}
+                        className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-secondary/30"
+                        data-testid={`trip-row-${trip.id}`}
+                      >
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                          <MapPin className="h-5 w-5 text-primary" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="font-medium text-foreground truncate">{trip.destination}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d, yyyy")}
+                          </p>
+                          {trip.activities && trip.activities.length > 0 && (
+                            <div className="flex gap-1 mt-1">
+                              {trip.activities.map((activity: string) => {
+                                const Icon = activityIcons[activity];
+                                return Icon ? <Icon key={activity} className="h-3 w-3 text-muted-foreground" /> : null;
+                              })}
+                            </div>
+                          )}
+                        </div>
+                        <Badge variant="outline" className="flex-shrink-0">
+                          <Calendar className="h-3 w-3 mr-1" />
+                          Upcoming
+                        </Badge>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="text-center py-8 text-muted-foreground">
+                  <Plane className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">No trips planned yet!</p>
+                  <p className="text-xs mt-1">Create a trip from the Trips page</p>
                 </div>
               )}
             </div>

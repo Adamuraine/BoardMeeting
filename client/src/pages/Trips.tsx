@@ -1,7 +1,7 @@
-import { useTrips, useCreateTrip } from "@/hooks/use-trips";
+import { useTrips, useCreateTrip, useUpdateTripActivities } from "@/hooks/use-trips";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -51,15 +51,61 @@ const REGIONS: Record<string, string[]> = {
   "International": ["Hawaii", "Bali, Indonesia", "Costa Rica", "Portugal", "Australia"],
 };
 
+const ACTIVITY_OPTIONS = [
+  { id: "surfboard", label: "Surfing", icon: Sailboat },
+  { id: "sandals", label: "Beach", icon: Footprints },
+  { id: "beer", label: "Drinks", icon: Beer },
+  { id: "umbrella", label: "Relax", icon: Umbrella },
+  { id: "boat", label: "Boat", icon: Anchor },
+  { id: "fishing", label: "Fishing", icon: Fish },
+  { id: "leaf", label: "Nature", icon: Leaf },
+];
+
 export default function Trips() {
   const { data: trips, isLoading } = useTrips();
+  const { user } = useAuth();
+  const createTrip = useCreateTrip();
+  const updateActivities = useUpdateTripActivities();
   const [open, setOpen] = useState(false);
+  const [tripDetailsOpen, setTripDetailsOpen] = useState(false);
+  const [createdTripId, setCreatedTripId] = useState<number | null>(null);
+  const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [startFilter, setStartFilter] = useState<string>("");
   const [destFilter, setDestFilter] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [flexibleDates, setFlexibleDates] = useState(false);
   const [flexibleLocation, setFlexibleLocation] = useState(false);
+
+  const handleLetsGo = () => {
+    if (!user || !destFilter || destFilter === "all" || !dateRange?.from || !dateRange?.to) {
+      setOpen(true);
+      return;
+    }
+
+    createTrip.mutate({
+      organizerId: user.id,
+      destination: destFilter,
+      startingLocation: startFilter && startFilter !== "all" ? startFilter : undefined,
+      startDate: format(dateRange.from, "yyyy-MM-dd"),
+      endDate: format(dateRange.to, "yyyy-MM-dd"),
+      tripType: "surf_trip",
+    }, {
+      onSuccess: (trip) => {
+        setCreatedTripId(trip.id);
+        setTripDetailsOpen(true);
+        setDateRange(undefined);
+      }
+    });
+  };
+
+  const toggleActivity = (activityId: string) => {
+    setSelectedActivities(prev => 
+      prev.includes(activityId) 
+        ? prev.filter(a => a !== activityId)
+        : [...prev, activityId]
+    );
+  };
 
   const getRegionLocations = (location: string): string[] => {
     for (const [region, locs] of Object.entries(REGIONS)) {
@@ -250,14 +296,82 @@ export default function Trips() {
               </div>
 
               <Button 
-                onClick={() => setOpen(true)}
+                onClick={handleLetsGo}
+                disabled={createTrip.isPending}
                 className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold"
                 data-testid="button-lets-go"
               >
-                Let's Go!
+                {createTrip.isPending ? "Creating..." : "Let's Go!"}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
             </div>
+
+            <Dialog open={tripDetailsOpen} onOpenChange={setTripDetailsOpen}>
+              <DialogContent className="max-w-sm">
+                <DialogHeader>
+                  <DialogTitle className="flex items-center gap-2">
+                    <Sailboat className="w-5 h-5 text-primary" />
+                    Add Trip Details
+                  </DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <p className="text-sm text-muted-foreground">
+                    Trip to <span className="font-semibold text-foreground">{destFilter}</span> created! Select activities for your trip:
+                  </p>
+                  <div className="grid grid-cols-4 gap-2">
+                    {ACTIVITY_OPTIONS.map((activity) => {
+                      const Icon = activity.icon;
+                      const isSelected = selectedActivities.includes(activity.id);
+                      return (
+                        <button
+                          key={activity.id}
+                          onClick={() => toggleActivity(activity.id)}
+                          className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${
+                            isSelected 
+                              ? "border-primary bg-primary/10 text-primary" 
+                              : "border-border bg-card hover-elevate"
+                          }`}
+                          data-testid={`button-activity-${activity.id}`}
+                        >
+                          <Icon className="w-6 h-6" />
+                          <span className="text-xs">{activity.label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      if (createdTripId && selectedActivities.length > 0) {
+                        updateActivities.mutate({ 
+                          tripId: createdTripId, 
+                          activities: selectedActivities 
+                        }, {
+                          onSuccess: () => {
+                            setTripDetailsOpen(false);
+                            setSelectedActivities([]);
+                            setCreatedTripId(null);
+                          },
+                          onError: () => {
+                            setTripDetailsOpen(false);
+                            setSelectedActivities([]);
+                            setCreatedTripId(null);
+                          }
+                        });
+                      } else {
+                        setTripDetailsOpen(false);
+                        setSelectedActivities([]);
+                        setCreatedTripId(null);
+                      }
+                    }}
+                    disabled={updateActivities.isPending}
+                    className="w-full"
+                    data-testid="button-save-trip-details"
+                  >
+                    {updateActivities.isPending ? "Saving..." : "Save Trip"}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
 
             {isLoading ? (
               <div className="space-y-4">

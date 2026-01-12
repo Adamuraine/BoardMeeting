@@ -85,25 +85,33 @@ function WindyEmbed({
   return (
     <div className="relative w-full h-full overflow-hidden">
       <style>{`
+        .windy-cover-bottom {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          right: 0;
+          height: 60px;
+          background: linear-gradient(to top, #1e293b 0%, #1e293b 70%, transparent 100%);
+          z-index: 10;
+          pointer-events: none;
+        }
         .windy-cover-logo {
           position: absolute;
           bottom: 0;
           left: 0;
-          width: 120px;
-          height: 50px;
-          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
-          z-index: 10;
-          border-top-right-radius: 8px;
+          width: 180px;
+          height: 70px;
+          background: #1e293b;
+          z-index: 11;
         }
         .windy-cover-right {
           position: absolute;
           bottom: 0;
           right: 0;
-          width: 50px;
-          height: 50px;
-          background: linear-gradient(225deg, #1e293b 0%, #334155 100%);
-          z-index: 10;
-          border-top-left-radius: 8px;
+          width: 80px;
+          height: 70px;
+          background: #1e293b;
+          z-index: 11;
         }
       `}</style>
       <iframe
@@ -116,6 +124,7 @@ function WindyEmbed({
         allow="fullscreen"
         data-testid="windy-embed"
       />
+      <div className="windy-cover-bottom" />
       <div className="windy-cover-logo" />
       <div className="windy-cover-right" />
     </div>

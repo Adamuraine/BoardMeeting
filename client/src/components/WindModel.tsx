@@ -264,7 +264,7 @@ type WindModelProps = {
   locationName?: string;
 }
 
-export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locationName: initialName = "Oceanside, CA" }: WindModelProps) {
+export function WindModel({ lat: propLat = 33.05, lng: propLng = -117.39, locationName: initialName = "Oceanside, CA" }: WindModelProps) {
   const { data: profile } = useMyProfile();
   const [showPremium, setShowPremium] = useState(false);
   const [lat, setLat] = useState(propLat);

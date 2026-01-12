@@ -347,8 +347,7 @@ function LeafletWindOverlay({
     const animate = () => {
       if (!ctx || !canvas) return;
       
-      ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
-      ctx.fillRect(0, 0, width, height);
+      ctx.clearRect(0, 0, width, height);
       
       for (const p of particlesRef.current) {
         p.x += Math.cos(dirRad) * p.speed;
@@ -364,9 +363,9 @@ function LeafletWindOverlay({
           else { p.x = Math.random() * width; p.y = height + 5; }
         }
         
-        const alpha = Math.min(1, (1 - p.age / p.maxAge) * 0.6);
+        const alpha = Math.min(1, (1 - p.age / p.maxAge) * 0.7);
         ctx.beginPath();
-        ctx.arc(p.x, p.y, 1.5, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 2, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
         ctx.fill();
       }

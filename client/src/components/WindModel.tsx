@@ -95,8 +95,7 @@ function WindyEmbed({
         data-testid="windy-embed"
       />
       <div 
-        className="absolute top-0 left-0 z-10 flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-teal-600 to-teal-500 rounded-br-lg shadow-lg"
-        style={{ minWidth: '180px' }}
+        className="absolute top-0 left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-5 py-2 bg-gradient-to-r from-teal-600 to-teal-500 rounded-b-lg shadow-lg"
       >
         <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="currentColor">
           <path d="M21 6c-2 0-3.5 1.5-5 3s-3 3-5 3-3.5-1.5-5-3-3-3-5-3v2c1.5 0 2.5 1 4 2.5S7.5 13 10 13s4-1.5 5.5-3 2.5-2.5 4-2.5c.5 0 1 .1 1.5.3V6zM21 12c-2 0-3.5 1.5-5 3s-3 3-5 3-3.5-1.5-5-3-3-3-5-3v2c1.5 0 2.5 1 4 2.5s2.5 2.5 5 2.5 4-1.5 5.5-3 2.5-2.5 4-2.5c.5 0 1 .1 1.5.3V12z"/>

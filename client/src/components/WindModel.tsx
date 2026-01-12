@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useMemo } from "react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Lock, ChevronLeft, ChevronRight } from "lucide-react";
-import { format } from "date-fns";
+import { Slider } from "@/components/ui/slider";
+import { Search, Lock, ChevronLeft, ChevronRight, Play, Pause } from "lucide-react";
+import { format, addHours, startOfDay } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PremiumModal } from "@/components/PremiumModal";
 
@@ -62,35 +63,114 @@ function WindyEmbed({
   lat, 
   lng, 
   zoom = 10,
-  onLocationChange
+  timestamp
 }: { 
   lat: number; 
   lng: number;
   zoom?: number;
-  onLocationChange?: (lat: number, lng: number) => void;
+  timestamp: number;
 }) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [key, setKey] = useState(0);
   
   const embedUrl = useMemo(() => {
-    return `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=default&metricTemp=default&metricWind=mph&zoom=${zoom}&overlay=wind&product=ecmwf&level=surface&lat=${lat}&lon=${lng}&detailLat=${lat}&detailLon=${lng}&marker=true&message=true&calendar=now&pressure=true&type=map`;
-  }, [lat, lng, zoom]);
+    const calendarParam = timestamp ? timestamp : 'now';
+    return `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=default&metricTemp=default&metricWind=mph&zoom=${zoom}&overlay=wind&product=ecmwf&level=surface&lat=${lat}&lon=${lng}&detailLat=${lat}&detailLon=${lng}&marker=true&message=true&calendar=${calendarParam}&pressure=true&type=map&menu=`;
+  }, [lat, lng, zoom, timestamp]);
   
   useEffect(() => {
     setKey(prev => prev + 1);
-  }, [lat, lng]);
+  }, [lat, lng, timestamp]);
   
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full overflow-hidden">
+      <style>{`
+        .windy-cover-logo {
+          position: absolute;
+          bottom: 0;
+          left: 0;
+          width: 120px;
+          height: 50px;
+          background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+          z-index: 10;
+          border-top-right-radius: 8px;
+        }
+        .windy-cover-right {
+          position: absolute;
+          bottom: 0;
+          right: 0;
+          width: 50px;
+          height: 50px;
+          background: linear-gradient(225deg, #1e293b 0%, #334155 100%);
+          z-index: 10;
+          border-top-left-radius: 8px;
+        }
+      `}</style>
       <iframe
         key={key}
         ref={iframeRef}
         src={embedUrl}
         className="w-full h-full border-0"
+        style={{ marginBottom: '-10px' }}
         title="Windy Wind Map"
         allow="fullscreen"
         data-testid="windy-embed"
       />
+      <div className="windy-cover-logo" />
+      <div className="windy-cover-right" />
+    </div>
+  );
+}
+
+function TimeSlider({
+  selectedHour,
+  onHourChange,
+  selectedDay,
+  isPlaying,
+  onTogglePlay
+}: {
+  selectedHour: number;
+  onHourChange: (hour: number) => void;
+  selectedDay: Date;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+}) {
+  const timeLabels = ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm'];
+  
+  return (
+    <div className="bg-slate-800 px-4 py-3 border-t border-white/10">
+      <div className="flex items-center gap-3">
+        <Button
+          size="icon"
+          variant="ghost"
+          className="h-8 w-8 text-white/80 hover:text-white"
+          onClick={onTogglePlay}
+          data-testid="button-play-time"
+        >
+          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+        </Button>
+        
+        <div className="flex-1">
+          <Slider
+            value={[selectedHour]}
+            onValueChange={(v) => onHourChange(v[0])}
+            min={0}
+            max={23}
+            step={1}
+            className="w-full"
+            data-testid="slider-time"
+          />
+          <div className="flex justify-between mt-1 text-[10px] text-white/50">
+            {timeLabels.map((label, i) => (
+              <span key={i}>{label}</span>
+            ))}
+          </div>
+        </div>
+        
+        <div className="text-white text-sm font-medium min-w-[80px] text-right">
+          {format(addHours(startOfDay(selectedDay), selectedHour), 'h:mm a')}
+        </div>
+      </div>
     </div>
   );
 }
@@ -206,6 +286,8 @@ export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locati
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
   const [selectedDay, setSelectedDay] = useState(0);
+  const [selectedHour, setSelectedHour] = useState(new Date().getHours());
+  const [isPlaying, setIsPlaying] = useState(false);
   
   const isPremium = profile?.isPremium ?? false;
   const maxDays = isPremium ? 14 : 3;
@@ -220,6 +302,33 @@ export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locati
     }
     return result;
   }, []);
+  
+  const timestamp = useMemo(() => {
+    const baseDate = startOfDay(days[selectedDay]);
+    const dateWithHour = addHours(baseDate, selectedHour);
+    return dateWithHour.getTime();
+  }, [days, selectedDay, selectedHour]);
+  
+  useEffect(() => {
+    if (!isPlaying) return;
+    
+    const interval = setInterval(() => {
+      setSelectedHour(prev => {
+        if (prev >= 23) {
+          if (selectedDay < maxDays - 1) {
+            setSelectedDay(d => d + 1);
+            return 0;
+          } else {
+            setIsPlaying(false);
+            return prev;
+          }
+        }
+        return prev + 3;
+      });
+    }, 1500);
+    
+    return () => clearInterval(interval);
+  }, [isPlaying, selectedDay, maxDays]);
   
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -292,18 +401,28 @@ export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locati
             {isSearching ? "..." : "Go"}
           </Button>
         </div>
-        <div className="mt-2 text-white/80 text-sm">
-          {locationName}
+        <div className="mt-2 text-white/80 text-sm flex items-center justify-between">
+          <span>{locationName}</span>
+          <span className="text-teal-400">{format(addHours(startOfDay(days[selectedDay]), selectedHour), 'EEE, MMM d, h:mm a')}</span>
         </div>
       </div>
       
-      <div className="flex-1 min-h-[400px] relative">
+      <div className="flex-1 min-h-[350px] relative">
         <WindyEmbed 
           lat={lat}
           lng={lng}
           zoom={10}
+          timestamp={timestamp}
         />
       </div>
+      
+      <TimeSlider
+        selectedHour={selectedHour}
+        onHourChange={setSelectedHour}
+        selectedDay={days[selectedDay]}
+        isPlaying={isPlaying}
+        onTogglePlay={() => setIsPlaying(!isPlaying)}
+      />
       
       <DaySelector 
         days={days}

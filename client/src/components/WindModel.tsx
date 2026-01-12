@@ -1,79 +1,11 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Navigation, Lock, MapPin, Search, ChevronLeft, ChevronRight, ArrowUp, ArrowDown, Plus, Minus } from "lucide-react";
+import { Search, Lock, ChevronLeft, ChevronRight } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { PremiumModal } from "@/components/PremiumModal";
-import { MapContainer, TileLayer, useMap, useMapEvents } from 'react-leaflet';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
-
-type HourlyWindData = {
-  time: Date;
-  windSpeed: number;
-  windDirection: number;
-  windGusts: number;
-  temperature: number;
-};
-
-type Particle = {
-  x: number;
-  y: number;
-  age: number;
-  maxAge: number;
-  speed: number;
-  path: { x: number; y: number }[];
-};
-
-async function fetchHourlyWindData(lat: number, lng: number): Promise<HourlyWindData[]> {
-  const response = await fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&hourly=wind_speed_10m,wind_direction_10m,wind_gusts_10m,temperature_2m&forecast_days=7&timezone=auto`
-  );
-  const data = await response.json();
-  
-  if (!data.hourly || !data.hourly.time) {
-    return [];
-  }
-  
-  const hourly = data.hourly;
-  const result: HourlyWindData[] = [];
-  
-  const now = new Date();
-  let currentHourIndex = 0;
-  
-  for (let i = 0; i < hourly.time.length; i++) {
-    const hourTime = new Date(hourly.time[i]);
-    if (hourTime <= now) {
-      currentHourIndex = i;
-    }
-    
-    let windSpeed = hourly.wind_speed_10m[i];
-    let windGusts = hourly.wind_gusts_10m[i];
-    let windDirection = hourly.wind_direction_10m[i];
-    let temperature = hourly.temperature_2m[i];
-    
-    if (i === currentHourIndex && data.current) {
-      windSpeed = data.current.wind_speed_10m;
-      windGusts = data.current.wind_gusts_10m;
-      windDirection = data.current.wind_direction_10m;
-      temperature = data.current.temperature_2m;
-    }
-    
-    result.push({
-      time: hourTime,
-      windSpeed: Math.round(windSpeed * 0.621371 * 10) / 10,
-      windDirection: windDirection,
-      windGusts: Math.round(windGusts * 0.621371 * 10) / 10,
-      temperature: Math.round(temperature * 9/5 + 32),
-    });
-  }
-  
-  return result;
-}
 
 async function geocodeLocation(query: string): Promise<{ lat: number; lng: number; name: string } | null> {
   try {
@@ -95,31 +27,19 @@ async function geocodeLocation(query: string): Promise<{ lat: number; lng: numbe
   }
 }
 
-function getDirectionName(deg: number): string {
-  const directions = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-  const index = Math.round(deg / 22.5) % 16;
-  return directions[index];
-}
-
-function getWindColorHex(speed: number): string {
-  if (speed < 5) return "#93c5fd";
-  if (speed < 10) return "#6ee7b7";
-  if (speed < 15) return "#86efac";
-  if (speed < 20) return "#fde047";
-  if (speed < 25) return "#fdba74";
-  if (speed < 30) return "#fb923c";
-  if (speed < 40) return "#f87171";
-  return "#ef4444";
-}
-
-function isOnshore(windDirection: number, coastDirection: number = 270): boolean {
-  const diff = Math.abs(windDirection - coastDirection);
-  const normalizedDiff = diff > 180 ? 360 - diff : diff;
-  return normalizedDiff < 90;
-}
-
 function WindSpeedScale() {
   const speeds = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+  
+  const getWindColorHex = (speed: number): string => {
+    if (speed < 5) return "#93c5fd";
+    if (speed < 10) return "#6ee7b7";
+    if (speed < 15) return "#86efac";
+    if (speed < 20) return "#fde047";
+    if (speed < 25) return "#fdba74";
+    if (speed < 30) return "#fb923c";
+    if (speed < 40) return "#f87171";
+    return "#ef4444";
+  };
   
   return (
     <div className="flex items-center gap-0 h-6 text-[10px] font-medium text-white">
@@ -138,524 +58,59 @@ function WindSpeedScale() {
   );
 }
 
-function WindCanvas({ 
-  windSpeed, 
-  windDirection,
-  width,
-  height
+function WindyEmbed({ 
+  lat, 
+  lng, 
+  zoom = 10,
+  onLocationChange
 }: { 
-  windSpeed: number; 
-  windDirection: number;
-  width: number;
-  height: number;
+  lat: number; 
+  lng: number;
+  zoom?: number;
+  onLocationChange?: (lat: number, lng: number) => void;
 }) {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const particlesRef = useRef<Particle[]>([]);
-  const animationRef = useRef<number>();
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [key, setKey] = useState(0);
   
-  const createParticle = useCallback((w: number, h: number): Particle => {
-    const x = Math.random() * w;
-    const y = Math.random() * h;
-    return {
-      x,
-      y,
-      age: Math.random() * 60,
-      maxAge: 80 + Math.random() * 80,
-      speed: 1 + Math.random() * 2,
-      path: [{ x, y }],
-    };
-  }, []);
+  const embedUrl = useMemo(() => {
+    return `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=default&metricTemp=default&metricWind=mph&zoom=${zoom}&overlay=wind&product=ecmwf&level=surface&lat=${lat}&lon=${lng}&detailLat=${lat}&detailLon=${lng}&marker=true&message=true&calendar=now&pressure=true&type=map`;
+  }, [lat, lng, zoom]);
   
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || width <= 0 || height <= 0) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    canvas.width = width;
-    canvas.height = height;
-    
-    const particleCount = Math.min(400, Math.floor(width * height / 1000));
-    particlesRef.current = Array.from({ length: particleCount }, () => 
-      createParticle(width, height)
-    );
-    
-    const animate = () => {
-      ctx.clearRect(0, 0, width, height);
-      
-      const radians = (windDirection - 90) * (Math.PI / 180);
-      const speedFactor = Math.max(1, windSpeed / 10);
-      
-      particlesRef.current.forEach((particle, i) => {
-        particle.age++;
-        
-        if (particle.age > particle.maxAge || 
-            particle.x < -50 || particle.x > width + 50 || 
-            particle.y < -50 || particle.y > height + 50) {
-          particlesRef.current[i] = createParticle(width, height);
-          particlesRef.current[i].age = 0;
-          return;
-        }
-        
-        const moveX = Math.cos(radians) * particle.speed * speedFactor;
-        const moveY = Math.sin(radians) * particle.speed * speedFactor;
-        
-        particle.x += moveX;
-        particle.y += moveY;
-        
-        const fadeIn = Math.min(1, particle.age / 15);
-        const fadeOut = Math.max(0, 1 - (particle.age - particle.maxAge + 30) / 30);
-        const alpha = Math.min(fadeIn, fadeOut) * 0.9;
-        
-        const tailLength = 15;
-        ctx.beginPath();
-        ctx.strokeStyle = `rgba(255, 255, 255, ${alpha})`;
-        ctx.lineWidth = 2;
-        ctx.lineCap = 'round';
-        ctx.moveTo(particle.x - moveX * tailLength, particle.y - moveY * tailLength);
-        ctx.lineTo(particle.x, particle.y);
-        ctx.stroke();
-      });
-      
-      animationRef.current = requestAnimationFrame(animate);
-    };
-    
-    animate();
-    
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [width, height, windDirection, windSpeed, createParticle]);
-  
-  if (width <= 0 || height <= 0) return null;
+    setKey(prev => prev + 1);
+  }, [lat, lng]);
   
   return (
-    <canvas 
-      ref={canvasRef}
-      className="absolute inset-0 pointer-events-none z-10"
-      width={width}
-      height={height}
-    />
-  );
-}
-
-function MapController({ 
-  flyToTarget,
-  onForecastCoordsUpdate
-}: { 
-  flyToTarget: { lat: number; lng: number; id: number } | null;
-  onForecastCoordsUpdate: (lat: number, lng: number) => void;
-}) {
-  const map = useMap();
-  const lastFlyToId = useRef(0);
-  const debounceRef = useRef<NodeJS.Timeout | null>(null);
-  
-  useEffect(() => {
-    if (flyToTarget && flyToTarget.id > lastFlyToId.current) {
-      lastFlyToId.current = flyToTarget.id;
-      map.flyTo([flyToTarget.lat, flyToTarget.lng], map.getZoom(), { duration: 0.5 });
-    }
-  }, [flyToTarget, map]);
-  
-  useMapEvents({
-    moveend: () => {
-      if (debounceRef.current) {
-        clearTimeout(debounceRef.current);
-      }
-      debounceRef.current = setTimeout(() => {
-        const center = map.getCenter();
-        onForecastCoordsUpdate(center.lat, center.lng);
-      }, 300);
-    },
-  });
-  
-  return null;
-}
-
-function LeafletWindOverlay({ 
-  windSpeed, 
-  windDirection 
-}: { 
-  windSpeed: number; 
-  windDirection: number;
-}) {
-  const map = useMap();
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const particlesRef = useRef<Particle[]>([]);
-  
-  useEffect(() => {
-    const container = map.getContainer();
-    const canvas = document.createElement('canvas');
-    canvas.style.position = 'absolute';
-    canvas.style.top = '0';
-    canvas.style.left = '0';
-    canvas.style.width = '100%';
-    canvas.style.height = '100%';
-    canvas.style.pointerEvents = 'none';
-    canvas.style.zIndex = '400';
-    container.appendChild(canvas);
-    canvasRef.current = canvas;
-    
-    const updateSize = () => {
-      if (canvasRef.current) {
-        canvasRef.current.width = container.clientWidth;
-        canvasRef.current.height = container.clientHeight;
-      }
-    };
-    updateSize();
-    
-    map.on('resize', updateSize);
-    
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-      map.off('resize', updateSize);
-      if (canvasRef.current && container.contains(canvasRef.current)) {
-        container.removeChild(canvasRef.current);
-      }
-    };
-  }, [map]);
-  
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-    
-    const width = canvas.width;
-    const height = canvas.height;
-    const particleCount = Math.min(200, Math.max(80, windSpeed * 10));
-    const dirRad = (windDirection - 90) * Math.PI / 180;
-    const tailLength = 12;
-    
-    const getWindColor = (speed: number): string => {
-      if (speed < 5) return 'rgba(147, 197, 253, 0.8)';
-      if (speed < 10) return 'rgba(110, 231, 183, 0.8)';
-      if (speed < 15) return 'rgba(134, 239, 172, 0.8)';
-      if (speed < 20) return 'rgba(253, 224, 71, 0.8)';
-      if (speed < 25) return 'rgba(253, 186, 116, 0.8)';
-      if (speed < 30) return 'rgba(248, 113, 113, 0.8)';
-      return 'rgba(239, 68, 68, 0.8)';
-    };
-    
-    const createParticle = (): Particle => {
-      const x = Math.random() * width;
-      const y = Math.random() * height;
-      return {
-        x,
-        y,
-        age: Math.random() * 80,
-        maxAge: 80 + Math.random() * 60,
-        speed: 1.5 + Math.random() * 2 + windSpeed * 0.2,
-        path: [{ x, y }],
-      };
-    };
-    
-    particlesRef.current = [];
-    for (let i = 0; i < particleCount; i++) {
-      particlesRef.current.push(createParticle());
-    }
-    
-    const animate = () => {
-      if (!ctx || !canvas) return;
-      
-      ctx.clearRect(0, 0, width, height);
-      
-      const baseColor = getWindColor(windSpeed);
-      
-      for (const p of particlesRef.current) {
-        const moveX = Math.cos(dirRad) * p.speed;
-        const moveY = Math.sin(dirRad) * p.speed;
-        
-        p.x += moveX;
-        p.y += moveY;
-        p.age++;
-        
-        p.path.push({ x: p.x, y: p.y });
-        if (p.path.length > tailLength) {
-          p.path.shift();
-        }
-        
-        if (p.age > p.maxAge || p.x < -50 || p.x > width + 50 || p.y < -50 || p.y > height + 50) {
-          const newP = createParticle();
-          const edge = Math.floor(Math.random() * 4);
-          if (edge === 0) { newP.x = -10; newP.y = Math.random() * height; }
-          else if (edge === 1) { newP.x = width + 10; newP.y = Math.random() * height; }
-          else if (edge === 2) { newP.x = Math.random() * width; newP.y = -10; }
-          else { newP.x = Math.random() * width; newP.y = height + 10; }
-          newP.path = [{ x: newP.x, y: newP.y }];
-          Object.assign(p, newP);
-          continue;
-        }
-        
-        if (p.path.length < 2) continue;
-        
-        const fadeIn = Math.min(1, p.age / 20);
-        const fadeOut = Math.max(0, 1 - (p.age - p.maxAge + 40) / 40);
-        const alpha = Math.min(fadeIn, fadeOut);
-        
-        ctx.beginPath();
-        ctx.moveTo(p.path[0].x, p.path[0].y);
-        for (let i = 1; i < p.path.length; i++) {
-          ctx.lineTo(p.path[i].x, p.path[i].y);
-        }
-        ctx.strokeStyle = baseColor.replace('0.8', String(alpha * 0.9));
-        ctx.lineWidth = 1.5;
-        ctx.lineCap = 'round';
-        ctx.stroke();
-      }
-      
-      animationRef.current = requestAnimationFrame(animate);
-    };
-    
-    animate();
-    
-    return () => {
-      if (animationRef.current) {
-        cancelAnimationFrame(animationRef.current);
-      }
-    };
-  }, [windSpeed, windDirection]);
-  
-  return null;
-}
-
-function WindMapView({ 
-  initialLat, 
-  initialLng, 
-  forecastLat,
-  forecastLng,
-  windSpeed, 
-  windDirection,
-  locationName,
-  onForecastCoordsUpdate,
-  flyToTarget,
-  searchQuery,
-  onSearchChange,
-  onSearch,
-  isSearching
-}: { 
-  initialLat: number; 
-  initialLng: number; 
-  forecastLat: number;
-  forecastLng: number;
-  windSpeed: number; 
-  windDirection: number;
-  locationName: string;
-  onForecastCoordsUpdate: (lat: number, lng: number) => void;
-  flyToTarget: { lat: number; lng: number; id: number } | null;
-  searchQuery: string;
-  onSearchChange: (query: string) => void;
-  onSearch: () => void;
-  isSearching: boolean;
-}) {
-  const mapRef = useRef<L.Map | null>(null);
-  const baseColor = getWindColorHex(windSpeed);
-  const onshoreWind = isOnshore(windDirection);
-  
-  const handleZoomIn = useCallback(() => {
-    if (mapRef.current) {
-      mapRef.current.zoomIn();
-    }
-  }, []);
-  
-  const handleZoomOut = useCallback(() => {
-    if (mapRef.current) {
-      mapRef.current.zoomOut();
-    }
-  }, []);
-  
-  return (
-    <div className="relative w-full h-full overflow-hidden">
-      <style>{`
-        .leaflet-container {
-          background: #1e293b !important;
-        }
-        .leaflet-tile {
-          filter: brightness(0.7) saturate(0.8);
-        }
-        .leaflet-control-zoom {
-          display: none !important;
-        }
-        .leaflet-control-attribution {
-          display: none !important;
-        }
-      `}</style>
-      
-      <MapContainer
-        ref={mapRef}
-        center={[initialLat, initialLng]}
-        zoom={10}
-        style={{ width: '100%', height: '100%' }}
-        zoomControl={false}
-        attributionControl={false}
-      >
-        <TileLayer
-          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        />
-        <MapController 
-          flyToTarget={flyToTarget}
-          onForecastCoordsUpdate={onForecastCoordsUpdate}
-        />
-        <LeafletWindOverlay 
-          windSpeed={windSpeed} 
-          windDirection={windDirection}
-        />
-      </MapContainer>
-      
-      <div 
-        className="absolute inset-0 pointer-events-none z-[500]"
-        style={{
-          background: `
-            linear-gradient(135deg, ${baseColor}40 0%, transparent 50%),
-            linear-gradient(225deg, #0ea5e930 0%, transparent 50%),
-            linear-gradient(to bottom, transparent 60%, rgba(0,0,0,0.3) 100%)
-          `,
-        }}
+    <div className="relative w-full h-full">
+      <iframe
+        key={key}
+        ref={iframeRef}
+        src={embedUrl}
+        className="w-full h-full border-0"
+        title="Windy Wind Map"
+        allow="fullscreen"
+        data-testid="windy-embed"
       />
-      
-      <div className="absolute top-3 left-3 right-3 z-[600]">
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => onSearchChange(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && onSearch()}
-              placeholder="Search location..."
-              className="pl-10 bg-slate-900/70 backdrop-blur-sm border-white/20 text-white placeholder:text-white/50 h-10"
-              data-testid="input-location-search"
-            />
-          </div>
-          <Button 
-            onClick={onSearch}
-            disabled={isSearching}
-            className="bg-teal-600 hover:bg-teal-700 text-white"
-            data-testid="button-search-location"
-          >
-            {isSearching ? "..." : "Go"}
-          </Button>
-        </div>
-      </div>
-      
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center pointer-events-none z-[600]">
-        <div className="w-4 h-4 rounded-full bg-blue-500 border-2 border-white shadow-lg" />
-      </div>
-      
-      <div className="absolute left-1/2 top-[58%] -translate-x-1/2 w-[280px] pointer-events-auto z-[600]">
-        <div className="bg-slate-900/90 backdrop-blur-sm rounded-xl p-4 text-white shadow-xl">
-          <div className="flex items-start justify-between gap-2 mb-2">
-            <div className="min-w-0">
-              <p className="text-sm font-medium opacity-90 mb-1 truncate">{locationName}</p>
-              <p className="text-xs text-white/60">
-                {forecastLat >= 0 ? 'N' : 'S'} {Math.abs(forecastLat).toFixed(2)}, {forecastLng >= 0 ? 'E' : 'W'} {Math.abs(forecastLng).toFixed(2)}
-              </p>
-            </div>
-            <Button size="icon" variant="ghost" className="h-6 w-6 text-emerald-400 shrink-0">
-              <MapPin className="h-4 w-4" />
-            </Button>
-          </div>
-          
-          <div className="flex items-center gap-4 py-3 border-t border-white/10">
-            <div className="flex items-center gap-2">
-              <div 
-                className="w-8 h-8 rounded-full flex items-center justify-center"
-                style={{ backgroundColor: baseColor }}
-              >
-                <Navigation 
-                  className="h-4 w-4 text-white" 
-                  style={{ transform: `rotate(${windDirection}deg)` }}
-                />
-              </div>
-              <div>
-                <p className="text-lg font-bold">{windSpeed} <span className="text-xs font-normal">mph</span></p>
-                <p className="text-xs text-white/60">{getDirectionName(windDirection)}</p>
-              </div>
-            </div>
-            
-            <div className="flex-1 flex items-center justify-end gap-2">
-              <div className={cn(
-                "px-2 py-1 rounded text-xs font-medium",
-                onshoreWind ? "bg-amber-500/80 text-white" : "bg-emerald-500/80 text-white"
-              )}>
-                {onshoreWind ? (
-                  <span className="flex items-center gap-1">
-                    <ArrowDown className="h-3 w-3" /> Onshore
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-1">
-                    <ArrowUp className="h-3 w-3" /> Offshore
-                  </span>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div className="absolute bottom-4 right-4 flex flex-col gap-2 pointer-events-auto z-[600]">
-        <Button 
-          size="icon" 
-          variant="secondary" 
-          className="h-9 w-9 bg-white/20 backdrop-blur-sm border-0 text-white"
-          onClick={handleZoomIn}
-          data-testid="button-zoom-in"
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-        <Button 
-          size="icon" 
-          variant="secondary" 
-          className="h-9 w-9 bg-white/20 backdrop-blur-sm border-0 text-white"
-          onClick={handleZoomOut}
-          data-testid="button-zoom-out"
-        >
-          <Minus className="h-4 w-4" />
-        </Button>
-      </div>
-      
-      <div className="absolute bottom-4 left-4 pointer-events-none z-[600]">
-        <div className="bg-slate-800/80 backdrop-blur-sm rounded-lg px-2 py-1 text-white text-[10px]">
-          Drag to explore
-        </div>
-      </div>
     </div>
   );
 }
 
-function HourlyTimeline({ 
-  data, 
-  selectedIndex, 
-  onSelectHour,
-  maxHours,
+function DaySelector({ 
+  days,
+  selectedDay,
+  onSelectDay,
+  maxDays,
   isPremium,
   onShowPremium
 }: { 
-  data: HourlyWindData[];
-  selectedIndex: number;
-  onSelectHour: (index: number) => void;
-  maxHours: number;
+  days: Date[];
+  selectedDay: number;
+  onSelectDay: (day: number) => void;
+  maxDays: number;
   isPremium: boolean;
   onShowPremium: () => void;
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
-  
-  useEffect(() => {
-    if (scrollRef.current) {
-      const selectedEl = scrollRef.current.querySelector(`[data-index="${selectedIndex}"]`);
-      if (selectedEl) {
-        selectedEl.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
-      }
-    }
-  }, [selectedIndex]);
-  
-  let currentDate = "";
   
   return (
     <div className="bg-slate-900/95 backdrop-blur-sm">
@@ -664,25 +119,20 @@ function HourlyTimeline({
           size="icon" 
           variant="ghost" 
           className="h-8 w-8 text-white/70"
-          onClick={() => onSelectHour(Math.max(0, selectedIndex - 6))}
-          data-testid="button-timeline-prev"
+          onClick={() => onSelectDay(Math.max(0, selectedDay - 1))}
+          data-testid="button-day-prev"
         >
           <ChevronLeft className="h-5 w-5" />
         </Button>
-        <div className="flex items-center gap-4 text-xs">
-          <span className="flex items-center gap-1 text-emerald-400">
-            <ArrowUp className="h-3 w-3" /> Offshore
-          </span>
-          <span className="flex items-center gap-1 text-amber-400">
-            <ArrowDown className="h-3 w-3" /> Onshore
-          </span>
-        </div>
+        <span className="text-white text-sm font-medium">
+          {isPremium ? "14-Day Forecast" : "3-Day Forecast"}
+        </span>
         <Button 
           size="icon" 
           variant="ghost" 
           className="h-8 w-8 text-white/70"
-          onClick={() => onSelectHour(Math.min(maxHours - 1, selectedIndex + 6))}
-          data-testid="button-timeline-next"
+          onClick={() => onSelectDay(Math.min(maxDays - 1, selectedDay + 1))}
+          data-testid="button-day-next"
         >
           <ChevronRight className="h-5 w-5" />
         </Button>
@@ -690,74 +140,58 @@ function HourlyTimeline({
       
       <div 
         ref={scrollRef}
-        className="flex overflow-x-auto scrollbar-hide py-3 px-2 gap-1"
+        className="flex overflow-x-auto scrollbar-hide py-3 px-2 gap-2"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
-        {data.map((hour, i) => {
-          const dateStr = format(hour.time, 'EEE M/d');
-          const showDate = dateStr !== currentDate;
-          if (showDate) currentDate = dateStr;
-          
-          const hourStr = format(hour.time, 'ha').toLowerCase();
-          const isSelected = i === selectedIndex;
-          const isLocked = i >= maxHours;
-          const windColor = getWindColorHex(hour.windSpeed);
-          const onshoreWind = isOnshore(hour.windDirection);
+        {days.map((day, i) => {
+          const isSelected = i === selectedDay;
+          const isLocked = i >= maxDays;
           
           return (
-            <div key={i} className="flex flex-col items-center">
-              {showDate && (
-                <div className="text-[9px] text-white/50 mb-1 whitespace-nowrap">{dateStr}</div>
+            <button
+              key={i}
+              onClick={() => {
+                if (isLocked) {
+                  onShowPremium();
+                } else {
+                  onSelectDay(i);
+                }
+              }}
+              className={cn(
+                "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all min-w-[70px]",
+                isSelected 
+                  ? "bg-teal-600 text-white" 
+                  : "bg-white/10 text-white/80 hover:bg-white/20",
+                isLocked && "opacity-50"
               )}
-              <button
-                data-index={i}
-                onClick={() => !isLocked && onSelectHour(i)}
-                disabled={isLocked}
-                className={cn(
-                  "flex flex-col items-center gap-1 px-2 py-1.5 rounded-lg transition-all",
-                  isSelected 
-                    ? "bg-white/20 ring-2 ring-teal-400" 
-                    : "hover:bg-white/10",
-                  isLocked && "opacity-40"
-                )}
-                data-testid={`button-hour-${i}`}
-              >
-                {isLocked && <Lock className="h-3 w-3 text-white/60" />}
-                
-                <div 
-                  className="w-6 h-6 rounded-full flex items-center justify-center"
-                  style={{ backgroundColor: isLocked ? '#64748b' : windColor }}
-                >
-                  {onshoreWind ? (
-                    <ArrowDown className="h-3 w-3 text-white" />
-                  ) : (
-                    <ArrowUp className="h-3 w-3 text-white" />
-                  )}
-                </div>
-                
-                <span className="text-[10px] text-white/70">{hourStr}</span>
-                <span className="text-[10px] font-medium text-white">{Math.round(hour.windSpeed)}</span>
-              </button>
-            </div>
+              data-testid={`button-day-${i}`}
+            >
+              {isLocked && <Lock className="h-3 w-3" />}
+              <span className="text-xs font-medium">{format(day, 'EEE')}</span>
+              <span className="text-lg font-bold">{format(day, 'd')}</span>
+              <span className="text-[10px] opacity-70">{format(day, 'MMM')}</span>
+            </button>
           );
         })}
-        
-        {!isPremium && (
-          <button
-            onClick={onShowPremium}
-            className="flex flex-col items-center justify-center gap-1 px-4 py-2 text-amber-400 text-xs whitespace-nowrap min-w-[100px]"
-            data-testid="button-unlock-premium"
-          >
-            <Lock className="h-4 w-4" />
-            <span>Unlock 7-day</span>
-          </button>
-        )}
       </div>
+      
+      {!isPremium && (
+        <div className="px-4 pb-3">
+          <Button 
+            onClick={onShowPremium}
+            variant="outline"
+            className="w-full border-teal-500 text-teal-400 hover:bg-teal-500/20"
+            data-testid="button-unlock-forecast"
+          >
+            Unlock 14-Day Forecast - $5/month
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
 
-interface WindModelProps {
+type WindModelProps = {
   lat?: number;
   lng?: number;
   locationName?: string;
@@ -765,18 +199,27 @@ interface WindModelProps {
 
 export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locationName: initialName = "Oceanside, CA" }: WindModelProps) {
   const { data: profile } = useMyProfile();
-  const [selectedHour, setSelectedHour] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
-  const [forecastLat, setForecastLat] = useState(propLat);
-  const [forecastLng, setForecastLng] = useState(propLng);
+  const [lat, setLat] = useState(propLat);
+  const [lng, setLng] = useState(propLng);
   const [locationName, setLocationName] = useState(initialName);
   const [searchQuery, setSearchQuery] = useState("");
   const [isSearching, setIsSearching] = useState(false);
-  const [flyToTarget, setFlyToTarget] = useState<{ lat: number; lng: number; id: number } | null>(null);
-  const initialCoordsRef = useRef({ lat: propLat, lng: propLng });
+  const [selectedDay, setSelectedDay] = useState(0);
   
   const isPremium = profile?.isPremium ?? false;
-  const maxHours = isPremium ? 168 : 72;
+  const maxDays = isPremium ? 14 : 3;
+  
+  const days = useMemo(() => {
+    const result: Date[] = [];
+    const today = new Date();
+    for (let i = 0; i < 14; i++) {
+      const day = new Date(today);
+      day.setDate(today.getDate() + i);
+      result.push(day);
+    }
+    return result;
+  }, []);
   
   useEffect(() => {
     if ('geolocation' in navigator) {
@@ -784,9 +227,8 @@ export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locati
         async (position) => {
           const userLat = position.coords.latitude;
           const userLng = position.coords.longitude;
-          setForecastLat(userLat);
-          setForecastLng(userLng);
-          setFlyToTarget({ lat: userLat, lng: userLng, id: Date.now() });
+          setLat(userLat);
+          setLng(userLng);
           
           try {
             const reverseResult = await geocodeLocation(`${userLat.toFixed(2)}, ${userLng.toFixed(2)}`);
@@ -799,30 +241,10 @@ export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locati
             setLocationName(`${Math.abs(userLat).toFixed(2)}${userLat >= 0 ? 'N' : 'S'}, ${Math.abs(userLng).toFixed(2)}${userLng >= 0 ? 'W' : 'E'}`);
           }
         },
-        () => {
-          // Geolocation denied or failed, keep default Oceanside location
-        },
+        () => {},
         { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
       );
     }
-  }, []);
-  
-  useEffect(() => {
-    if (selectedHour >= maxHours) {
-      setSelectedHour(maxHours - 1);
-    }
-  }, [maxHours, selectedHour]);
-  
-  const { data: hourlyData, isLoading } = useQuery({
-    queryKey: ['hourly-wind-data', forecastLat, forecastLng],
-    queryFn: () => fetchHourlyWindData(forecastLat, forecastLng),
-    staleTime: 1000 * 60 * 15,
-  });
-  
-  const handleForecastCoordsUpdate = useCallback((newLat: number, newLng: number) => {
-    setForecastLat(newLat);
-    setForecastLng(newLng);
-    setLocationName(`${Math.abs(newLat).toFixed(2)}${newLat >= 0 ? 'N' : 'S'}, ${Math.abs(newLng).toFixed(2)}${newLng >= 0 ? 'E' : 'W'}`);
   }, []);
   
   const handleSearch = async () => {
@@ -833,33 +255,12 @@ export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locati
     setIsSearching(false);
     
     if (result) {
-      setForecastLat(result.lat);
-      setForecastLng(result.lng);
+      setLat(result.lat);
+      setLng(result.lng);
       setLocationName(result.name);
       setSearchQuery("");
-      setFlyToTarget({ lat: result.lat, lng: result.lng, id: Date.now() });
     }
   };
-  
-  const visibleData = hourlyData?.slice(0, maxHours) || [];
-  const currentHour = visibleData[selectedHour];
-  
-  if (isLoading) {
-    return (
-      <div className="flex flex-col h-full">
-        <Skeleton className="flex-1 rounded-none" />
-        <Skeleton className="h-32 rounded-none" />
-      </div>
-    );
-  }
-  
-  if (!hourlyData || hourlyData.length === 0) {
-    return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
-        Unable to load wind data
-      </div>
-    );
-  }
   
   return (
     <div className="flex flex-col h-full" data-testid="wind-model-container">
@@ -869,29 +270,46 @@ export function WindModel({ lat: propLat = 33.19, lng: propLng = -117.39, locati
         <WindSpeedScale />
       </div>
       
-      <div className="flex-1 min-h-[400px] relative bg-gradient-to-br from-cyan-500 via-teal-600 to-blue-700">
-        <WindMapView 
-          initialLat={initialCoordsRef.current.lat}
-          initialLng={initialCoordsRef.current.lng}
-          forecastLat={forecastLat}
-          forecastLng={forecastLng}
-          windSpeed={currentHour?.windSpeed || 0}
-          windDirection={currentHour?.windDirection || 0}
-          locationName={locationName}
-          onForecastCoordsUpdate={handleForecastCoordsUpdate}
-          flyToTarget={flyToTarget}
-          searchQuery={searchQuery}
-          onSearchChange={setSearchQuery}
-          onSearch={handleSearch}
-          isSearching={isSearching}
+      <div className="p-3 bg-slate-800 border-b border-white/10">
+        <div className="flex gap-2">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+              placeholder="Search location..."
+              className="pl-10 bg-slate-700 border-white/20 text-white placeholder:text-white/50 h-10"
+              data-testid="input-location-search"
+            />
+          </div>
+          <Button 
+            onClick={handleSearch}
+            disabled={isSearching}
+            className="bg-teal-600 hover:bg-teal-700 text-white"
+            data-testid="button-search-location"
+          >
+            {isSearching ? "..." : "Go"}
+          </Button>
+        </div>
+        <div className="mt-2 text-white/80 text-sm">
+          {locationName}
+        </div>
+      </div>
+      
+      <div className="flex-1 min-h-[400px] relative">
+        <WindyEmbed 
+          lat={lat}
+          lng={lng}
+          zoom={10}
         />
       </div>
       
-      <HourlyTimeline 
-        data={hourlyData}
-        selectedIndex={selectedHour}
-        onSelectHour={setSelectedHour}
-        maxHours={maxHours}
+      <DaySelector 
+        days={days}
+        selectedDay={selectedDay}
+        onSelectDay={setSelectedDay}
+        maxDays={maxDays}
         isPremium={isPremium}
         onShowPremium={() => setShowPremium(true)}
       />

@@ -84,36 +84,6 @@ function WindyEmbed({
   
   return (
     <div className="relative w-full h-full overflow-hidden">
-      <style>{`
-        .windy-cover-bottom {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          right: 0;
-          height: 60px;
-          background: linear-gradient(to top, #1e293b 0%, #1e293b 70%, transparent 100%);
-          z-index: 10;
-          pointer-events: none;
-        }
-        .windy-cover-logo {
-          position: absolute;
-          bottom: 0;
-          left: 0;
-          width: 180px;
-          height: 70px;
-          background: #1e293b;
-          z-index: 11;
-        }
-        .windy-cover-right {
-          position: absolute;
-          bottom: 0;
-          right: 0;
-          width: 80px;
-          height: 70px;
-          background: #1e293b;
-          z-index: 11;
-        }
-      `}</style>
       <iframe
         key={key}
         ref={iframeRef}
@@ -124,9 +94,15 @@ function WindyEmbed({
         allow="fullscreen"
         data-testid="windy-embed"
       />
-      <div className="windy-cover-bottom" />
-      <div className="windy-cover-logo" />
-      <div className="windy-cover-right" />
+      <div 
+        className="absolute top-0 left-0 z-10 flex items-center gap-2 px-3 py-2 bg-gradient-to-r from-teal-600 to-teal-500 rounded-br-lg shadow-lg"
+        style={{ minWidth: '140px' }}
+      >
+        <svg viewBox="0 0 24 24" className="w-5 h-5 text-white" fill="currentColor">
+          <path d="M21 6c-2 0-3.5 1.5-5 3s-3 3-5 3-3.5-1.5-5-3-3-3-5-3v2c1.5 0 2.5 1 4 2.5S7.5 13 10 13s4-1.5 5.5-3 2.5-2.5 4-2.5c.5 0 1 .1 1.5.3V6zM21 12c-2 0-3.5 1.5-5 3s-3 3-5 3-3.5-1.5-5-3-3-3-5-3v2c1.5 0 2.5 1 4 2.5s2.5 2.5 5 2.5 4-1.5 5.5-3 2.5-2.5 4-2.5c.5 0 1 .1 1.5.3V12z"/>
+        </svg>
+        <span className="text-white font-bold text-sm tracking-wide">SurfTribe</span>
+      </div>
     </div>
   );
 }

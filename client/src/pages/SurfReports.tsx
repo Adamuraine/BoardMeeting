@@ -232,8 +232,8 @@ const WORLDWIDE_SPOTS: SurfSpot[] = [
   { name: "Melaque", continent: "North America", country: "Mexico", state: "Jalisco", area: "Costalegre", lat: 19.2167, lng: -104.7000 },
   { name: "Tenacatita", continent: "North America", country: "Mexico", state: "Jalisco", area: "Costalegre", lat: 19.2833, lng: -104.8500 },
   // North America - Mexico - Colima
-  { name: "Pascuales", continent: "North America", country: "Mexico", state: "Colima", area: "Tecoman", lat: 18.7833, lng: -103.9167 },
-  { name: "Boca de Pascuales", continent: "North America", country: "Mexico", state: "Colima", area: "Tecoman", lat: 18.7750, lng: -103.9083 },
+  { name: "Pascuales", continent: "North America", country: "Mexico", state: "Colima", area: "Armeria", lat: 18.7833, lng: -103.9167 },
+  { name: "Boca de Pascuales", continent: "North America", country: "Mexico", state: "Colima", area: "Armeria", lat: 18.7750, lng: -103.9083 },
   { name: "Olas Altas", continent: "North America", country: "Mexico", state: "Colima", area: "Manzanillo", lat: 19.0500, lng: -104.3167 },
   { name: "Playa Azul Colima", continent: "North America", country: "Mexico", state: "Colima", area: "Manzanillo", lat: 19.0833, lng: -104.3333 },
   { name: "Santiago Bay", continent: "North America", country: "Mexico", state: "Colima", area: "Manzanillo", lat: 19.1333, lng: -104.4000 },

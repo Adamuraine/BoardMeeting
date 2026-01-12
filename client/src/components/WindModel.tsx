@@ -96,14 +96,14 @@ function WindyEmbed({
         data-testid="windy-embed"
       />
       <div 
-        className="absolute top-0 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-teal-600 to-teal-500 rounded-b-md shadow-md"
+        className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-teal-500 rounded-lg shadow-md"
       >
         <img 
           src={surfTribeLogo} 
           alt="SurfTribe Logo" 
-          className="w-5 h-5 rounded-full object-cover"
+          className="w-6 h-6 rounded-full object-cover"
         />
-        <span className="text-white font-semibold text-xs tracking-wide">SurfTribe</span>
+        <span className="text-white font-semibold text-sm tracking-wide">SurfTribe</span>
       </div>
     </div>
   );

@@ -1,7 +1,7 @@
 import { useTrips, useCreateTrip } from "@/hooks/use-trips";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -15,6 +15,10 @@ import { insertTripSchema, type CreateTripRequest } from "@shared/routes";
 import { useState, useMemo } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { Switch } from "@/components/ui/switch";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { cn } from "@/lib/utils";
+import { type DateRange } from "react-day-picker";
 import treasureMapBg from "@assets/IMG_2639_1767484629952.jpeg";
 
 const LOCATIONS = [
@@ -52,8 +56,8 @@ export default function Trips() {
   const [open, setOpen] = useState(false);
   const [startFilter, setStartFilter] = useState<string>("");
   const [destFilter, setDestFilter] = useState<string>("");
-  const [dateFrom, setDateFrom] = useState<string>("");
-  const [dateTo, setDateTo] = useState<string>("");
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
+  const [calendarOpen, setCalendarOpen] = useState(false);
   const [flexibleDates, setFlexibleDates] = useState(false);
   const [flexibleLocation, setFlexibleLocation] = useState(false);
 
@@ -88,14 +92,14 @@ export default function Trips() {
         }
       }
       
-      if (!flexibleDates) {
-        if (dateFrom && new Date(trip.startDate) < new Date(dateFrom)) return false;
-        if (dateTo && new Date(trip.endDate) > new Date(dateTo)) return false;
+      if (!flexibleDates && dateRange) {
+        if (dateRange.from && new Date(trip.startDate) < dateRange.from) return false;
+        if (dateRange.to && new Date(trip.endDate) > dateRange.to) return false;
       }
       
       return true;
     });
-  }, [trips, startFilter, destFilter, dateFrom, dateTo, flexibleDates, flexibleLocation]);
+  }, [trips, startFilter, destFilter, dateRange, flexibleDates, flexibleLocation]);
 
   const visitingTrips = useMemo(() => {
     if (!trips) return [];
@@ -181,29 +185,45 @@ export default function Trips() {
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">From Date</Label>
-                  <Input 
-                    type="date" 
-                    value={dateFrom} 
-                    onChange={(e) => setDateFrom(e.target.value)}
-                    className="h-10"
-                    disabled={flexibleDates}
-                    data-testid="input-date-from"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">To Date</Label>
-                  <Input 
-                    type="date" 
-                    value={dateTo} 
-                    onChange={(e) => setDateTo(e.target.value)}
-                    className="h-10"
-                    disabled={flexibleDates}
-                    data-testid="input-date-to"
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Trip Dates</Label>
+                <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-10 justify-start text-left font-normal",
+                        !dateRange && "text-muted-foreground",
+                        flexibleDates && "opacity-50 cursor-not-allowed"
+                      )}
+                      disabled={flexibleDates}
+                      data-testid="button-date-picker"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {dateRange?.from ? (
+                        dateRange.to ? (
+                          <>
+                            {format(dateRange.from, "MMM d")} - {format(dateRange.to, "MMM d, yyyy")}
+                          </>
+                        ) : (
+                          format(dateRange.from, "MMM d, yyyy")
+                        )
+                      ) : (
+                        <span>Select dates</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      defaultMonth={dateRange?.from}
+                      selected={dateRange}
+                      onSelect={setDateRange}
+                      numberOfMonths={1}
+                      data-testid="calendar-date-range"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="flex items-center gap-4 pt-1">

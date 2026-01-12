@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport,
@@ -9,6 +9,7 @@ import {
   type FavoriteSpot, type InsertFavoriteSpot,
   type PostLike,
   type Message, type InsertMessage,
+  type Feedback,
   users
 } from "@shared/schema";
 import { eq, and, desc, sql, notInArray, inArray, or } from "drizzle-orm";
@@ -57,6 +58,12 @@ export interface IStorage {
   getMessages(userId: string, buddyId: string): Promise<Message[]>;
   sendMessage(message: InsertMessage): Promise<Message>;
   markMessagesRead(userId: string, buddyId: string): Promise<void>;
+  
+  // Account Management
+  clearAllMessages(userId: string): Promise<void>;
+  clearAllMatches(userId: string): Promise<void>;
+  deleteUserAccount(userId: string): Promise<void>;
+  submitFeedback(userId: string, content: string): Promise<Feedback>;
   
   // Seeding
   seedLocations(): Promise<void>;
@@ -527,6 +534,56 @@ export class DatabaseStorage implements IStorage {
     }
 
     await this.seedMockPosts(locIds);
+  }
+
+  // Account Management Methods
+  async clearAllMessages(userId: string): Promise<void> {
+    await db.delete(messages).where(
+      or(
+        eq(messages.senderId, userId),
+        eq(messages.receiverId, userId)
+      )
+    );
+  }
+
+  async clearAllMatches(userId: string): Promise<void> {
+    await db.delete(swipes).where(
+      or(
+        eq(swipes.swiperId, userId),
+        eq(swipes.swipedId, userId)
+      )
+    );
+  }
+
+  async deleteUserAccount(userId: string): Promise<void> {
+    // Delete all user data in order (respecting foreign key constraints)
+    await db.delete(messages).where(
+      or(
+        eq(messages.senderId, userId),
+        eq(messages.receiverId, userId)
+      )
+    );
+    await db.delete(postLikes).where(eq(postLikes.userId, userId));
+    await db.delete(posts).where(eq(posts.userId, userId));
+    await db.delete(favoriteSpots).where(eq(favoriteSpots.userId, userId));
+    await db.delete(swipes).where(
+      or(
+        eq(swipes.swiperId, userId),
+        eq(swipes.swipedId, userId)
+      )
+    );
+    await db.delete(trips).where(eq(trips.organizerId, userId));
+    await db.delete(feedback).where(eq(feedback.userId, userId));
+    await db.delete(profiles).where(eq(profiles.userId, userId));
+    await db.delete(users).where(eq(users.id, userId));
+  }
+
+  async submitFeedback(userId: string, content: string): Promise<Feedback> {
+    const [newFeedback] = await db.insert(feedback).values({
+      userId,
+      content,
+    }).returning();
+    return newFeedback;
   }
 
   async seedMockPosts(locationIds: number[]): Promise<void> {

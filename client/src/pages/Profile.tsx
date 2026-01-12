@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare } from "lucide-react";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -17,11 +17,20 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "wouter";
 import type { Profile as ProfileType, Trip } from "@shared/schema";
 import { format } from "date-fns";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
 export default function Profile() {
   const { data: profile, isLoading } = useMyProfile();
   const { logout } = useAuth();
   const [showPremium, setShowPremium] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showFeedback, setShowFeedback] = useState(false);
+  const [feedbackText, setFeedbackText] = useState("");
+  const [confirmAction, setConfirmAction] = useState<"clearChat" | "clearMatches" | "suspend" | "delete" | null>(null);
   const { toast } = useToast();
 
   const { data: buddies = [] } = useQuery<ProfileType[]>({
@@ -150,6 +159,76 @@ export default function Profile() {
     updateProfileMutation.mutate({ topBuddyIds: newTop });
   };
 
+  const handleClearChatHistory = async () => {
+    try {
+      await apiRequest("DELETE", "/api/messages/clear-all");
+      queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      toast({ title: "Chat history cleared", description: "All your messages have been deleted." });
+      setConfirmAction(null);
+    } catch {
+      toast({ title: "Error", description: "Failed to clear chat history.", variant: "destructive" });
+    }
+  };
+
+  const handleClearMatchHistory = async () => {
+    try {
+      await apiRequest("DELETE", "/api/matches/clear-all");
+      queryClient.invalidateQueries({ queryKey: ["/api/buddies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/matches"] });
+      toast({ title: "Match history cleared", description: "All your matches have been removed." });
+      setConfirmAction(null);
+    } catch {
+      toast({ title: "Error", description: "Failed to clear match history.", variant: "destructive" });
+    }
+  };
+
+  const handleRefreshApp = () => {
+    window.location.reload();
+  };
+
+  const handleSuspendAccount = async () => {
+    try {
+      await apiRequest("PATCH", "/api/profiles/me", { suspended: true });
+      toast({ title: "Account suspended", description: "Your account has been suspended. Contact support to reactivate." });
+      setConfirmAction(null);
+      logout();
+    } catch {
+      toast({ title: "Error", description: "Failed to suspend account.", variant: "destructive" });
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    try {
+      await apiRequest("DELETE", "/api/profiles/me");
+      toast({ title: "Account deleted", description: "Your account has been permanently deleted." });
+      setConfirmAction(null);
+      logout();
+    } catch {
+      toast({ title: "Error", description: "Failed to delete account.", variant: "destructive" });
+    }
+  };
+
+  const submitFeedbackMutation = useMutation({
+    mutationFn: async (feedback: string) => {
+      const res = await apiRequest("POST", "/api/feedback", { feedback });
+      return res.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Feedback sent", description: "Thanks for your feedback! We appreciate your input." });
+      setFeedbackText("");
+      setShowFeedback(false);
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to submit feedback.", variant: "destructive" });
+    }
+  });
+
+  const handleSubmitFeedback = () => {
+    if (feedbackText.trim()) {
+      submitFeedbackMutation.mutate(feedbackText);
+    }
+  };
+
   if (isLoading) return <ProfileSkeleton />;
   if (!profile) return null;
 
@@ -162,8 +241,191 @@ export default function Profile() {
     <Layout>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
-      <div className="relative pb-20">
-        <div className="h-40 bg-gradient-to-r from-primary to-cyan-400" />
+      <Dialog open={showSettings} onOpenChange={setShowSettings}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Settings className="h-5 w-5" />
+              Settings
+            </DialogTitle>
+            <DialogDescription>
+              Manage your account settings and preferences
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-3 py-2">
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3" 
+              onClick={() => { setShowSettings(false); setConfirmAction("clearChat"); }}
+              data-testid="button-clear-chat"
+            >
+              <Trash2 className="h-4 w-4 text-muted-foreground" />
+              Clear Chat History
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3" 
+              onClick={() => { setShowSettings(false); setConfirmAction("clearMatches"); }}
+              data-testid="button-clear-matches"
+            >
+              <Trash2 className="h-4 w-4 text-muted-foreground" />
+              Clear Match History
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3" 
+              onClick={() => { setShowSettings(false); handleRefreshApp(); }}
+              data-testid="button-refresh-app"
+            >
+              <RefreshCw className="h-4 w-4 text-muted-foreground" />
+              Refresh App & Start Over
+            </Button>
+            
+            <Separator className="my-2" />
+            
+            {!profile.isPremium && (
+              <Button 
+                variant="outline" 
+                className="w-full justify-start gap-3 border-accent text-accent hover:bg-accent/10" 
+                onClick={() => { setShowSettings(false); setShowPremium(true); }}
+                data-testid="button-upgrade-settings"
+              >
+                <Crown className="h-4 w-4" />
+                Upgrade to Premium
+              </Button>
+            )}
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3" 
+              onClick={() => { setShowSettings(false); setConfirmAction("suspend"); }}
+              data-testid="button-suspend-account"
+            >
+              <UserX className="h-4 w-4 text-muted-foreground" />
+              Suspend Account
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3 border-destructive text-destructive hover:bg-destructive/10" 
+              onClick={() => { setShowSettings(false); setConfirmAction("delete"); }}
+              data-testid="button-delete-account"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              Delete Account
+            </Button>
+            
+            <Separator className="my-2" />
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3" 
+              onClick={() => { setShowSettings(false); setShowFeedback(true); }}
+              data-testid="button-send-feedback"
+            >
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+              Send Feedback
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showFeedback} onOpenChange={setShowFeedback}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <MessageSquare className="h-5 w-5" />
+              Send Feedback
+            </DialogTitle>
+            <DialogDescription>
+              Help us improve SurfTribe! Share your suggestions, report bugs, or tell us what you love.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="feedback">Your Feedback</Label>
+              <Textarea 
+                id="feedback"
+                placeholder="Tell us what you think..."
+                value={feedbackText}
+                onChange={(e) => setFeedbackText(e.target.value)}
+                rows={5}
+                className="resize-none"
+                data-testid="textarea-feedback"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowFeedback(false)} data-testid="button-cancel-feedback">
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmitFeedback} 
+              disabled={!feedbackText.trim() || submitFeedbackMutation.isPending}
+              className="gap-2"
+              data-testid="button-submit-feedback"
+            >
+              <Send className="h-4 w-4" />
+              {submitFeedbackMutation.isPending ? "Sending..." : "Send Feedback"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={confirmAction !== null} onOpenChange={(open) => !open && setConfirmAction(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {confirmAction === "clearChat" && "Clear Chat History?"}
+              {confirmAction === "clearMatches" && "Clear Match History?"}
+              {confirmAction === "suspend" && "Suspend Your Account?"}
+              {confirmAction === "delete" && "Delete Your Account?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {confirmAction === "clearChat" && "This will permanently delete all your messages. This action cannot be undone."}
+              {confirmAction === "clearMatches" && "This will remove all your matches and surf buddies. You'll need to match again to reconnect."}
+              {confirmAction === "suspend" && "Your account will be suspended and you'll be logged out. Contact support to reactivate."}
+              {confirmAction === "delete" && "This will permanently delete your account and all your data. This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-testid="button-cancel-action">Cancel</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => {
+                if (confirmAction === "clearChat") handleClearChatHistory();
+                if (confirmAction === "clearMatches") handleClearMatchHistory();
+                if (confirmAction === "suspend") handleSuspendAccount();
+                if (confirmAction === "delete") handleDeleteAccount();
+              }}
+              className={confirmAction === "delete" ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              data-testid="button-confirm-action"
+            >
+              {confirmAction === "clearChat" && "Clear Chat"}
+              {confirmAction === "clearMatches" && "Clear Matches"}
+              {confirmAction === "suspend" && "Suspend Account"}
+              {confirmAction === "delete" && "Delete Account"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
+        <div className="h-40 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="absolute top-3 right-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+            onClick={() => setShowSettings(true)}
+            data-testid="button-settings"
+          >
+            <Settings className="w-5 h-5 text-white" />
+          </Button>
+        </div>
         
         <div className="px-6 -mt-16">
           <div className="flex justify-between items-end mb-6">

@@ -359,6 +359,66 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // === SETTINGS & ACCOUNT MANAGEMENT ===
+  
+  // Clear all chat history for user
+  app.delete("/api/messages/clear-all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      await storage.clearAllMessages(userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error clearing messages:", err);
+      res.status(500).json({ message: "Failed to clear messages" });
+    }
+  });
+
+  // Clear all match history for user
+  app.delete("/api/matches/clear-all", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      await storage.clearAllMatches(userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error clearing matches:", err);
+      res.status(500).json({ message: "Failed to clear matches" });
+    }
+  });
+
+  // Delete user account
+  app.delete("/api/profiles/me", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      await storage.deleteUserAccount(userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Error deleting account:", err);
+      res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
+  // Submit user feedback
+  app.post("/api/feedback", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const { feedback } = req.body;
+    
+    if (!feedback || typeof feedback !== "string") {
+      return res.status(400).json({ message: "Feedback content is required" });
+    }
+    
+    try {
+      const result = await storage.submitFeedback(userId, feedback);
+      res.status(201).json(result);
+    } catch (err) {
+      console.error("Error submitting feedback:", err);
+      res.status(500).json({ message: "Failed to submit feedback" });
+    }
+  });
+
   // Seed Data
   await storage.seedLocations();
   await seedFakeProfiles();

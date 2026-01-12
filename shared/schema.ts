@@ -110,6 +110,14 @@ export const messages = pgTable("messages", {
   read: boolean("read").default(false),
 });
 
+// === USER FEEDBACK ===
+export const feedback = pgTable("feedback", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === SCHEMAS ===
 export const insertProfileSchema = createInsertSchema(profiles).omit({ id: true });
 export const insertSwipeSchema = createInsertSchema(swipes).omit({ id: true, createdAt: true });
@@ -118,6 +126,7 @@ export const insertPostSchema = createInsertSchema(posts).omit({ id: true, creat
 export const insertFavoriteSpotSchema = createInsertSchema(favoriteSpots).omit({ id: true });
 export const insertPostLikeSchema = createInsertSchema(postLikes).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true, read: true });
+export const insertFeedbackSchema = createInsertSchema(feedback).omit({ id: true, createdAt: true });
 
 // === TYPES ===
 export type Profile = typeof profiles.$inferSelect;
@@ -136,6 +145,8 @@ export type PostLike = typeof postLikes.$inferSelect;
 export type InsertPostLike = z.infer<typeof insertPostLikeSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Feedback = typeof feedback.$inferSelect;
+export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 
 // Request Types
 export type CreateProfileRequest = InsertProfile;

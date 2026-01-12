@@ -1,7 +1,7 @@
 import { useTrips, useCreateTrip } from "@/hooks/use-trips";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar, MapPin, Car, Anchor, Plane, Users, ThumbsUp } from "lucide-react";
+import { Plus, Calendar, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -228,6 +228,15 @@ export default function Trips() {
                   </Label>
                 </div>
               </div>
+
+              <Button 
+                onClick={() => setOpen(true)}
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold"
+                data-testid="button-lets-go"
+              >
+                Let's Go!
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
             </div>
 
             {isLoading ? (

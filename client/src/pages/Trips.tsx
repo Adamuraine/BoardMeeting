@@ -2,6 +2,7 @@ import { useTrips, useCreateTrip, useUpdateTripActivities } from "@/hooks/use-tr
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints } from "lucide-react";
+import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -465,8 +466,14 @@ export default function Trips() {
 }
 
 function TripCard({ trip }: { trip: any }) {
+  const [, setLocation] = useLocation();
+  
   return (
-    <div className="bg-card rounded-2xl p-5 border border-border shadow-sm hover-elevate" data-testid={`card-trip-${trip.id}`}>
+    <div 
+      className="bg-card rounded-2xl p-5 border border-border shadow-sm hover-elevate cursor-pointer" 
+      data-testid={`card-trip-${trip.id}`}
+      onClick={() => setLocation(`/trip/${trip.id}`)}
+    >
       <div className="flex justify-between items-start mb-3 gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center text-xs text-primary font-bold uppercase tracking-wider mb-1">

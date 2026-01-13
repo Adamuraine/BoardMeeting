@@ -526,7 +526,7 @@ export default function Profile() {
       </AlertDialog>
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
-        <div className="h-56 relative" style={{ backgroundColor: '#5cc8f0' }}>
+        <div className="h-56 relative" style={{ backgroundColor: '#4dc4f5' }}>
           <div className="absolute -top-8 left-1/2 -translate-x-1/3">
             <img 
               src={surfTribeLogo} 

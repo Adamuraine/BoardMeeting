@@ -526,12 +526,12 @@ export default function Profile() {
       </AlertDialog>
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
-        <div className="h-56 relative" style={{ backgroundColor: '#4FC6F7' }}>
-          <div className="absolute -top-14 left-1/2 -translate-x-1/2">
+        <div className="h-60 relative" style={{ backgroundColor: '#4FC6F7' }}>
+          <div className="absolute -top-20 left-1/2 -translate-x-1/2">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 
-              className="w-80 h-80 object-contain"
+              className="w-[22rem] h-[22rem] object-contain"
             />
           </div>
           <Button 
@@ -545,7 +545,7 @@ export default function Profile() {
           </Button>
         </div>
         
-        <div className="px-6 -mt-16">
+        <div className="px-6 -mt-20">
           <div className="flex justify-between items-end mb-6">
             <div className="relative">
               <div className="w-32 h-32 rounded-full border-4 border-background bg-secondary overflow-hidden shadow-xl">

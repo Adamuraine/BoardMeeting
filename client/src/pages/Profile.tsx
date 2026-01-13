@@ -17,7 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "wouter";
 import type { Profile as ProfileType, Trip } from "@shared/schema";
 import { format } from "date-fns";
-import surfTribeLogo from "@assets/IMG_2616_1768196403100.jpeg";
+import surfTribeLogo from "@assets/IMG_3256_1768276664965.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -527,20 +527,12 @@ export default function Profile() {
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-56 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
-          <div className="absolute top-4 left-2 flex items-center gap-2">
+          <div className="absolute top-2 left-2">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 
-              className="w-32 h-32 rounded-full object-cover border-4 border-sky-200/80 shadow-lg"
+              className="w-44 h-44 object-contain"
             />
-            <span 
-              className="font-bold text-4xl text-white"
-              style={{ 
-                textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
-                WebkitTextStroke: '1.5px #374151',
-                paintOrder: 'stroke fill'
-              }}
-            >SurfTribe</span>
           </div>
           <Button 
             variant="ghost" 

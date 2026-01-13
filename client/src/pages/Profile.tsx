@@ -533,7 +533,12 @@ export default function Profile() {
               alt="SurfTribe Logo" 
               className="w-48 h-48 rounded-full object-cover border-4 border-white/50"
             />
-            <span className="text-white font-bold text-2xl tracking-wide">SurfTribe</span>
+            <span 
+              className="font-bold text-2xl tracking-wide text-sky-300"
+              style={{ 
+                textShadow: '2px 2px 0 #1e3a5f, -2px -2px 0 #1e3a5f, 2px -2px 0 #1e3a5f, -2px 2px 0 #1e3a5f, 3px 3px 0 white, -3px -3px 0 white, 3px -3px 0 white, -3px 3px 0 white'
+              }}
+            >SurfTribe</span>
           </div>
           <Button 
             variant="ghost" 

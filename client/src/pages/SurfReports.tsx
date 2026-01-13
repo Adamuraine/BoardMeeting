@@ -403,13 +403,37 @@ function WaveIcon({ height, rating }: { height: number; rating: string }) {
   );
 }
 
-// Fetch live surf data from Open-Meteo Marine API
+// Fetch surf data from backend API (using Stormglass data)
 async function fetchSurfData(lat: number, lng: number) {
   try {
-    const response = await fetch(
+    // First, try to find a matching location from the backend
+    const response = await fetch('/api/locations');
+    const locations = await response.json();
+    
+    // Find the closest location to the given coordinates (within ~0.5 degree)
+    const matchingLocation = locations.find((loc: any) => {
+      const latDiff = Math.abs(parseFloat(loc.latitude) - lat);
+      const lngDiff = Math.abs(parseFloat(loc.longitude) - lng);
+      return latDiff < 0.5 && lngDiff < 0.5;
+    });
+    
+    if (matchingLocation && matchingLocation.reports && matchingLocation.reports.length > 0) {
+      // Use backend Stormglass data
+      return matchingLocation.reports.map((report: any) => ({
+        date: report.date,
+        waveHeightMin: report.waveHeightMin || 1,
+        waveHeightMax: report.waveHeightMax || 2,
+        rating: report.rating || 'fair',
+        windDirection: report.windDirection || 'SW',
+        period: report.swellPeriodSec || 10,
+      }));
+    }
+    
+    // Fallback: fetch from Open-Meteo for spots not in our database
+    const meteoResponse = await fetch(
       `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&daily=wave_height_max,wave_period_max,wave_direction_dominant&timezone=auto&forecast_days=7`
     );
-    const data = await response.json();
+    const data = await meteoResponse.json();
     
     if (!data.daily) return null;
     
@@ -419,13 +443,11 @@ async function fetchSurfData(lat: number, lng: number) {
       const period = data.daily.wave_period_max[i] || 0;
       const direction = data.daily.wave_direction_dominant[i] || 0;
       
-      // Calculate rating based on wave height and period
       let rating = 'poor';
       if (waveHeightFt >= 6 && period >= 12) rating = 'epic';
       else if (waveHeightFt >= 4 && period >= 10) rating = 'good';
       else if (waveHeightFt >= 2 && period >= 8) rating = 'fair';
       
-      // Convert direction degrees to compass
       const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
       const windDirection = directions[Math.round(direction / 45) % 8];
       

@@ -67,6 +67,7 @@ export interface IStorage {
   
   // Trip Activities
   updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
+  updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[] }): Promise<Trip>;
   
   // Seeding
   seedLocations(): Promise<void>;
@@ -596,6 +597,22 @@ export class DatabaseStorage implements IStorage {
     
     const [updated] = await db.update(trips)
       .set({ activities })
+      .where(eq(trips.id, tripId))
+      .returning();
+    return updated;
+  }
+
+  async updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[] }): Promise<Trip> {
+    const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+    if (!trip) throw new Error("Trip not found");
+    if (trip.organizerId !== userId) throw new Error("Not authorized to update this trip");
+    
+    const updateData: Partial<{ expectations: string; activities: string[] }> = {};
+    if (updates.expectations !== undefined) updateData.expectations = updates.expectations;
+    if (updates.activities !== undefined) updateData.activities = updates.activities;
+    
+    const [updated] = await db.update(trips)
+      .set(updateData)
       .where(eq(trips.id, tripId))
       .returning();
     return updated;

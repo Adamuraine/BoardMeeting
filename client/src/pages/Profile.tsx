@@ -17,6 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "wouter";
 import type { Profile as ProfileType, Trip } from "@shared/schema";
 import { format } from "date-fns";
+import surfTribeLogo from "@assets/IMG_2616_1768196403100.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,8 @@ export default function Profile() {
   const [showFeedback, setShowFeedback] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [confirmAction, setConfirmAction] = useState<"clearChat" | "clearMatches" | "suspend" | "delete" | null>(null);
+  const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
+  const [tripExpectations, setTripExpectations] = useState("");
   const { toast } = useToast();
 
   const { data: buddies = [] } = useQuery<ProfileType[]>({
@@ -58,6 +61,25 @@ export default function Profile() {
       toast({ 
         title: "Upload failed", 
         description: "Failed to save your photos. Please try again.",
+        variant: "destructive"
+      });
+    },
+  });
+
+  const updateTripMutation = useMutation({
+    mutationFn: async ({ tripId, updates }: { tripId: number, updates: { expectations?: string, activities?: string[] } }) => {
+      const res = await apiRequest("PATCH", `/api/trips/${tripId}`, updates);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/user", profile?.userId] });
+      toast({ title: "Trip updated", description: "Your trip has been saved!" });
+      setSelectedTrip(null);
+    },
+    onError: () => {
+      toast({ 
+        title: "Update failed", 
+        description: "Failed to update trip. Please try again.",
         variant: "destructive"
       });
     },
@@ -241,6 +263,95 @@ export default function Profile() {
     <Layout>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
+      <Dialog open={!!selectedTrip} onOpenChange={(open) => !open && setSelectedTrip(null)}>
+        <DialogContent className="max-h-[90vh] overflow-y-auto p-0 border-0 overflow-hidden">
+          <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 text-white">
+            <DialogHeader>
+              <DialogTitle className="text-white text-xl flex items-center gap-2">
+                <Plane className="w-5 h-5" />
+                Edit Trip
+              </DialogTitle>
+              <DialogDescription className="text-white/80">
+                {selectedTrip?.destination} - {selectedTrip && format(new Date(selectedTrip.startDate), "MMM d")} to {selectedTrip && format(new Date(selectedTrip.endDate), "MMM d")}
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+          <div className="p-6 space-y-4">
+            <div className="space-y-2">
+              <Label>Trip Expectations</Label>
+              <Textarea 
+                value={tripExpectations}
+                onChange={(e) => setTripExpectations(e.target.value)}
+                placeholder="What are you hoping to get out of this trip? What kind of waves do you want? Any specific goals?"
+                className="min-h-[120px]"
+                data-testid="input-trip-expectations"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label>Activities</Label>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { id: 'surfboard', icon: Sailboat, label: 'Surfing' },
+                  { id: 'sandals', icon: Footprints, label: 'Beach' },
+                  { id: 'beer', icon: Beer, label: 'Nightlife' },
+                  { id: 'umbrella', icon: Umbrella, label: 'Relaxation' },
+                  { id: 'boat', icon: Anchor, label: 'Boat' },
+                  { id: 'fishing', icon: Fish, label: 'Fishing' },
+                  { id: 'leaf', icon: Leaf, label: 'Nature' },
+                ].map(({ id, icon: Icon, label }) => {
+                  const isActive = selectedTrip?.activities?.includes(id);
+                  return (
+                    <Button
+                      key={id}
+                      type="button"
+                      size="sm"
+                      variant={isActive ? "default" : "outline"}
+                      className="gap-1.5"
+                      onClick={() => {
+                        if (!selectedTrip) return;
+                        const current = selectedTrip.activities || [];
+                        const newActivities = isActive 
+                          ? current.filter(a => a !== id)
+                          : [...current, id];
+                        setSelectedTrip({ ...selectedTrip, activities: newActivities });
+                      }}
+                      data-testid={`button-activity-${id}`}
+                    >
+                      <Icon className="h-3 w-3" />
+                      {label}
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
+            
+            <DialogFooter className="gap-2 pt-4">
+              <Button variant="outline" onClick={() => setSelectedTrip(null)} data-testid="button-cancel-trip">
+                Cancel
+              </Button>
+              <Button 
+                onClick={() => {
+                  if (selectedTrip) {
+                    updateTripMutation.mutate({
+                      tripId: selectedTrip.id,
+                      updates: {
+                        expectations: tripExpectations,
+                        activities: selectedTrip.activities || [],
+                      }
+                    });
+                  }
+                }}
+                disabled={updateTripMutation.isPending}
+                data-testid="button-save-trip"
+              >
+                {updateTripMutation.isPending ? "Saving..." : "Save Trip"}
+              </Button>
+            </DialogFooter>
+          </div>
+        </DialogContent>
+      </Dialog>
+      
       <Dialog open={showSettings} onOpenChange={setShowSettings}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
@@ -416,6 +527,14 @@ export default function Profile() {
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-40 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg">
+            <img 
+              src={surfTribeLogo} 
+              alt="SurfTribe Logo" 
+              className="w-6 h-6 rounded-full object-cover"
+            />
+            <span className="text-white font-semibold text-sm tracking-wide">SurfTribe</span>
+          </div>
           <Button 
             variant="ghost" 
             size="icon" 
@@ -642,9 +761,13 @@ export default function Profile() {
                       umbrella: Umbrella, boat: Anchor, fishing: Fish, leaf: Leaf
                     };
                     return (
-                      <div 
+                      <button 
                         key={trip.id}
-                        className="flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-secondary/30"
+                        onClick={() => {
+                          setSelectedTrip(trip);
+                          setTripExpectations(trip.expectations || "");
+                        }}
+                        className="w-full flex items-center gap-3 p-3 rounded-xl border border-border/50 bg-secondary/30 hover:bg-secondary/50 hover:border-primary/30 transition-colors text-left"
                         data-testid={`trip-row-${trip.id}`}
                       >
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
@@ -668,7 +791,7 @@ export default function Profile() {
                           <Calendar className="h-3 w-3 mr-1" />
                           Upcoming
                         </Badge>
-                      </div>
+                      </button>
                     );
                   })}
                 </div>

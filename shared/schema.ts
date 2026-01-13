@@ -74,6 +74,7 @@ export const trips = pgTable("trips", {
   isGuide: boolean("is_guide").default(false),
   isVisiting: boolean("is_visiting").default(false), // Solo traveler looking to meet locals
   activities: text("activities").array(), // Activity icons: surfboard, sandals, beer, umbrella, boat, fishing, leaf
+  expectations: text("expectations"), // Trip expectations and goals
 });
 
 // === POSTS (Surf Photos) ===

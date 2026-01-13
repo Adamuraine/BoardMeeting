@@ -120,19 +120,19 @@ function TimeSlider({
   isPlaying: boolean;
   onTogglePlay: () => void;
 }) {
-  const timeLabels = ['12am', '3am', '6am', '9am', '12pm', '3pm', '6pm', '9pm'];
+  const timeLabels = ['12a', '6a', '12p', '6p'];
   
   return (
-    <div className="bg-slate-800 px-4 py-3 border-t border-white/10">
-      <div className="flex items-center gap-3">
+    <div className="bg-slate-800 px-2 py-1.5 border-b border-white/10">
+      <div className="flex items-center gap-2">
         <Button
           size="icon"
           variant="ghost"
-          className="h-8 w-8 text-white/80 hover:text-white"
+          className="h-6 w-6 text-white/80 hover:text-white"
           onClick={onTogglePlay}
           data-testid="button-play-time"
         >
-          {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
         </Button>
         
         <div className="flex-1">
@@ -145,15 +145,15 @@ function TimeSlider({
             className="w-full"
             data-testid="slider-time"
           />
-          <div className="flex justify-between mt-1 text-[10px] text-white/50">
+          <div className="flex justify-between mt-0.5 text-[8px] text-white/50">
             {timeLabels.map((label, i) => (
               <span key={i}>{label}</span>
             ))}
           </div>
         </div>
         
-        <div className="text-white text-sm font-medium min-w-[80px] text-right">
-          {format(addHours(startOfDay(selectedDay), selectedHour), 'h:mm a')}
+        <div className="text-white text-[10px] font-medium min-w-[45px] text-right">
+          {format(addHours(startOfDay(selectedDay), selectedHour), 'h a')}
         </div>
       </div>
     </div>
@@ -331,31 +331,31 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
     <div className="flex flex-col h-full" data-testid="wind-model-container">
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
-      <div className="p-3 bg-slate-800 border-b border-white/10 sticky top-0 z-10">
-        <div className="flex gap-2">
+      <div className="px-2 py-1.5 bg-slate-800 border-b border-white/10 sticky top-0 z-10">
+        <div className="flex gap-1.5 items-center">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/60" />
             <Input
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search location..."
-              className="pl-10 bg-slate-700 border-white/20 text-white placeholder:text-white/50 h-10"
+              placeholder="Search..."
+              className="pl-7 bg-slate-700 border-white/20 text-white placeholder:text-white/50 h-7 text-xs"
               data-testid="input-location-search"
             />
           </div>
           <Button 
             onClick={handleSearch}
             disabled={isSearching}
-            className="bg-teal-600 hover:bg-teal-700 text-white"
+            className="bg-teal-600 hover:bg-teal-700 text-white h-7 px-2 text-xs"
             data-testid="button-search-location"
           >
             {isSearching ? "..." : "Go"}
           </Button>
-        </div>
-        <div className="mt-2 text-white/80 text-sm flex items-center justify-between">
-          <span>{locationName}</span>
-          <span className="text-teal-400">{format(addHours(startOfDay(days[selectedDay]), selectedHour), 'EEE, MMM d, h:mm a')}</span>
+          <div className="text-white/70 text-[10px] flex flex-col items-end min-w-[70px]">
+            <span className="truncate max-w-[70px]">{locationName}</span>
+            <span className="text-teal-400">{format(addHours(startOfDay(days[selectedDay]), selectedHour), 'MMM d, h a')}</span>
+          </div>
         </div>
       </div>
       

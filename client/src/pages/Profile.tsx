@@ -527,7 +527,7 @@ export default function Profile() {
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-72 relative flex items-center justify-center" style={{ backgroundColor: '#4FC6F7' }}>
-          <div className="absolute left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2">
+          <div className="absolute left-1/2 top-[50%] -translate-x-1/2 -translate-y-1/2">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 

@@ -19,28 +19,28 @@ interface TripItineraryProps {
 }
 
 const WAVE_OPTIONS = [
-  { id: "steep", label: "Steep & Hollow", icon: Waves },
-  { id: "gentle", label: "Gentle & Mellow", icon: Waves },
+  { id: "steep", label: "Steep", icon: Waves },
+  { id: "gentle", label: "Mellow", icon: Waves },
 ];
 
 const STYLE_OPTIONS = [
-  { id: "performance", label: "High Performance", icon: Zap },
-  { id: "chill", label: "Chill & Relaxed", icon: Droplets },
+  { id: "performance", label: "Performance", icon: Zap },
+  { id: "chill", label: "Chill", icon: Droplets },
 ];
 
 const LOCATION_OPTIONS = [
-  { id: "remote", label: "Remote & Uncrowded", icon: TreePine },
-  { id: "town", label: "In Town & Convenient", icon: MapPin },
+  { id: "remote", label: "Remote", icon: TreePine },
+  { id: "town", label: "In Town", icon: MapPin },
 ];
 
 const VIBE_OPTIONS = [
-  { id: "party", label: "Surf & Party", icon: PartyPopper },
-  { id: "waterTime", label: "Max Water Time", icon: Waves },
+  { id: "party", label: "Party", icon: PartyPopper },
+  { id: "waterTime", label: "Max Surf", icon: Waves },
 ];
 
 const ACTIVITY_OPTIONS = [
-  { id: "fishing", label: "Fishing", icon: Fish },
-  { id: "spearfishing", label: "Spearfishing", icon: Fish },
+  { id: "fishing", label: "Fish", icon: Fish },
+  { id: "spearfishing", label: "Spear", icon: Fish },
 ];
 
 export default function TripItinerary({ params }: TripItineraryProps) {
@@ -74,8 +74,10 @@ export default function TripItinerary({ params }: TripItineraryProps) {
 
   const togglePreference = (field: string, value: string) => {
     if (!trip) return;
-    const currentValue = (trip as any)[field];
-    const newValue = currentValue === value ? null : value;
+    const current = ((trip as any)[field] || []) as string[];
+    const newValue = current.includes(value)
+      ? current.filter(v => v !== value)
+      : [...current, value];
     updateTripMutation.mutate({ [field]: newValue });
   };
 
@@ -158,22 +160,25 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   What Kind of Waves?
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {WAVE_OPTIONS.map((option) => (
-                  <Badge
-                    key={option.id}
-                    variant={trip.waveType === option.id ? "default" : "outline"}
-                    className={cn(
-                      "cursor-pointer px-4 py-2 text-sm",
-                      trip.waveType === option.id && "bg-primary text-primary-foreground"
-                    )}
-                    onClick={() => togglePreference("waveType", option.id)}
-                    data-testid={`badge-wave-${option.id}`}
-                  >
-                    <option.icon className="w-4 h-4 mr-2" />
-                    {option.label}
-                  </Badge>
-                ))}
+              <CardContent className="flex flex-wrap gap-1.5">
+                {WAVE_OPTIONS.map((option) => {
+                  const isSelected = (trip.waveType || []).includes(option.id);
+                  return (
+                    <Badge
+                      key={option.id}
+                      variant={isSelected ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer px-2 py-1 text-xs",
+                        isSelected && "bg-primary text-primary-foreground"
+                      )}
+                      onClick={() => togglePreference("waveType", option.id)}
+                      data-testid={`badge-wave-${option.id}`}
+                    >
+                      <option.icon className="w-3 h-3 mr-1" />
+                      {option.label}
+                    </Badge>
+                  );
+                })}
               </CardContent>
             </Card>
 
@@ -184,22 +189,25 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   Riding Style
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {STYLE_OPTIONS.map((option) => (
-                  <Badge
-                    key={option.id}
-                    variant={trip.rideStyle === option.id ? "default" : "outline"}
-                    className={cn(
-                      "cursor-pointer px-4 py-2 text-sm",
-                      trip.rideStyle === option.id && "bg-primary text-primary-foreground"
-                    )}
-                    onClick={() => togglePreference("rideStyle", option.id)}
-                    data-testid={`badge-style-${option.id}`}
-                  >
-                    <option.icon className="w-4 h-4 mr-2" />
-                    {option.label}
-                  </Badge>
-                ))}
+              <CardContent className="flex flex-wrap gap-1.5">
+                {STYLE_OPTIONS.map((option) => {
+                  const isSelected = (trip.rideStyle || []).includes(option.id);
+                  return (
+                    <Badge
+                      key={option.id}
+                      variant={isSelected ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer px-2 py-1 text-xs",
+                        isSelected && "bg-primary text-primary-foreground"
+                      )}
+                      onClick={() => togglePreference("rideStyle", option.id)}
+                      data-testid={`badge-style-${option.id}`}
+                    >
+                      <option.icon className="w-3 h-3 mr-1" />
+                      {option.label}
+                    </Badge>
+                  );
+                })}
               </CardContent>
             </Card>
 
@@ -210,22 +218,25 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   Location Preference
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {LOCATION_OPTIONS.map((option) => (
-                  <Badge
-                    key={option.id}
-                    variant={trip.locationPreference === option.id ? "default" : "outline"}
-                    className={cn(
-                      "cursor-pointer px-4 py-2 text-sm",
-                      trip.locationPreference === option.id && "bg-primary text-primary-foreground"
-                    )}
-                    onClick={() => togglePreference("locationPreference", option.id)}
-                    data-testid={`badge-location-${option.id}`}
-                  >
-                    <option.icon className="w-4 h-4 mr-2" />
-                    {option.label}
-                  </Badge>
-                ))}
+              <CardContent className="flex flex-wrap gap-1.5">
+                {LOCATION_OPTIONS.map((option) => {
+                  const isSelected = (trip.locationPreference || []).includes(option.id);
+                  return (
+                    <Badge
+                      key={option.id}
+                      variant={isSelected ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer px-2 py-1 text-xs",
+                        isSelected && "bg-primary text-primary-foreground"
+                      )}
+                      onClick={() => togglePreference("locationPreference", option.id)}
+                      data-testid={`badge-location-${option.id}`}
+                    >
+                      <option.icon className="w-3 h-3 mr-1" />
+                      {option.label}
+                    </Badge>
+                  );
+                })}
               </CardContent>
             </Card>
 
@@ -236,22 +247,25 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   Trip Vibe
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {VIBE_OPTIONS.map((option) => (
-                  <Badge
-                    key={option.id}
-                    variant={trip.vibe === option.id ? "default" : "outline"}
-                    className={cn(
-                      "cursor-pointer px-4 py-2 text-sm",
-                      trip.vibe === option.id && "bg-primary text-primary-foreground"
-                    )}
-                    onClick={() => togglePreference("vibe", option.id)}
-                    data-testid={`badge-vibe-${option.id}`}
-                  >
-                    <option.icon className="w-4 h-4 mr-2" />
-                    {option.label}
-                  </Badge>
-                ))}
+              <CardContent className="flex flex-wrap gap-1.5">
+                {VIBE_OPTIONS.map((option) => {
+                  const isSelected = (trip.vibe || []).includes(option.id);
+                  return (
+                    <Badge
+                      key={option.id}
+                      variant={isSelected ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer px-2 py-1 text-xs",
+                        isSelected && "bg-primary text-primary-foreground"
+                      )}
+                      onClick={() => togglePreference("vibe", option.id)}
+                      data-testid={`badge-vibe-${option.id}`}
+                    >
+                      <option.icon className="w-3 h-3 mr-1" />
+                      {option.label}
+                    </Badge>
+                  );
+                })}
               </CardContent>
             </Card>
 
@@ -262,22 +276,25 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   Extra Activities
                 </CardTitle>
               </CardHeader>
-              <CardContent className="flex flex-wrap gap-2">
-                {ACTIVITY_OPTIONS.map((option) => (
-                  <Badge
-                    key={option.id}
-                    variant={(trip.extraActivities || []).includes(option.id) ? "default" : "outline"}
-                    className={cn(
-                      "cursor-pointer px-4 py-2 text-sm",
-                      (trip.extraActivities || []).includes(option.id) && "bg-primary text-primary-foreground"
-                    )}
-                    onClick={() => toggleActivity(option.id)}
-                    data-testid={`badge-activity-${option.id}`}
-                  >
-                    <option.icon className="w-4 h-4 mr-2" />
-                    {option.label}
-                  </Badge>
-                ))}
+              <CardContent className="flex flex-wrap gap-1.5">
+                {ACTIVITY_OPTIONS.map((option) => {
+                  const isSelected = (trip.extraActivities || []).includes(option.id);
+                  return (
+                    <Badge
+                      key={option.id}
+                      variant={isSelected ? "default" : "outline"}
+                      className={cn(
+                        "cursor-pointer px-2 py-1 text-xs",
+                        isSelected && "bg-primary text-primary-foreground"
+                      )}
+                      onClick={() => toggleActivity(option.id)}
+                      data-testid={`badge-activity-${option.id}`}
+                    >
+                      <option.icon className="w-3 h-3 mr-1" />
+                      {option.label}
+                    </Badge>
+                  );
+                })}
               </CardContent>
             </Card>
 

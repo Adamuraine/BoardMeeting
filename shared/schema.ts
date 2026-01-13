@@ -81,10 +81,10 @@ export const trips = pgTable("trips", {
   isVisiting: boolean("is_visiting").default(false), // Solo traveler looking to meet locals
   activities: text("activities").array(), // Activity icons: surfboard, sandals, beer, umbrella, boat, fishing, leaf
   expectations: text("expectations"), // Trip expectations and goals
-  waveType: text("wave_type"), // steep, gentle
-  rideStyle: text("ride_style"), // performance, chill
-  locationPreference: text("location_preference"), // remote, town
-  vibe: text("vibe"), // party, waterTime
+  waveType: text("wave_type").array(), // steep, gentle (multi-select)
+  rideStyle: text("ride_style").array(), // performance, chill (multi-select)
+  locationPreference: text("location_preference").array(), // remote, town (multi-select)
+  vibe: text("vibe").array(), // party, waterTime (multi-select)
   extraActivities: text("extra_activities").array(), // fishing, spearfishing
   broadcastEnabled: boolean("broadcast_enabled").default(false),
 });

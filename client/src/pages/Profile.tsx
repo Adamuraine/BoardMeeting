@@ -17,7 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "wouter";
 import type { Profile as ProfileType, Trip } from "@shared/schema";
 import { format } from "date-fns";
-import surfTribeLogo from "@assets/IMG_3256_1768276664965.jpeg";
+import surfTribeLogo from "@assets/IMG_3260_1768277728130.png";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -526,7 +526,7 @@ export default function Profile() {
       </AlertDialog>
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
-        <div className="h-56 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
+        <div className="h-56 relative" style={{ backgroundColor: '#5cc8f0' }}>
           <div className="absolute -top-8 left-1/2 -translate-x-1/3">
             <img 
               src={surfTribeLogo} 

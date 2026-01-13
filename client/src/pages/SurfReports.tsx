@@ -925,12 +925,20 @@ export default function SurfReports() {
       <div className="flex flex-col h-full bg-gradient-to-b from-sky-50 via-cyan-50/30 to-background dark:from-slate-900 dark:via-slate-900 dark:to-background">
         <header className="px-4 pt-4 pb-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-3">
-              <TabsTrigger value="surf" className="gap-2" data-testid="tab-surf-report">
+            <TabsList className="grid w-full grid-cols-2 mb-3 h-12 p-1">
+              <TabsTrigger 
+                value="surf" 
+                className="gap-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white data-[state=inactive]:text-cyan-700 dark:data-[state=inactive]:text-cyan-400" 
+                data-testid="tab-surf-report"
+              >
                 <Waves className="h-4 w-4" />
                 Surf Report
               </TabsTrigger>
-              <TabsTrigger value="wind" className="gap-2" data-testid="tab-wind-model">
+              <TabsTrigger 
+                value="wind" 
+                className="gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white data-[state=inactive]:text-teal-700 dark:data-[state=inactive]:text-teal-400" 
+                data-testid="tab-wind-model"
+              >
                 <Wind className="h-4 w-4" />
                 Wind Model
               </TabsTrigger>

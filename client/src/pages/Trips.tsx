@@ -503,7 +503,7 @@ function TripCard({ trip }: { trip: any }) {
         </div>
 
         <div className="flex items-center text-xs font-medium bg-secondary/50 px-2 py-1 rounded-lg shrink-0">
-          <Calendar className="w-3 h-3 mr-1 opacity-70" />
+          <CalendarIcon className="w-3 h-3 mr-1 opacity-70" />
           {format(new Date(trip.startDate), 'MMM d')}
         </div>
       </div>
@@ -530,7 +530,7 @@ function CarpoolCard({ trip }: { trip: any }) {
             <span className="font-medium text-foreground truncate">{trip.destination}</span>
           </div>
           <div className="flex items-center text-xs text-muted-foreground">
-            <Calendar className="w-3 h-3 mr-1" />
+            <CalendarIcon className="w-3 h-3 mr-1" />
             {format(new Date(trip.startDate), 'EEE, MMM d')}
           </div>
           {trip.description && (
@@ -562,7 +562,7 @@ function VisitingCard({ trip }: { trip: any }) {
             <span className="font-medium text-foreground">{trip.destination}</span>
           </div>
           <div className="flex items-center text-xs text-muted-foreground">
-            <Calendar className="w-3 h-3 mr-1" />
+            <CalendarIcon className="w-3 h-3 mr-1" />
             {format(new Date(trip.startDate), 'MMM d')} - {format(new Date(trip.endDate), 'MMM d')}
           </div>
           {trip.description && (

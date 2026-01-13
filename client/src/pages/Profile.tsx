@@ -526,14 +526,14 @@ export default function Profile() {
       </AlertDialog>
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
-        <div className="h-40 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl">
+        <div className="h-56 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-4 px-5 py-3 bg-white/20 backdrop-blur-sm rounded-2xl">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 
-              className="w-24 h-24 rounded-full object-cover border-2 border-white/50"
+              className="w-48 h-48 rounded-full object-cover border-4 border-white/50"
             />
-            <span className="text-white font-bold text-xl tracking-wide">SurfTribe</span>
+            <span className="text-white font-bold text-2xl tracking-wide">SurfTribe</span>
           </div>
           <Button 
             variant="ghost" 

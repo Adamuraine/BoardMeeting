@@ -595,29 +595,30 @@ export default function Profile() {
               {myTrips.length > 0 ? (
                 <div className="space-y-3">
                   {myTrips.map((trip) => (
-                    <div 
-                      key={trip.id} 
-                      className="p-4 rounded-xl border border-border/50 bg-secondary/30"
-                      data-testid={`trip-card-${trip.id}`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0 flex-1">
-                          <h4 className="font-semibold text-foreground truncate">{trip.destination}</h4>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                            <Calendar className="h-3 w-3" />
-                            <span>
-                              {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d, yyyy")}
-                            </span>
+                    <Link href="/trips" key={trip.id}>
+                      <div 
+                        className="p-4 rounded-xl border border-border bg-card shadow-sm cursor-pointer hover-elevate active-elevate-2 transition-all"
+                        data-testid={`trip-card-${trip.id}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-semibold text-foreground truncate">{trip.destination}</h4>
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+                              <Calendar className="h-3 w-3" />
+                              <span>
+                                {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d, yyyy")}
+                              </span>
+                            </div>
+                            {trip.description && (
+                              <p className="text-sm text-foreground/70 mt-2 line-clamp-2">{trip.description}</p>
+                            )}
                           </div>
-                          {trip.description && (
-                            <p className="text-sm text-foreground/70 mt-2 line-clamp-2">{trip.description}</p>
+                          {trip.tripType && (
+                            <Badge variant="secondary" className="flex-shrink-0">{trip.tripType}</Badge>
                           )}
                         </div>
-                        {trip.tripType && (
-                          <Badge variant="secondary" className="flex-shrink-0">{trip.tripType}</Badge>
-                        )}
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               ) : (

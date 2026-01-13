@@ -531,7 +531,7 @@ export default function Profile() {
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 
-              className="w-[24rem] h-[24rem] object-contain"
+              className="w-[48rem] h-[48rem] object-contain"
             />
           </div>
           <Button 

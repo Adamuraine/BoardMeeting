@@ -527,11 +527,11 @@ export default function Profile() {
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-60 relative" style={{ backgroundColor: '#4FC6F7' }}>
-          <div className="absolute -top-28 left-1/2 -translate-x-1/2">
+          <div className="absolute -top-16 left-1/2 -translate-x-1/2">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 
-              className="w-[26rem] h-[26rem] object-contain"
+              className="w-[22rem] h-[22rem] object-contain"
             />
           </div>
           <Button 

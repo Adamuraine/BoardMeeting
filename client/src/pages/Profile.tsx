@@ -17,7 +17,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "wouter";
 import type { Profile as ProfileType, Trip } from "@shared/schema";
 import { format } from "date-fns";
-import surfTribeLogo from "@assets/IMG_3270_1768282002499.jpeg";
+import surfTribeLogo from "@assets/IMG_3279_1768282938756.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";

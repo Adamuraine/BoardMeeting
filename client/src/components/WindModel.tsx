@@ -178,34 +178,10 @@ function DaySelector({
   const scrollRef = useRef<HTMLDivElement>(null);
   
   return (
-    <div className="bg-slate-900/95 backdrop-blur-sm">
-      <div className="flex items-center justify-between px-4 py-2 border-b border-white/10">
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          className="h-8 w-8 text-white/70"
-          onClick={() => onSelectDay(Math.max(0, selectedDay - 1))}
-          data-testid="button-day-prev"
-        >
-          <ChevronLeft className="h-5 w-5" />
-        </Button>
-        <span className="text-white text-sm font-medium">
-          {isPremium ? "14-Day Forecast" : "3-Day Forecast"}
-        </span>
-        <Button 
-          size="icon" 
-          variant="ghost" 
-          className="h-8 w-8 text-white/70"
-          onClick={() => onSelectDay(Math.min(maxDays - 1, selectedDay + 1))}
-          data-testid="button-day-next"
-        >
-          <ChevronRight className="h-5 w-5" />
-        </Button>
-      </div>
-      
+    <div className="bg-slate-800 border-b border-white/10">
       <div 
         ref={scrollRef}
-        className="flex overflow-x-auto scrollbar-hide py-3 px-2 gap-2"
+        className="flex overflow-x-auto scrollbar-hide py-1.5 px-2 gap-1"
         style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
       >
         {days.map((day, i) => {
@@ -223,7 +199,7 @@ function DaySelector({
                 }
               }}
               className={cn(
-                "flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-all min-w-[70px]",
+                "flex flex-col items-center px-2 py-1 rounded transition-all min-w-[40px]",
                 isSelected 
                   ? "bg-teal-600 text-white" 
                   : "bg-white/10 text-white/80 hover:bg-white/20",
@@ -231,27 +207,22 @@ function DaySelector({
               )}
               data-testid={`button-day-${i}`}
             >
-              {isLocked && <Lock className="h-3 w-3" />}
-              <span className="text-xs font-medium">{format(day, 'EEE')}</span>
-              <span className="text-lg font-bold">{format(day, 'd')}</span>
-              <span className="text-[10px] opacity-70">{format(day, 'MMM')}</span>
+              {isLocked && <Lock className="h-2 w-2" />}
+              <span className="text-[9px] font-medium">{format(day, 'EEE')}</span>
+              <span className="text-sm font-bold leading-tight">{format(day, 'd')}</span>
             </button>
           );
         })}
-      </div>
-      
-      {!isPremium && (
-        <div className="px-4 pb-3">
-          <Button 
+        {!isPremium && (
+          <button
             onClick={onShowPremium}
-            variant="outline"
-            className="w-full border-teal-500 text-teal-400 hover:bg-teal-500/20"
+            className="flex items-center px-2 py-1 rounded bg-teal-500/20 text-teal-400 text-[9px] font-medium min-w-[50px] hover:bg-teal-500/30"
             data-testid="button-unlock-forecast"
           >
-            Unlock 14-Day Forecast - $5/month
-          </Button>
-        </div>
-      )}
+            +11 days
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -396,6 +367,15 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
         onTogglePlay={() => setIsPlaying(!isPlaying)}
       />
       
+      <DaySelector 
+        days={days}
+        selectedDay={selectedDay}
+        onSelectDay={setSelectedDay}
+        maxDays={maxDays}
+        isPremium={isPremium}
+        onShowPremium={() => setShowPremium(true)}
+      />
+      
       <div className="flex-1 min-h-[350px] relative pb-16">
         <WindSpeedScale />
         <WindyEmbed 
@@ -405,15 +385,6 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
           timestamp={timestamp}
         />
       </div>
-      
-      <DaySelector 
-        days={days}
-        selectedDay={selectedDay}
-        onSelectDay={setSelectedDay}
-        maxDays={maxDays}
-        isPremium={isPremium}
-        onShowPremium={() => setShowPremium(true)}
-      />
     </div>
   );
 }

@@ -29,11 +29,11 @@ export default function Landing() {
       </div>
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
-        <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 mb-6">
+        <div className="w-40 h-40 rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 mb-4">
           <img src={surfTribeLogo} alt="SurfTribe Logo" className="w-full h-full object-contain" />
         </div>
 
-        <h1 className="text-3xl md:text-5xl font-display font-bold mb-4 leading-tight bg-white/90 px-6 py-4 rounded-2xl">
+        <h1 className="text-xl md:text-2xl font-display font-bold mb-4 leading-tight bg-white/90 px-4 py-3 rounded-xl">
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-500">
             Surf with others<br />
             That are on the<br />

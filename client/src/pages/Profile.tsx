@@ -527,11 +527,11 @@ export default function Profile() {
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-56 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
-          <div className="absolute top-2 left-2">
+          <div className="absolute top-0 left-0">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 
-              className="w-44 h-44 object-contain"
+              className="w-80 h-80 object-contain"
             />
           </div>
           <Button 

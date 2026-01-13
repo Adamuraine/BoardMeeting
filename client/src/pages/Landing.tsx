@@ -35,9 +35,9 @@ export default function Landing() {
 
         <h1 className="text-xl md:text-2xl font-display font-bold mb-4 leading-tight bg-white/90 px-4 py-3 rounded-xl">
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-500">
-            Surf with others<br />
-            That are on the<br />
-            Same level
+            Surf and travel<br />
+            With people<br />
+            On your level
           </span>
         </h1>
 

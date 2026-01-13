@@ -245,8 +245,16 @@ export async function registerRoutes(
     res.json(filteredLocations);
   });
 
-  // Internal endpoint to refresh surf data from Stormglass
+  // Internal endpoint to refresh surf data from Stormglass (protected)
   app.post("/api/internal/refresh-surf-data", async (req, res) => {
+    // Check for internal token or admin authentication
+    const internalToken = req.headers["x-internal-token"];
+    const expectedToken = process.env.SESSION_SECRET; // Use session secret as internal token
+    
+    if (!internalToken || internalToken !== expectedToken) {
+      return res.status(403).json({ message: "Unauthorized" });
+    }
+    
     const staleLocs = await storage.getAllLocationsWithStaleData(24);
     
     if (staleLocs.length === 0) {

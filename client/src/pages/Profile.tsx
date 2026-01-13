@@ -527,13 +527,13 @@ export default function Profile() {
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-40 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
-          <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 px-3 py-1.5 bg-white/20 backdrop-blur-sm rounded-lg">
+          <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-3 px-4 py-2 bg-white/20 backdrop-blur-sm rounded-xl">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 
-              className="w-6 h-6 rounded-full object-cover"
+              className="w-24 h-24 rounded-full object-cover border-2 border-white/50"
             />
-            <span className="text-white font-semibold text-sm tracking-wide">SurfTribe</span>
+            <span className="text-white font-bold text-xl tracking-wide">SurfTribe</span>
           </div>
           <Button 
             variant="ghost" 

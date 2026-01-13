@@ -30,7 +30,7 @@ async function geocodeLocation(query: string): Promise<{ lat: number; lng: numbe
 }
 
 function WindSpeedScale() {
-  const speeds = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50];
+  const speeds = [50, 45, 40, 35, 30, 25, 20, 15, 10, 5, 0];
   
   const getWindColorHex = (speed: number): string => {
     if (speed < 5) return "#93c5fd";
@@ -44,16 +44,15 @@ function WindSpeedScale() {
   };
   
   return (
-    <div className="flex items-center gap-0 h-6 text-[10px] font-medium text-white">
-      <span className="pr-1 opacity-80">mph</span>
+    <div className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center text-[9px] font-medium text-white bg-black/30 rounded-md overflow-hidden">
+      <span className="py-1 px-1.5 opacity-80 bg-black/40">mph</span>
       {speeds.map((speed) => (
-        <div key={speed} className="flex items-center">
-          <div 
-            className="w-6 h-4 flex items-center justify-center"
-            style={{ backgroundColor: getWindColorHex(speed) }}
-          >
-            <span className="text-white/90 drop-shadow-sm">{speed}</span>
-          </div>
+        <div 
+          key={speed}
+          className="w-7 h-5 flex items-center justify-center"
+          style={{ backgroundColor: getWindColorHex(speed) }}
+        >
+          <span className="text-white/90 drop-shadow-sm">{speed}</span>
         </div>
       ))}
     </div>
@@ -362,11 +361,7 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
     <div className="flex flex-col h-full" data-testid="wind-model-container">
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
-      <div className="bg-slate-800 sticky top-0 z-10">
-        <WindSpeedScale />
-      </div>
-      
-      <div className="p-3 bg-slate-800 border-b border-white/10">
+      <div className="p-3 bg-slate-800 border-b border-white/10 sticky top-0 z-10">
         <div className="flex gap-2">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/60" />
@@ -395,6 +390,7 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
       </div>
       
       <div className="flex-1 min-h-[350px] relative">
+        <WindSpeedScale />
         <WindyEmbed 
           lat={lat}
           lng={lng}

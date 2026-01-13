@@ -3,7 +3,7 @@ import { Waves } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import tribalLogo from "@assets/IMG_2619_1767474700755.jpeg";
+import surfTribeLogo from "@assets/IMG_3256_1768276664965.jpeg";
 
 export default function Landing() {
   const { user, isLoading } = useAuth();
@@ -30,7 +30,7 @@ export default function Landing() {
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
         <div className="w-32 h-32 rounded-3xl overflow-hidden shadow-2xl shadow-primary/20 mb-8 transform rotate-3">
-          <img src={tribalLogo} alt="SurfTribe Logo" className="w-full h-full object-cover" />
+          <img src={surfTribeLogo} alt="SurfTribe Logo" className="w-full h-full object-contain" />
         </div>
 
         <h1 className="text-4xl md:text-6xl font-display font-bold text-foreground mb-4 leading-tight">

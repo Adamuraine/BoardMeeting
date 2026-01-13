@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import surfTribeLogo from "@assets/IMG_2616_1768196403100.jpeg";
+import surfTribeLogo from "@assets/IMG_3256_1768276664965.jpeg";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

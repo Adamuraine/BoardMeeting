@@ -29,15 +29,15 @@ export default function Landing() {
       </div>
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
-        <div className="w-32 h-32 rounded-3xl overflow-hidden shadow-2xl shadow-primary/20 mb-8 transform rotate-3">
+        <div className="w-24 h-24 rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 mb-6 bg-white p-1">
           <img src={surfTribeLogo} alt="SurfTribe Logo" className="w-full h-full object-contain" />
         </div>
 
-        <h1 className="text-4xl md:text-6xl font-display font-bold text-foreground mb-4 leading-tight">
+        <h1 className="text-3xl md:text-5xl font-display font-bold text-foreground mb-4 leading-tight">
           <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-500">
-            Surf and travel<br />
-            With people on<br />
-            Your level
+            Surf with others<br />
+            That are on the<br />
+            Same level
           </span>
         </h1>
 

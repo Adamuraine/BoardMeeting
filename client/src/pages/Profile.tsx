@@ -534,10 +534,11 @@ export default function Profile() {
               className="w-48 h-48 rounded-full object-cover border-4 border-white/50"
             />
             <span 
-              className="font-bold text-3xl tracking-wide text-sky-300"
+              className="font-bold text-3xl italic text-cyan-300"
               style={{ 
-                textShadow: '-1px -1px 0 #0c4a6e, 1px -1px 0 #0c4a6e, -1px 1px 0 #0c4a6e, 1px 1px 0 #0c4a6e, -3px -3px 0 white, 3px -3px 0 white, -3px 3px 0 white, 3px 3px 0 white, 0 -3px 0 white, 0 3px 0 white, -3px 0 0 white, 3px 0 0 white',
-                WebkitTextStroke: '2px white'
+                textShadow: '3px 3px 0 #1e293b, 2px 2px 0 #1e293b',
+                WebkitTextStroke: '2px #1e293b',
+                paintOrder: 'stroke fill'
               }}
             >SurfTribe</span>
           </div>

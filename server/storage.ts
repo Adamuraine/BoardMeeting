@@ -3,7 +3,7 @@ import {
   profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
-  type Location, type SurfReport,
+  type Location, type SurfReport, type InsertSurfReport,
   type Trip, type InsertTrip,
   type Post, type InsertPost,
   type FavoriteSpot, type InsertFavoriteSpot,
@@ -70,6 +70,11 @@ export interface IStorage {
   // Trip Activities
   updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
   updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[]; waveType?: string; rideStyle?: string; locationPreference?: string; vibe?: string; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
+  
+  // Surf Reports
+  upsertSurfReports(locationId: number, reports: Partial<InsertSurfReport>[]): Promise<void>;
+  getSurfReportsLastUpdated(locationId: number): Promise<Date | null>;
+  getAllLocationsWithStaleData(maxAgeHours: number): Promise<Location[]>;
   
   // Seeding
   seedLocations(): Promise<void>;
@@ -414,6 +419,62 @@ export class DatabaseStorage implements IStorage {
           eq(messages.read, false)
         )
       );
+  }
+
+  async upsertSurfReports(locationId: number, reports: Partial<InsertSurfReport>[]): Promise<void> {
+    for (const report of reports) {
+      if (!report.date) continue;
+      
+      const [existing] = await db.select()
+        .from(surfReports)
+        .where(and(
+          eq(surfReports.locationId, locationId),
+          eq(surfReports.date, report.date)
+        ));
+      
+      if (existing) {
+        await db.update(surfReports)
+          .set({ 
+            ...report, 
+            locationId,
+            lastUpdatedAt: new Date() 
+          })
+          .where(eq(surfReports.id, existing.id));
+      } else {
+        await db.insert(surfReports).values({
+          ...report,
+          locationId,
+          date: report.date,
+        });
+      }
+    }
+  }
+
+  async getSurfReportsLastUpdated(locationId: number): Promise<Date | null> {
+    const [report] = await db.select({ lastUpdatedAt: surfReports.lastUpdatedAt })
+      .from(surfReports)
+      .where(eq(surfReports.locationId, locationId))
+      .orderBy(desc(surfReports.lastUpdatedAt))
+      .limit(1);
+    
+    return report?.lastUpdatedAt ?? null;
+  }
+
+  async getAllLocationsWithStaleData(maxAgeHours: number): Promise<Location[]> {
+    const cutoff = new Date();
+    cutoff.setHours(cutoff.getHours() - maxAgeHours);
+    
+    const allLocs = await db.select().from(locations);
+    const staleLocs: Location[] = [];
+    
+    for (const loc of allLocs) {
+      const lastUpdated = await this.getSurfReportsLastUpdated(loc.id);
+      if (!lastUpdated || lastUpdated < cutoff) {
+        staleLocs.push(loc);
+      }
+    }
+    
+    return staleLocs;
   }
 
   async seedLocations(): Promise<void> {

@@ -58,7 +58,13 @@ export const surfReports = pgTable("surf_reports", {
   rating: text("rating"), // poor, fair, good, epic
   windDirection: text("wind_direction"),
   windSpeed: integer("wind_speed"), // knots
+  swellPeriodSec: integer("swell_period_sec"), // swell period in seconds
+  swellDirection: text("swell_direction"), // swell direction (N, NE, E, etc)
+  source: text("source").default("stormglass"), // data source
+  lastUpdatedAt: timestamp("last_updated_at").defaultNow(), // when this report was fetched
 });
+
+export const insertSurfReportSchema = createInsertSchema(surfReports).omit({ id: true, lastUpdatedAt: true });
 
 // === TRIPS ===
 export const trips = pgTable("trips", {
@@ -143,6 +149,7 @@ export type Swipe = typeof swipes.$inferSelect;
 export type InsertSwipe = z.infer<typeof insertSwipeSchema>;
 export type Location = typeof locations.$inferSelect;
 export type SurfReport = typeof surfReports.$inferSelect;
+export type InsertSurfReport = z.infer<typeof insertSurfReportSchema>;
 export type Trip = typeof trips.$inferSelect;
 export type InsertTrip = z.infer<typeof insertTripSchema>;
 export type Post = typeof posts.$inferSelect;

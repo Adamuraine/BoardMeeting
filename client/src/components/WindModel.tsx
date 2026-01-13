@@ -89,7 +89,6 @@ function WindyEmbed({
         ref={iframeRef}
         src={embedUrl}
         className="w-full h-full border-0"
-        style={{ marginBottom: '-10px' }}
         title="Windy Wind Map"
         allow="fullscreen"
         data-testid="windy-embed"
@@ -389,7 +388,7 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
         </div>
       </div>
       
-      <div className="flex-1 min-h-[350px] relative">
+      <div className="flex-1 min-h-[350px] relative pb-16">
         <WindSpeedScale />
         <WindyEmbed 
           lat={lat}

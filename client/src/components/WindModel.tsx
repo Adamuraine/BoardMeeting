@@ -377,7 +377,6 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
       />
       
       <div className="flex-1 min-h-[350px] relative pb-16">
-        <WindSpeedScale />
         <WindyEmbed 
           lat={lat}
           lng={lng}

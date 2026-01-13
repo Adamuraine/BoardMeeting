@@ -527,7 +527,7 @@ export default function Profile() {
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-56 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
-          <div className="absolute top-0 left-0">
+          <div className="absolute -top-8 left-1/2 -translate-x-1/3">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 

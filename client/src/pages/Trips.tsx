@@ -610,11 +610,16 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
           <Plus className="w-6 h-6" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-h-[90vh] overflow-y-auto">
-        <DialogHeader>
-          <DialogTitle>Plan a Trip</DialogTitle>
-        </DialogHeader>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
+      <DialogContent className="max-h-[90vh] overflow-y-auto p-0 border-0 overflow-hidden">
+        <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 text-white">
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl flex items-center gap-2">
+              <Plane className="w-5 h-5" />
+              Plan a Trip
+            </DialogTitle>
+          </DialogHeader>
+        </div>
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 p-6">
           <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
             <div>
               <Label className="font-medium">I'm visiting (solo traveler)</Label>

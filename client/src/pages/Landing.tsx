@@ -34,7 +34,11 @@ export default function Landing() {
         </div>
 
         <h1 className="text-4xl md:text-6xl font-display font-bold text-foreground mb-4 leading-tight">
-          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-500">Surf and travel with people on your level</span>
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-cyan-500">
+            Surf and travel<br />
+            With people on<br />
+            Your level
+          </span>
         </h1>
 
         <p className="text-lg font-medium text-foreground max-w-sm mb-3">

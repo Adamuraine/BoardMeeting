@@ -38,6 +38,8 @@ export interface IStorage {
   // Trips
   getTrips(): Promise<(Trip & { organizer: Profile })[]>;
   getUserTrips(userId: string): Promise<Trip[]>;
+  getTripById(tripId: number): Promise<(Trip & { organizer: Profile }) | undefined>;
+  getBroadcastTrips(): Promise<(Trip & { organizer: Profile })[]>;
   createTrip(trip: InsertTrip): Promise<Trip>;
 
   // Posts
@@ -67,7 +69,7 @@ export interface IStorage {
   
   // Trip Activities
   updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
-  updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[] }): Promise<Trip>;
+  updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[]; waveType?: string; rideStyle?: string; locationPreference?: string; vibe?: string; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
   
   // Seeding
   seedLocations(): Promise<void>;
@@ -292,6 +294,31 @@ export class DatabaseStorage implements IStorage {
   async createTrip(trip: InsertTrip): Promise<Trip> {
     const [newTrip] = await db.insert(trips).values(trip).returning();
     return newTrip;
+  }
+
+  async getTripById(tripId: number): Promise<(Trip & { organizer: Profile }) | undefined> {
+    const [result] = await db.select({
+      trip: trips,
+      organizer: profiles
+    })
+    .from(trips)
+    .innerJoin(profiles, eq(trips.organizerId, profiles.userId))
+    .where(eq(trips.id, tripId));
+    
+    if (!result) return undefined;
+    return { ...result.trip, organizer: result.organizer };
+  }
+
+  async getBroadcastTrips(): Promise<(Trip & { organizer: Profile })[]> {
+    const tripsData = await db.select({
+      trip: trips,
+      organizer: profiles
+    })
+    .from(trips)
+    .innerJoin(profiles, eq(trips.organizerId, profiles.userId))
+    .where(eq(trips.broadcastEnabled, true));
+    
+    return tripsData.map(({ trip, organizer }) => ({ ...trip, organizer }));
   }
 
   async setPremium(userId: string, status: boolean): Promise<void> {
@@ -602,14 +629,20 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[] }): Promise<Trip> {
+  async updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[]; waveType?: string; rideStyle?: string; locationPreference?: string; vibe?: string; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip> {
     const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
     if (!trip) throw new Error("Trip not found");
     if (trip.organizerId !== userId) throw new Error("Not authorized to update this trip");
     
-    const updateData: Partial<{ expectations: string; activities: string[] }> = {};
+    const updateData: Partial<{ expectations: string; activities: string[]; waveType: string; rideStyle: string; locationPreference: string; vibe: string; extraActivities: string[]; broadcastEnabled: boolean }> = {};
     if (updates.expectations !== undefined) updateData.expectations = updates.expectations;
     if (updates.activities !== undefined) updateData.activities = updates.activities;
+    if (updates.waveType !== undefined) updateData.waveType = updates.waveType;
+    if (updates.rideStyle !== undefined) updateData.rideStyle = updates.rideStyle;
+    if (updates.locationPreference !== undefined) updateData.locationPreference = updates.locationPreference;
+    if (updates.vibe !== undefined) updateData.vibe = updates.vibe;
+    if (updates.extraActivities !== undefined) updateData.extraActivities = updates.extraActivities;
+    if (updates.broadcastEnabled !== undefined) updateData.broadcastEnabled = updates.broadcastEnabled;
     
     const [updated] = await db.update(trips)
       .set(updateData)

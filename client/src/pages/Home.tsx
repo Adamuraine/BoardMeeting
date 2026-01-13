@@ -2,15 +2,17 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Camera, MapPin, ExternalLink, Loader2, Mail } from "lucide-react";
+import { Camera, MapPin, ExternalLink, Loader2, Mail, Calendar, Radio, Waves, Zap, TreePine, PartyPopper, Fish } from "lucide-react";
 import { ShakaIcon } from "@/components/ShakaIcon";
 import { MessageDialog } from "@/components/MessageDialog";
-import type { PostWithUser, Profile } from "@shared/schema";
+import type { PostWithUser, Profile, Trip } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
 import { useState, useCallback } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { motion, AnimatePresence } from "framer-motion";
+import { format } from "date-fns";
 
 interface PostCardProps {
   post: PostWithUser & { location: { name: string } };
@@ -156,9 +158,91 @@ function PostCard({ post, onMessageClick }: PostCardProps) {
   );
 }
 
+function BroadcastTripCard({ trip }: { trip: Trip & { organizer: Profile } }) {
+  const getPreferenceLabel = (type: string, value: string | null) => {
+    if (!value) return null;
+    const labels: Record<string, Record<string, string>> = {
+      waveType: { steep: "Steep Waves", gentle: "Gentle Waves" },
+      rideStyle: { performance: "High Performance", chill: "Chill" },
+      locationPreference: { remote: "Remote", town: "In Town" },
+      vibe: { party: "Surf & Party", waterTime: "Max Water Time" },
+    };
+    return labels[type]?.[value] || value;
+  };
+
+  return (
+    <Link href={`/profile/${trip.organizer.userId}`}>
+      <Card className="overflow-hidden hover-elevate cursor-pointer" data-testid={`broadcast-trip-${trip.id}`}>
+        <CardContent className="p-4">
+          <div className="flex items-start gap-3">
+            <Avatar className="h-10 w-10 border border-primary/20">
+              <AvatarImage src={trip.organizer.imageUrls?.[0]} />
+              <AvatarFallback>{trip.organizer.displayName[0]}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="font-semibold text-sm">{trip.organizer.displayName}</span>
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <Radio className="w-2.5 h-2.5 mr-1" />
+                  Broadcasting
+                </Badge>
+              </div>
+              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
+                <MapPin className="w-3 h-3" />
+                <span className="font-medium text-foreground">{trip.destination}</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+                <Calendar className="w-3 h-3" />
+                <span>
+                  {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d")}
+                </span>
+              </div>
+              <div className="flex flex-wrap gap-1">
+                {trip.waveType && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    <Waves className="w-2.5 h-2.5 mr-1" />
+                    {getPreferenceLabel("waveType", trip.waveType)}
+                  </Badge>
+                )}
+                {trip.rideStyle && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    <Zap className="w-2.5 h-2.5 mr-1" />
+                    {getPreferenceLabel("rideStyle", trip.rideStyle)}
+                  </Badge>
+                )}
+                {trip.locationPreference && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    <TreePine className="w-2.5 h-2.5 mr-1" />
+                    {getPreferenceLabel("locationPreference", trip.locationPreference)}
+                  </Badge>
+                )}
+                {trip.vibe && (
+                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                    <PartyPopper className="w-2.5 h-2.5 mr-1" />
+                    {getPreferenceLabel("vibe", trip.vibe)}
+                  </Badge>
+                )}
+                {trip.extraActivities?.map(activity => (
+                  <Badge key={activity} variant="outline" className="text-[10px] px-1.5 py-0">
+                    <Fish className="w-2.5 h-2.5 mr-1" />
+                    {activity}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  );
+}
+
 export default function Home() {
   const { data: posts, isLoading } = useQuery<(PostWithUser & { location: { name: string } })[]>({
     queryKey: ["/api/posts"],
+  });
+  const { data: broadcastTrips } = useQuery<(Trip & { organizer: Profile })[]>({
+    queryKey: ["/api/trips/broadcast"],
   });
   const [messageBuddy, setMessageBuddy] = useState<Profile | null>(null);
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
@@ -206,6 +290,20 @@ export default function Home() {
           </div>
         </Link>
       </div>
+
+      {broadcastTrips && broadcastTrips.length > 0 && (
+        <div className="px-4 pt-4">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
+            <Radio className="w-4 h-4" />
+            Surfers Looking for Buddies
+          </h2>
+          <div className="space-y-3">
+            {broadcastTrips.map((trip) => (
+              <BroadcastTripCard key={trip.id} trip={trip} />
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="space-y-4 p-4">
         {posts?.map((post) => (

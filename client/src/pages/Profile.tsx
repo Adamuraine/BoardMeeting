@@ -595,7 +595,7 @@ export default function Profile() {
               {myTrips.length > 0 ? (
                 <div className="space-y-3">
                   {myTrips.map((trip) => (
-                    <Link href="/trips" key={trip.id}>
+                    <Link href={`/trips/${trip.id}`} key={trip.id}>
                       <div 
                         className="p-4 rounded-xl border border-border bg-card shadow-sm cursor-pointer hover-elevate active-elevate-2 transition-all"
                         data-testid={`trip-card-${trip.id}`}

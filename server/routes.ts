@@ -276,6 +276,18 @@ export async function registerRoutes(
     res.json(trips);
   });
 
+  app.get("/api/trips/broadcast", async (req, res) => {
+    const trips = await storage.getBroadcastTrips();
+    res.json(trips);
+  });
+
+  app.get("/api/trips/:id", async (req, res) => {
+    const tripId = parseInt(req.params.id);
+    const trip = await storage.getTripById(tripId);
+    if (!trip) return res.sendStatus(404);
+    res.json(trip);
+  });
+
   app.post(api.trips.create.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
@@ -319,8 +331,17 @@ export async function registerRoutes(
     const userId = getUserId(req);
     const tripId = parseInt(req.params.id);
     try {
-      const { expectations, activities } = req.body;
-      const trip = await storage.updateTrip(tripId, userId, { expectations, activities });
+      const { expectations, activities, waveType, rideStyle, locationPreference, vibe, extraActivities, broadcastEnabled } = req.body;
+      
+      // Premium check for broadcast feature
+      if (broadcastEnabled === true) {
+        const profile = await storage.getProfile(userId);
+        if (!profile?.isPremium) {
+          return res.status(403).json({ message: "Premium subscription required to broadcast trips" });
+        }
+      }
+      
+      const trip = await storage.updateTrip(tripId, userId, { expectations, activities, waveType, rideStyle, locationPreference, vibe, extraActivities, broadcastEnabled });
       res.json(trip);
     } catch (err: any) {
       console.error("Failed to update trip:", err);

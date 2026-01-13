@@ -44,7 +44,7 @@ function WindSpeedScale() {
   };
   
   return (
-    <div className="absolute left-2 top-1/2 -translate-y-1/2 z-20 flex flex-col items-center text-[9px] font-medium text-white bg-black/30 rounded-md overflow-hidden">
+    <div className="absolute left-2 top-[35%] -translate-y-1/2 z-20 flex flex-col items-center text-[9px] font-medium text-white bg-black/30 rounded-md overflow-hidden">
       <span className="py-1 px-1.5 opacity-80 bg-black/40">mph</span>
       {speeds.map((speed) => (
         <div 
@@ -388,6 +388,14 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
         </div>
       </div>
       
+      <TimeSlider
+        selectedHour={selectedHour}
+        onHourChange={setSelectedHour}
+        selectedDay={days[selectedDay]}
+        isPlaying={isPlaying}
+        onTogglePlay={() => setIsPlaying(!isPlaying)}
+      />
+      
       <div className="flex-1 min-h-[350px] relative pb-16">
         <WindSpeedScale />
         <WindyEmbed 
@@ -397,14 +405,6 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
           timestamp={timestamp}
         />
       </div>
-      
-      <TimeSlider
-        selectedHour={selectedHour}
-        onHourChange={setSelectedHour}
-        selectedDay={days[selectedDay]}
-        isPlaying={isPlaying}
-        onTogglePlay={() => setIsPlaying(!isPlaying)}
-      />
       
       <DaySelector 
         days={days}

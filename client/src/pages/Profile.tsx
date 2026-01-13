@@ -527,14 +527,14 @@ export default function Profile() {
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-56 bg-gradient-to-r from-cyan-400 to-sky-400 dark:from-cyan-600 dark:to-sky-600 relative">
-          <div className="absolute top-2 left-4 flex items-center gap-4 px-5 py-3 bg-white/20 backdrop-blur-sm rounded-2xl">
+          <div className="absolute top-4 left-2 flex items-center gap-2">
             <img 
               src={surfTribeLogo} 
               alt="SurfTribe Logo" 
-              className="w-48 h-48 rounded-full object-cover border-4 border-white/50"
+              className="w-32 h-32 rounded-full object-cover border-4 border-sky-200/80 shadow-lg"
             />
             <span 
-              className="font-bold text-3xl text-white"
+              className="font-bold text-4xl text-white"
               style={{ 
                 textShadow: '2px 2px 4px rgba(0,0,0,0.3)',
                 WebkitTextStroke: '1.5px #374151',

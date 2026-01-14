@@ -503,6 +503,90 @@ export async function registerRoutes(
     }
   });
 
+  // === STRIPE CHECKOUT ===
+  app.post("/api/checkout/premium", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    
+    try {
+      const { stripeService } = await import("./stripeService");
+      const { getStripePublishableKey } = await import("./stripeClient");
+      
+      const profile = await storage.getProfile(userId);
+      if (!profile) {
+        return res.status(404).json({ message: "Profile not found" });
+      }
+      
+      const user = await authStorage.getUser(userId);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      let customerId = profile.stripeCustomerId;
+      if (!customerId) {
+        const customer = await stripeService.createCustomer(user.email || "", userId);
+        await storage.updateUserStripeInfo(userId, { stripeCustomerId: customer.id });
+        customerId = customer.id;
+      }
+      
+      const priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
+      if (!priceId) {
+        return res.status(500).json({ message: "Premium price not configured" });
+      }
+      
+      const host = req.get('host');
+      const protocol = req.protocol;
+      const session = await stripeService.createCheckoutSession(
+        customerId,
+        priceId,
+        `${protocol}://${host}/profile?checkout=success`,
+        `${protocol}://${host}/profile?checkout=cancelled`
+      );
+      
+      res.json({ url: session.url });
+    } catch (err) {
+      console.error("Checkout error:", err);
+      res.status(500).json({ message: "Failed to create checkout session" });
+    }
+  });
+  
+  app.get("/api/stripe/publishable-key", async (req, res) => {
+    try {
+      const { getStripePublishableKey } = await import("./stripeClient");
+      const key = await getStripePublishableKey();
+      res.json({ publishableKey: key });
+    } catch (err) {
+      console.error("Error getting publishable key:", err);
+      res.status(500).json({ message: "Failed to get Stripe key" });
+    }
+  });
+  
+  app.post("/api/stripe/portal", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    
+    try {
+      const { stripeService } = await import("./stripeService");
+      
+      const profile = await storage.getProfile(userId);
+      if (!profile?.stripeCustomerId) {
+        return res.status(400).json({ message: "No subscription found" });
+      }
+      
+      const host = req.get('host');
+      const protocol = req.protocol;
+      const session = await stripeService.createCustomerPortalSession(
+        profile.stripeCustomerId,
+        `${protocol}://${host}/profile`
+      );
+      
+      res.json({ url: session.url });
+    } catch (err) {
+      console.error("Portal error:", err);
+      res.status(500).json({ message: "Failed to create portal session" });
+    }
+  });
+
   // Seed Data
   await storage.seedLocations();
   await seedFakeProfiles();

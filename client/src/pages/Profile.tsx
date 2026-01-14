@@ -1,4 +1,4 @@
-import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
+import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -35,6 +35,7 @@ export default function Profile() {
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [tripExpectations, setTripExpectations] = useState("");
   const { toast } = useToast();
+  const manageSubscription = useManageSubscription();
 
   const { data: buddies = [] } = useQuery<ProfileType[]>({
     queryKey: ["/api/buddies"],
@@ -406,6 +407,19 @@ export default function Profile() {
               >
                 <Crown className="h-4 w-4" />
                 Upgrade to Premium
+              </Button>
+            )}
+            
+            {profile.isPremium && (
+              <Button 
+                variant="outline" 
+                className="w-full justify-start gap-3 border-accent text-accent hover:bg-accent/10" 
+                onClick={() => { setShowSettings(false); manageSubscription.mutate(); }}
+                disabled={manageSubscription.isPending}
+                data-testid="button-manage-subscription"
+              >
+                <Crown className="h-4 w-4" />
+                {manageSubscription.isPending ? "Opening..." : "Manage Subscription"}
               </Button>
             )}
             

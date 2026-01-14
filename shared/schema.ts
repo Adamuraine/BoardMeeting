@@ -26,6 +26,8 @@ export const profiles = pgTable("profiles", {
   buddiesPublic: boolean("buddies_public").default(true), // Whether buddies list is public
   endurance: text("endurance").array(), // JSON strings: {condition: string, hours: number}
   tripExpectations: text("trip_expectations").array(), // Array of trip expectation IDs for buddy matching
+  stripeCustomerId: text("stripe_customer_id"),
+  stripeSubscriptionId: text("stripe_subscription_id"),
 });
 
 // === SWIPES ===

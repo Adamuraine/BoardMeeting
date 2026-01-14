@@ -91,13 +91,34 @@ export function useUpgradePremium() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch(api.premium.upgrade.path, {
-        method: api.premium.upgrade.method,
+      const res = await fetch("/api/checkout/premium", {
+        method: "POST",
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to upgrade");
-      return res.json();
+      if (!res.ok) throw new Error("Failed to start checkout");
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+      return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: [api.profiles.me.path] }),
+  });
+}
+
+export function useManageSubscription() {
+  return useMutation({
+    mutationFn: async () => {
+      const res = await fetch("/api/stripe/portal", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to open subscription portal");
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      }
+      return data;
+    },
   });
 }

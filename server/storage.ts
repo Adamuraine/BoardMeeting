@@ -78,6 +78,13 @@ export interface IStorage {
   
   // Seeding
   seedLocations(): Promise<void>;
+  
+  // Stripe
+  getProduct(productId: string): Promise<any>;
+  getSubscription(subscriptionId: string): Promise<any>;
+  updateUserStripeInfo(userId: string, info: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<void>;
+  getProfileByStripeCustomerId(customerId: string): Promise<Profile | undefined>;
+  updateUserPremiumStatus(userId: string, isPremium: boolean): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -710,6 +717,42 @@ export class DatabaseStorage implements IStorage {
       .where(eq(trips.id, tripId))
       .returning();
     return updated;
+  }
+
+  async getProduct(productId: string): Promise<any> {
+    const result = await db.execute(
+      sql`SELECT * FROM stripe.products WHERE id = ${productId}`
+    );
+    return result.rows[0] || null;
+  }
+
+  async getSubscription(subscriptionId: string): Promise<any> {
+    const result = await db.execute(
+      sql`SELECT * FROM stripe.subscriptions WHERE id = ${subscriptionId}`
+    );
+    return result.rows[0] || null;
+  }
+
+  async updateUserStripeInfo(userId: string, info: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<void> {
+    const profile = await this.getProfile(userId);
+    if (!profile) return;
+    
+    const updateData: any = {};
+    if (info.stripeCustomerId !== undefined) updateData.stripeCustomerId = info.stripeCustomerId || null;
+    if (info.stripeSubscriptionId !== undefined) updateData.stripeSubscriptionId = info.stripeSubscriptionId || null;
+    
+    if (Object.keys(updateData).length > 0) {
+      await db.update(profiles).set(updateData).where(eq(profiles.userId, userId));
+    }
+  }
+  
+  async getProfileByStripeCustomerId(customerId: string): Promise<Profile | undefined> {
+    const [profile] = await db.select().from(profiles).where(eq(profiles.stripeCustomerId, customerId));
+    return profile;
+  }
+  
+  async updateUserPremiumStatus(userId: string, isPremium: boolean): Promise<void> {
+    await db.update(profiles).set({ isPremium }).where(eq(profiles.userId, userId));
   }
 
   async seedMockPosts(locationIds: number[]): Promise<void> {

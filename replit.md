@@ -86,3 +86,26 @@ shared/           # Shared code between client/server
 - `lucide-react`: Icon library
 - `wouter`: Lightweight router
 - `zod`: Schema validation
+- `stripe`: Stripe payment processing
+- `stripe-replit-sync`: Webhook management and Stripe data sync
+
+### Stripe Integration
+- **Provider**: Stripe via Replit Connector integration
+- **Library**: stripe-replit-sync for automatic webhook management
+- **Subscription Model**: $5/month premium subscription
+- **Key Files**:
+  - `server/stripeClient.ts` - Stripe client and StripeSync setup
+  - `server/stripeService.ts` - Checkout and portal session creation
+  - `server/webhookHandlers.ts` - Webhook processing and premium status sync
+  - `server/index.ts` - Stripe initialization (runs before routes)
+- **API Endpoints**:
+  - `POST /api/checkout/premium` - Creates Stripe checkout session
+  - `POST /api/stripe/portal` - Creates customer portal session
+  - `POST /api/stripe/webhook` - Receives Stripe webhooks (registered BEFORE express.json)
+- **Database Fields** (profiles table):
+  - `stripeCustomerId` - Stripe customer ID
+  - `stripeSubscriptionId` - Active subscription ID
+  - `isPremium` - Premium status (updated via webhooks)
+- **Required Config**:
+  - `STRIPE_PREMIUM_PRICE_ID` - Price ID for the $5/month subscription
+  - Stripe connector must be configured in Replit

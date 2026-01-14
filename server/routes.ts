@@ -509,6 +509,10 @@ export async function registerRoutes(
     const userId = getUserId(req);
     
     try {
+      const { isStripeAvailable } = await import("./stripeClient");
+      if (!isStripeAvailable()) {
+        return res.status(503).json({ message: "Payments are temporarily unavailable. Please try again later." });
+      }
       const { stripeService } = await import("./stripeService");
       const { getStripePublishableKey } = await import("./stripeClient");
       
@@ -552,7 +556,10 @@ export async function registerRoutes(
   
   app.get("/api/stripe/publishable-key", async (req, res) => {
     try {
-      const { getStripePublishableKey } = await import("./stripeClient");
+      const { isStripeAvailable, getStripePublishableKey } = await import("./stripeClient");
+      if (!isStripeAvailable()) {
+        return res.status(503).json({ message: "Payments are temporarily unavailable" });
+      }
       const key = await getStripePublishableKey();
       res.json({ publishableKey: key });
     } catch (err) {
@@ -566,6 +573,10 @@ export async function registerRoutes(
     const userId = getUserId(req);
     
     try {
+      const { isStripeAvailable } = await import("./stripeClient");
+      if (!isStripeAvailable()) {
+        return res.status(503).json({ message: "Payments are temporarily unavailable. Please try again later." });
+      }
       const { stripeService } = await import("./stripeService");
       
       const profile = await storage.getProfile(userId);

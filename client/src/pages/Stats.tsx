@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown, Trophy, MapPin, Timer, Compass, Sailboat, Hotel, Snowflake, Tent, Sunrise, PartyPopper, Beer, Palmtree } from "lucide-react";
+import surfTribeLogo from "@assets/IMG_3279_1768282938756.jpeg";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -375,9 +376,12 @@ export default function Stats() {
 
   return (
     <div className="p-4 max-w-md mx-auto space-y-6 pt-8 pb-24">
-      <div>
-        <h1 className="text-3xl font-display font-bold text-primary" data-testid="text-stats-title">Your Stats</h1>
-        <p className="text-muted-foreground">Track your progression</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-display font-bold text-primary" data-testid="text-stats-title">Your Stats</h1>
+          <p className="text-muted-foreground">Track your progression</p>
+        </div>
+        <img src={surfTribeLogo} alt="SurfTribe" className="h-12 w-auto object-contain" />
       </div>
 
       <Card>

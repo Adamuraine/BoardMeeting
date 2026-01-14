@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { Camera, MapPin, ExternalLink, Loader2, Mail, Calendar, Radio, Waves, Zap, TreePine, PartyPopper, Fish } from "lucide-react";
-import surfTribeLogo from "@assets/IMG_3279_1768282938756.jpeg";
 import { ShakaIcon } from "@/components/ShakaIcon";
 import { MessageDialog } from "@/components/MessageDialog";
 import type { PostWithUser, Profile, Trip } from "@shared/schema";
@@ -259,13 +258,12 @@ export default function Home() {
 
   return (
     <div className="max-w-md mx-auto pb-20">
-      <header className="p-2 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
-        <Link href="/home" data-testid="link-logo-home">
-          <img src={surfTribeLogo} alt="SurfTribe" className="h-10 w-auto object-contain" />
+      <header className="p-2 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-end items-center">
+        <Link href="/post/new">
+          <Button size="icon" variant="ghost" data-testid="button-camera">
+            <Camera className="h-6 w-6" />
+          </Button>
         </Link>
-        <Button size="icon" variant="ghost" data-testid="button-camera">
-          <Camera className="h-6 w-6" />
-        </Button>
       </header>
 
       <div className="p-4 pb-0">

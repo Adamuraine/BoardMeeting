@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
 import { Camera, MapPin, ExternalLink, Loader2, Mail, Calendar, Radio, Waves, Zap, TreePine, PartyPopper, Fish } from "lucide-react";
+import surfTribeLogo from "@assets/IMG_3279_1768282938756.jpeg";
 import { ShakaIcon } from "@/components/ShakaIcon";
 import { MessageDialog } from "@/components/MessageDialog";
 import type { PostWithUser, Profile, Trip } from "@shared/schema";
@@ -159,15 +160,11 @@ function PostCard({ post, onMessageClick }: PostCardProps) {
 }
 
 function BroadcastTripCard({ trip }: { trip: Trip & { organizer: Profile } }) {
-  const getPreferenceLabel = (type: string, value: string | null) => {
-    if (!value) return null;
-    const labels: Record<string, Record<string, string>> = {
-      waveType: { steep: "Steep Waves", gentle: "Gentle Waves" },
-      rideStyle: { performance: "High Performance", chill: "Chill" },
-      locationPreference: { remote: "Remote", town: "In Town" },
-      vibe: { party: "Surf & Party", waterTime: "Max Water Time" },
-    };
-    return labels[type]?.[value] || value;
+  const preferenceLabels: Record<string, Record<string, string>> = {
+    waveType: { steep: "Steep", mellow: "Mellow" },
+    rideStyle: { performance: "Perform", chill: "Chill" },
+    locationPreference: { remote: "Remote", town: "Town" },
+    vibe: { party: "Party", waterTime: "Water" },
   };
 
   return (
@@ -198,30 +195,30 @@ function BroadcastTripCard({ trip }: { trip: Trip & { organizer: Profile } }) {
                 </span>
               </div>
               <div className="flex flex-wrap gap-1">
-                {trip.waveType && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                {(trip.waveType || []).map((val) => (
+                  <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
                     <Waves className="w-2.5 h-2.5 mr-1" />
-                    {getPreferenceLabel("waveType", trip.waveType)}
+                    {preferenceLabels.waveType[val] || val}
                   </Badge>
-                )}
-                {trip.rideStyle && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                ))}
+                {(trip.rideStyle || []).map((val) => (
+                  <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
                     <Zap className="w-2.5 h-2.5 mr-1" />
-                    {getPreferenceLabel("rideStyle", trip.rideStyle)}
+                    {preferenceLabels.rideStyle[val] || val}
                   </Badge>
-                )}
-                {trip.locationPreference && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                ))}
+                {(trip.locationPreference || []).map((val) => (
+                  <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
                     <TreePine className="w-2.5 h-2.5 mr-1" />
-                    {getPreferenceLabel("locationPreference", trip.locationPreference)}
+                    {preferenceLabels.locationPreference[val] || val}
                   </Badge>
-                )}
-                {trip.vibe && (
-                  <Badge variant="outline" className="text-[10px] px-1.5 py-0">
+                ))}
+                {(trip.vibe || []).map((val) => (
+                  <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
                     <PartyPopper className="w-2.5 h-2.5 mr-1" />
-                    {getPreferenceLabel("vibe", trip.vibe)}
+                    {preferenceLabels.vibe[val] || val}
                   </Badge>
-                )}
+                ))}
                 {trip.extraActivities?.map(activity => (
                   <Badge key={activity} variant="outline" className="text-[10px] px-1.5 py-0">
                     <Fish className="w-2.5 h-2.5 mr-1" />
@@ -262,8 +259,10 @@ export default function Home() {
 
   return (
     <div className="max-w-md mx-auto pb-20">
-      <header className="p-4 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
-        <h1 className="text-2xl font-display font-bold text-primary italic">SurfTribe</h1>
+      <header className="p-2 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
+        <Link href="/home" data-testid="link-logo-home">
+          <img src={surfTribeLogo} alt="SurfTribe" className="h-10 w-auto object-contain" />
+        </Link>
         <Button size="icon" variant="ghost" data-testid="button-camera">
           <Camera className="h-6 w-6" />
         </Button>

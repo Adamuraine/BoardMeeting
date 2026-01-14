@@ -54,7 +54,7 @@ function Router() {
     <Switch>
       <Route path="/" component={() => {
         const { user } = useAuth();
-        if (user) return <Redirect to="/home" />;
+        if (user) return <Redirect to="/profile" />;
         return <Landing />;
       }} />
       

@@ -6,13 +6,12 @@ export default function BottomNav() {
   const [location] = useLocation();
 
   const navItems = [
+    { href: "/profile", icon: User, label: "Profile" },
     { href: "/home", icon: HomeIcon, label: "Home" },
     { href: "/stats", icon: Activity, label: "Stats" },
-    { href: "/surf", icon: Waves, label: "Surf" },
-    { href: "/trips", icon: Plane, label: "Trips" },
     { href: "/buddies", icon: Users, label: "Buddies" },
+    { href: "/trips", icon: Plane, label: "Trips" },
     { href: "/messages", icon: MessageCircle, label: "Messages" },
-    { href: "/profile", icon: User, label: "Profile" },
   ];
 
   // Don't show on onboarding

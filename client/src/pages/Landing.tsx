@@ -15,7 +15,17 @@ export default function Landing() {
     }
   }, [user, setLocation]);
 
-  if (isLoading || user) return null;
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 animate-pulse">
+          <img src={surfTribeLogo} alt="SurfTribe" className="w-full h-full object-contain" />
+        </div>
+      </div>
+    );
+  }
+
+  if (user) return null;
 
   return (
     <div className="min-h-screen relative overflow-hidden bg-background">

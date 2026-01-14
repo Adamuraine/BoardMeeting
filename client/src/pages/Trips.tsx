@@ -472,7 +472,7 @@ function TripCard({ trip }: { trip: any }) {
     <div 
       className="bg-card rounded-2xl p-5 border border-border shadow-sm hover-elevate cursor-pointer" 
       data-testid={`card-trip-${trip.id}`}
-      onClick={() => setLocation(`/trip/${trip.id}`)}
+      onClick={() => setLocation(`/trips/${trip.id}`)}
     >
       <div className="flex justify-between items-start mb-3 gap-2">
         <div className="flex-1 min-w-0">

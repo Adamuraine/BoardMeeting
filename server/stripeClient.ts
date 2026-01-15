@@ -1,9 +1,10 @@
 import Stripe from 'stripe';
 
-let connectionSettings: any;
 let stripeAvailable = true;
+let cachedSecretKey: string | null = null;
+let cachedPublishableKey: string | null = null;
 
-async function getCredentials() {
+async function getCredentialsFromConnector() {
   const hostname = process.env.REPLIT_CONNECTORS_HOSTNAME;
   const xReplitToken = process.env.REPL_IDENTITY
     ? 'repl ' + process.env.REPL_IDENTITY
@@ -12,8 +13,7 @@ async function getCredentials() {
       : null;
 
   if (!xReplitToken || !hostname) {
-    stripeAvailable = false;
-    throw new Error('Stripe connector not configured');
+    return null;
   }
 
   const connectorName = 'stripe';
@@ -25,26 +25,55 @@ async function getCredentials() {
   url.searchParams.set('connector_names', connectorName);
   url.searchParams.set('environment', targetEnvironment);
 
-  const response = await fetch(url.toString(), {
-    headers: {
-      'Accept': 'application/json',
-      'X_REPLIT_TOKEN': xReplitToken
+  try {
+    const response = await fetch(url.toString(), {
+      headers: {
+        'Accept': 'application/json',
+        'X_REPLIT_TOKEN': xReplitToken
+      }
+    });
+
+    const data = await response.json();
+    const connectionSettings = data.items?.[0];
+
+    if (connectionSettings?.settings?.publishable && connectionSettings?.settings?.secret) {
+      return {
+        publishableKey: connectionSettings.settings.publishable,
+        secretKey: connectionSettings.settings.secret,
+      };
     }
-  });
-
-  const data = await response.json();
+  } catch (error) {
+    console.log('Connector not available, checking environment variables...');
+  }
   
-  connectionSettings = data.items?.[0];
+  return null;
+}
 
-  if (!connectionSettings || (!connectionSettings.settings.publishable || !connectionSettings.settings.secret)) {
-    stripeAvailable = false;
-    throw new Error(`Stripe ${targetEnvironment} connection not found`);
+async function getCredentials() {
+  if (cachedSecretKey && cachedPublishableKey) {
+    return { secretKey: cachedSecretKey, publishableKey: cachedPublishableKey };
   }
 
-  return {
-    publishableKey: connectionSettings.settings.publishable,
-    secretKey: connectionSettings.settings.secret,
-  };
+  const connectorCreds = await getCredentialsFromConnector();
+  if (connectorCreds) {
+    cachedSecretKey = connectorCreds.secretKey;
+    cachedPublishableKey = connectorCreds.publishableKey;
+    console.log('Using Stripe credentials from Replit connector');
+    return connectorCreds;
+  }
+
+  const secretKey = process.env.STRIPE_SECRET_KEY;
+  const publishableKey = process.env.STRIPE_PUBLISHABLE_KEY;
+
+  if (secretKey && publishableKey) {
+    cachedSecretKey = secretKey;
+    cachedPublishableKey = publishableKey;
+    console.log('Using Stripe credentials from environment variables');
+    return { secretKey, publishableKey };
+  }
+
+  stripeAvailable = false;
+  throw new Error('Stripe not configured: No connector or STRIPE_SECRET_KEY/STRIPE_PUBLISHABLE_KEY found');
 }
 
 export function isStripeAvailable() {
@@ -53,7 +82,6 @@ export function isStripeAvailable() {
 
 export async function getUncachableStripeClient() {
   const { secretKey } = await getCredentials();
-
   return new Stripe(secretKey);
 }
 

@@ -62,6 +62,21 @@ const ACTIVITY_OPTIONS = [
   { id: "leaf", label: "Nature", icon: Leaf },
 ];
 
+const WAVE_TYPE_OPTIONS = [
+  { id: "point_break", label: "Point Break" },
+  { id: "beach_break", label: "Beach Break" },
+  { id: "outer_reef", label: "Outer Reef" },
+  { id: "beginner_crumbly", label: "Beginner (Long & Crumbly)" },
+  { id: "long_performance", label: "Long & Performance" },
+];
+
+const PRICE_RANGES = [
+  { id: "budget", label: "$", min: 0, max: 500 },
+  { id: "moderate", label: "$$", min: 500, max: 1500 },
+  { id: "premium", label: "$$$", min: 1500, max: 5000 },
+  { id: "luxury", label: "$$$$", min: 5000, max: null },
+];
+
 export default function Trips() {
   const { data: trips, isLoading } = useTrips();
   const { user } = useAuth();
@@ -77,6 +92,9 @@ export default function Trips() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [flexibleDates, setFlexibleDates] = useState(false);
   const [flexibleLocation, setFlexibleLocation] = useState(false);
+  const [selectedWaveTypes, setSelectedWaveTypes] = useState<string[]>([]);
+  const [selectedPriceRange, setSelectedPriceRange] = useState<string>("");
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const handleLetsGo = () => {
     if (!user || !destFilter || destFilter === "all" || !dateRange?.from || !dateRange?.to) {
@@ -84,6 +102,8 @@ export default function Trips() {
       return;
     }
 
+    const priceConfig = selectedPriceRange ? PRICE_RANGES.find(p => p.id === selectedPriceRange) : null;
+    
     createTrip.mutate({
       organizerId: user.id,
       destination: destFilter,
@@ -91,6 +111,10 @@ export default function Trips() {
       startDate: format(dateRange.from, "yyyy-MM-dd"),
       endDate: format(dateRange.to, "yyyy-MM-dd"),
       tripType: "surf_trip",
+      waveType: selectedWaveTypes.length > 0 ? selectedWaveTypes : undefined,
+      priceRangeMin: priceConfig?.min ?? undefined,
+      priceRangeMax: priceConfig?.max ?? undefined,
+      approximateDates: flexibleDates,
     }, {
       onSuccess: (trip) => {
         setCreatedTripId(trip.id);
@@ -143,10 +167,25 @@ export default function Trips() {
         if (dateRange.from && new Date(trip.startDate) < dateRange.from) return false;
         if (dateRange.to && new Date(trip.endDate) > dateRange.to) return false;
       }
+
+      if (selectedWaveTypes.length > 0 && trip.waveType) {
+        const hasMatchingWave = selectedWaveTypes.some(wt => trip.waveType?.includes(wt));
+        if (!hasMatchingWave) return false;
+      }
+
+      if (selectedPriceRange) {
+        const priceConfig = PRICE_RANGES.find(p => p.id === selectedPriceRange);
+        if (priceConfig) {
+          const tripMin = trip.priceRangeMin ?? trip.cost ?? 0;
+          const tripMax = trip.priceRangeMax ?? trip.cost ?? 0;
+          if (tripMax < priceConfig.min) return false;
+          if (priceConfig.max && tripMin > priceConfig.max) return false;
+        }
+      }
       
       return true;
     });
-  }, [trips, startFilter, destFilter, dateRange, flexibleDates, flexibleLocation]);
+  }, [trips, startFilter, destFilter, dateRange, flexibleDates, flexibleLocation, selectedWaveTypes, selectedPriceRange]);
 
   const visitingTrips = useMemo(() => {
     if (!trips) return [];
@@ -297,9 +336,75 @@ export default function Trips() {
               </div>
 
               <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
+                className="w-full text-xs text-muted-foreground"
+                data-testid="button-advanced-filters"
+              >
+                {showAdvancedFilters ? "Hide" : "Show"} Wave & Budget Options
+              </Button>
+
+              {showAdvancedFilters && (
+                <div className="space-y-3 pt-2 border-t border-border/50">
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Wave Type</Label>
+                    <div className="flex flex-wrap gap-2">
+                      {WAVE_TYPE_OPTIONS.map((wave) => (
+                        <button
+                          key={wave.id}
+                          onClick={() => setSelectedWaveTypes(prev => 
+                            prev.includes(wave.id) 
+                              ? prev.filter(w => w !== wave.id)
+                              : [...prev, wave.id]
+                          )}
+                          className={`px-3 py-1.5 rounded-full text-xs font-medium transition-all ${
+                            selectedWaveTypes.includes(wave.id)
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-secondary text-secondary-foreground hover-elevate"
+                          }`}
+                          data-testid={`button-wave-${wave.id}`}
+                        >
+                          {wave.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-xs text-muted-foreground">Budget Range</Label>
+                    <div className="flex gap-2">
+                      {PRICE_RANGES.map((price) => (
+                        <button
+                          key={price.id}
+                          onClick={() => setSelectedPriceRange(prev => prev === price.id ? "" : price.id)}
+                          className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${
+                            selectedPriceRange === price.id
+                              ? "bg-green-500 text-white"
+                              : "bg-secondary text-secondary-foreground hover-elevate"
+                          }`}
+                          data-testid={`button-price-${price.id}`}
+                        >
+                          {price.label}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[10px] text-muted-foreground text-center">
+                      {selectedPriceRange ? 
+                        PRICE_RANGES.find(p => p.id === selectedPriceRange)?.max 
+                          ? `$${PRICE_RANGES.find(p => p.id === selectedPriceRange)?.min} - $${PRICE_RANGES.find(p => p.id === selectedPriceRange)?.max}`
+                          : `$${PRICE_RANGES.find(p => p.id === selectedPriceRange)?.min}+`
+                        : "Select a budget range"
+                      }
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <Button 
                 onClick={handleLetsGo}
                 disabled={createTrip.isPending}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold"
+                className="w-full bg-green-500 text-white font-semibold"
                 data-testid="button-lets-go"
               >
                 {createTrip.isPending ? "Creating..." : "Let's Go!"}
@@ -468,6 +573,25 @@ export default function Trips() {
 function TripCard({ trip }: { trip: any }) {
   const [, setLocation] = useLocation();
   
+  const getBudgetDisplay = () => {
+    if (trip.priceRangeMin != null || trip.priceRangeMax != null) {
+      if (trip.priceRangeMax) {
+        return `$${trip.priceRangeMin || 0} - $${trip.priceRangeMax}`;
+      }
+      return `$${trip.priceRangeMin}+`;
+    }
+    return `$${trip.cost || 0}`;
+  };
+
+  const getWaveTypeLabels = () => {
+    if (!trip.waveType || trip.waveType.length === 0) return null;
+    return trip.waveType.map((wt: string) => 
+      WAVE_TYPE_OPTIONS.find(w => w.id === wt)?.label || wt
+    ).slice(0, 2);
+  };
+
+  const waveLabels = getWaveTypeLabels();
+  
   return (
     <div 
       className="bg-card rounded-2xl p-5 border border-border shadow-sm hover-elevate cursor-pointer" 
@@ -479,6 +603,9 @@ function TripCard({ trip }: { trip: any }) {
           <div className="flex items-center text-xs text-primary font-bold uppercase tracking-wider mb-1">
             {trip.tripType === 'carpool' ? <Car className="w-3 h-3 mr-1" /> : <Anchor className="w-3 h-3 mr-1" />}
             {trip.tripType}
+            {trip.approximateDates && (
+              <span className="ml-2 text-[10px] text-muted-foreground font-normal normal-case">(flexible dates)</span>
+            )}
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
             <span className="truncate">{trip.startingLocation || "TBD"}</span>
@@ -488,11 +615,26 @@ function TripCard({ trip }: { trip: any }) {
         </div>
         <div className="text-right shrink-0">
           <div className="text-xl font-bold font-display text-primary">
-            ${trip.cost || 0}
+            {getBudgetDisplay()}
           </div>
-          <span className="text-[10px] text-muted-foreground">est. cost</span>
+          <span className="text-[10px] text-muted-foreground">budget</span>
         </div>
       </div>
+
+      {waveLabels && waveLabels.length > 0 && (
+        <div className="flex flex-wrap gap-1 mb-3">
+          {waveLabels.map((label: string, idx: number) => (
+            <span key={idx} className="text-[10px] px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-700 dark:text-cyan-300" data-testid={`badge-wave-${idx}`}>
+              {label}
+            </span>
+          ))}
+          {trip.waveType && trip.waveType.length > 2 && (
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-secondary text-muted-foreground" data-testid="badge-wave-more">
+              +{trip.waveType.length - 2}
+            </span>
+          )}
+        </div>
+      )}
       
       <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
         {trip.description || "No description provided"}

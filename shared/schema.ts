@@ -83,12 +83,15 @@ export const trips = pgTable("trips", {
   isVisiting: boolean("is_visiting").default(false), // Solo traveler looking to meet locals
   activities: text("activities").array(), // Activity icons: surfboard, sandals, beer, umbrella, boat, fishing, leaf
   expectations: text("expectations"), // Trip expectations and goals
-  waveType: text("wave_type").array(), // steep, gentle (multi-select)
+  waveType: text("wave_type").array(), // point_break, beach_break, outer_reef, beginner_crumbly, long_performance
   rideStyle: text("ride_style").array(), // performance, chill (multi-select)
   locationPreference: text("location_preference").array(), // remote, town (multi-select)
   vibe: text("vibe").array(), // party, waterTime (multi-select)
   extraActivities: text("extra_activities").array(), // fishing, spearfishing
   broadcastEnabled: boolean("broadcast_enabled").default(false),
+  priceRangeMin: integer("price_range_min"), // minimum budget
+  priceRangeMax: integer("price_range_max"), // maximum budget
+  approximateDates: boolean("approximate_dates").default(false), // flexible on exact dates
 });
 
 // === POSTS (Surf Photos) ===

@@ -7,41 +7,49 @@ import { useAuth } from "@/hooks/use-auth";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Loader2 } from "lucide-react";
 import BottomNav from "@/components/ui/bottom-nav";
+import { lazy, Suspense } from "react";
 
 import Landing from "@/pages/Landing";
-import Onboarding from "@/pages/Onboarding";
-import Buddies from "@/pages/Buddies";
-import SurfReports from "@/pages/SurfReports";
-import Trips from "@/pages/Trips";
 import Profile from "@/pages/Profile";
-import ViewProfile from "@/pages/ViewProfile";
-import Stats from "@/pages/Stats";
-import Home from "@/pages/Home";
-import NewPost from "@/pages/NewPost";
-import Messages from "@/pages/Messages";
-import TripItinerary from "@/pages/TripItinerary";
-import NotFound from "@/pages/not-found";
+
+const Onboarding = lazy(() => import("@/pages/Onboarding"));
+const Buddies = lazy(() => import("@/pages/Buddies"));
+const SurfReports = lazy(() => import("@/pages/SurfReports"));
+const Trips = lazy(() => import("@/pages/Trips"));
+const ViewProfile = lazy(() => import("@/pages/ViewProfile"));
+const Stats = lazy(() => import("@/pages/Stats"));
+const Home = lazy(() => import("@/pages/Home"));
+const NewPost = lazy(() => import("@/pages/NewPost"));
+const Messages = lazy(() => import("@/pages/Messages"));
+const TripItinerary = lazy(() => import("@/pages/TripItinerary"));
+const NotFound = lazy(() => import("@/pages/not-found"));
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+  </div>
+);
 
 // Protected Route Wrapper
-function ProtectedRoute({ component: Component }: { component: React.ComponentType }) {
+function ProtectedRoute({ component: Component, requiresProfile = true }: { component: React.ComponentType; requiresProfile?: boolean }) {
   const { user, isLoading: authLoading } = useAuth();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
 
   if (authLoading || (user && profileLoading)) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+    return <PageLoader />;
   }
 
   if (!user) return <Redirect to="/" />;
   
-  if (!profile && Component !== Onboarding) return <Redirect to="/onboarding" />;
+  if (!profile && requiresProfile) {
+    return <Redirect to="/onboarding" />;
+  }
 
   return (
     <div className="pb-16 min-h-screen bg-background">
-      <Component />
+      <Suspense fallback={<PageLoader />}>
+        <Component />
+      </Suspense>
       <BottomNav />
     </div>
   );
@@ -66,7 +74,7 @@ function Router() {
         <ProtectedRoute component={Stats} />
       </Route>
       <Route path="/onboarding">
-        <ProtectedRoute component={Onboarding} />
+        <ProtectedRoute component={Onboarding} requiresProfile={false} />
       </Route>
       <Route path="/buddies">
         <ProtectedRoute component={Buddies} />

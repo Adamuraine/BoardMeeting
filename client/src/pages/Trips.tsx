@@ -1,7 +1,7 @@
 import { useTrips, useCreateTrip, useUpdateTripActivities } from "@/hooks/use-trips";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -603,6 +603,36 @@ export default function Trips() {
                     <p className="text-sm">Try adjusting your search or create a new trip</p>
                   </div>
                 )}
+
+                {/* Share SurfTribe QR Code */}
+                <div className="bg-card/90 backdrop-blur-sm rounded-xl p-4 border border-border/50 mt-6">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Share2 className="w-5 h-5 text-primary" />
+                    <h3 className="font-semibold">Share SurfTribe</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Invite your surf buddies! Scan or share this QR code to download the app.
+                  </p>
+                  <div className="flex flex-col items-center gap-3">
+                    <div className="bg-white p-3 rounded-xl">
+                      <img 
+                        src="/surftribe-qr-code.png" 
+                        alt="SurfTribe QR Code" 
+                        className="w-40 h-40"
+                        data-testid="img-qr-code"
+                      />
+                    </div>
+                    <a 
+                      href="/surftribe-qr-code.png" 
+                      download="surftribe-qr-code.png"
+                      className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+                      data-testid="link-download-qr"
+                    >
+                      <Download className="w-4 h-4" />
+                      Download QR Code
+                    </a>
+                  </div>
+                </div>
               </div>
             )}
           </TabsContent>

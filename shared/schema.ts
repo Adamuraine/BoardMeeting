@@ -92,6 +92,12 @@ export const trips = pgTable("trips", {
   priceRangeMin: integer("price_range_min"), // minimum budget
   priceRangeMax: integer("price_range_max"), // maximum budget
   approximateDates: boolean("approximate_dates").default(false), // flexible on exact dates
+  // Expense breakdown (shared costs)
+  houseRental: integer("house_rental"), // accommodation cost
+  taxiRides: integer("taxi_rides"), // ground transportation
+  boatTrips: integer("boat_trips"), // boat charters
+  cookingMeals: integer("cooking_meals"), // chef/food costs
+  boardRental: integer("board_rental"), // board rental or travel fees
 });
 
 // === POSTS (Surf Photos) ===

@@ -69,7 +69,7 @@ export interface IStorage {
   
   // Trip Activities
   updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
-  updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[]; waveType?: string; rideStyle?: string; locationPreference?: string; vibe?: string; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
+  updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
   updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number }): Promise<Trip>;
   
   // Surf Reports
@@ -698,12 +698,12 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[]; waveType?: string; rideStyle?: string; locationPreference?: string; vibe?: string; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip> {
+  async updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip> {
     const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
     if (!trip) throw new Error("Trip not found");
     if (trip.organizerId !== userId) throw new Error("Not authorized to update this trip");
     
-    const updateData: Partial<{ expectations: string; activities: string[]; waveType: string; rideStyle: string; locationPreference: string; vibe: string; extraActivities: string[]; broadcastEnabled: boolean }> = {};
+    const updateData: any = {};
     if (updates.expectations !== undefined) updateData.expectations = updates.expectations;
     if (updates.activities !== undefined) updateData.activities = updates.activities;
     if (updates.waveType !== undefined) updateData.waveType = updates.waveType;

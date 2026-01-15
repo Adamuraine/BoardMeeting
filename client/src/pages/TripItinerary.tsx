@@ -361,7 +361,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                       <div className="border-t border-border pt-2 mt-2">
                         <div className="flex items-center justify-between font-semibold">
                           <span>Total Trip Cost</span>
-                          <span className="text-primary text-lg">${(trip.cost || 0).toLocaleString()}</span>
+                          <span className="text-primary text-lg">${((trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0)).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
@@ -395,7 +395,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground mb-1">Cost per person with {travelerCount} travelers</p>
                           <p className="text-2xl font-bold text-primary">
-                            ${Math.round((trip.cost || 0) / travelerCount).toLocaleString()}
+                            ${Math.round(((trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0)) / travelerCount).toLocaleString()}
                           </p>
                         </div>
                         
@@ -431,22 +431,25 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                       </div>
 
                       <div className="mt-4 grid grid-cols-4 gap-2 text-center">
-                        {[2, 4, 8, 12].map((count) => (
-                          <button
-                            key={count}
-                            onClick={() => setTravelerCount(count)}
-                            className={cn(
-                              "py-2 px-3 rounded-lg text-xs font-medium transition-all",
-                              travelerCount === count
-                                ? "bg-primary text-primary-foreground"
-                                : "bg-secondary hover-elevate"
-                            )}
-                            data-testid={`button-travelers-${count}`}
-                          >
-                            <div className="font-bold">{count}</div>
-                            <div className="text-[10px] opacity-75">${Math.round((trip.cost || 0) / count)}/ea</div>
-                          </button>
-                        ))}
+                        {[2, 4, 8, 12].map((count) => {
+                          const totalCost = (trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0);
+                          return (
+                            <button
+                              key={count}
+                              onClick={() => setTravelerCount(count)}
+                              className={cn(
+                                "py-2 px-3 rounded-lg text-xs font-medium transition-all",
+                                travelerCount === count
+                                  ? "bg-primary text-primary-foreground"
+                                  : "bg-secondary hover-elevate"
+                              )}
+                              data-testid={`button-travelers-${count}`}
+                            >
+                              <div className="font-bold">{count}</div>
+                              <div className="text-[10px] opacity-75">${Math.round(totalCost / count)}/ea</div>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   </>

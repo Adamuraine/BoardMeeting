@@ -107,5 +107,5 @@ shared/           # Shared code between client/server
   - `stripeSubscriptionId` - Active subscription ID
   - `isPremium` - Premium status (updated via webhooks)
 - **Required Config**:
-  - `STRIPE_PREMIUM_PRICE_ID` - Price ID for the $5/month subscription
-  - Stripe connector must be configured in Replit
+  - `STRIPE_PREMIUM_PRICE_ID` - Price ID for the $5/month subscription (live: price_1Spi6gEGnhrnnleQBcfxR4km)
+  - Stripe connector configured via Replit integration (supports both env vars and connector)

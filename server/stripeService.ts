@@ -10,6 +10,29 @@ export class StripeService {
     });
   }
 
+  async getOrCreateCustomer(existingCustomerId: string | null, email: string, userId: string): Promise<string> {
+    const stripe = await getUncachableStripeClient();
+    
+    if (existingCustomerId) {
+      try {
+        const customer = await stripe.customers.retrieve(existingCustomerId);
+        if (!customer.deleted) {
+          return existingCustomerId;
+        }
+      } catch (error: any) {
+        console.log(`Customer ${existingCustomerId} not found in Stripe, creating new one`);
+      }
+    }
+    
+    const newCustomer = await stripe.customers.create({
+      email,
+      metadata: { userId },
+    });
+    
+    await storage.updateUserStripeInfo(userId, { stripeCustomerId: newCustomer.id });
+    return newCustomer.id;
+  }
+
   async createCheckoutSession(customerId: string, priceId: string, successUrl: string, cancelUrl: string) {
     const stripe = await getUncachableStripeClient();
     return await stripe.checkout.sessions.create({

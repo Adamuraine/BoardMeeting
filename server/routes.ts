@@ -553,12 +553,11 @@ export async function registerRoutes(
         return res.status(404).json({ message: "User not found" });
       }
       
-      let customerId = profile.stripeCustomerId;
-      if (!customerId) {
-        const customer = await stripeService.createCustomer(user.email || "", userId);
-        await storage.updateUserStripeInfo(userId, { stripeCustomerId: customer.id });
-        customerId = customer.id;
-      }
+      const customerId = await stripeService.getOrCreateCustomer(
+        profile.stripeCustomerId,
+        user.email || "",
+        userId
+      );
       
       const priceId = process.env.STRIPE_PREMIUM_PRICE_ID;
       if (!priceId) {

@@ -70,6 +70,7 @@ export interface IStorage {
   // Trip Activities
   updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
   updateTrip(tripId: number, userId: string, updates: { expectations?: string; activities?: string[]; waveType?: string; rideStyle?: string; locationPreference?: string; vibe?: string; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
+  updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number }): Promise<Trip>;
   
   // Surf Reports
   upsertSurfReports(locationId: number, reports: Partial<InsertSurfReport>[]): Promise<void>;
@@ -711,6 +712,34 @@ export class DatabaseStorage implements IStorage {
     if (updates.vibe !== undefined) updateData.vibe = updates.vibe;
     if (updates.extraActivities !== undefined) updateData.extraActivities = updates.extraActivities;
     if (updates.broadcastEnabled !== undefined) updateData.broadcastEnabled = updates.broadcastEnabled;
+    
+    const [updated] = await db.update(trips)
+      .set(updateData)
+      .where(eq(trips.id, tripId))
+      .returning();
+    return updated;
+  }
+
+  async updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number }): Promise<Trip> {
+    const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+    if (!trip) throw new Error("Trip not found");
+    if (trip.organizerId !== userId) throw new Error("Not authorized to update this trip");
+    
+    const updateData: any = {};
+    if (details.activities !== undefined) updateData.activities = details.activities;
+    if (details.houseRental !== undefined) updateData.houseRental = details.houseRental;
+    if (details.taxiRides !== undefined) updateData.taxiRides = details.taxiRides;
+    if (details.boatTrips !== undefined) updateData.boatTrips = details.boatTrips;
+    if (details.cookingMeals !== undefined) updateData.cookingMeals = details.cookingMeals;
+    if (details.boardRental !== undefined) updateData.boardRental = details.boardRental;
+    
+    // Also update total cost
+    const totalCost = (details.houseRental || trip.houseRental || 0) + 
+                      (details.taxiRides || trip.taxiRides || 0) + 
+                      (details.boatTrips || trip.boatTrips || 0) + 
+                      (details.cookingMeals || trip.cookingMeals || 0) + 
+                      (details.boardRental || trip.boardRental || 0);
+    updateData.cost = totalCost;
     
     const [updated] = await db.update(trips)
       .set(updateData)

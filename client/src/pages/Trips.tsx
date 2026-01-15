@@ -88,6 +88,12 @@ export default function Trips() {
   const [selectedActivities, setSelectedActivities] = useState<string[]>([]);
   const [startFilter, setStartFilter] = useState<string>("");
   const [destFilter, setDestFilter] = useState<string>("");
+  // Expense inputs
+  const [houseRental, setHouseRental] = useState<string>("");
+  const [taxiRides, setTaxiRides] = useState<string>("");
+  const [boatTrips, setBoatTrips] = useState<string>("");
+  const [cookingMeals, setCookingMeals] = useState<string>("");
+  const [boardRental, setBoardRental] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [flexibleDates, setFlexibleDates] = useState(false);
@@ -413,7 +419,7 @@ export default function Trips() {
             </div>
 
             <Dialog open={tripDetailsOpen} onOpenChange={setTripDetailsOpen}>
-              <DialogContent className="max-w-sm">
+              <DialogContent className="max-w-md max-h-[85vh] overflow-y-auto">
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <Sailboat className="w-5 h-5 text-primary" />
@@ -422,40 +428,147 @@ export default function Trips() {
                 </DialogHeader>
                 <div className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Trip to <span className="font-semibold text-foreground">{destFilter}</span> created! Select activities for your trip:
+                    Trip to <span className="font-semibold text-foreground">{destFilter}</span> created! Add activities and costs:
                   </p>
-                  <div className="grid grid-cols-4 gap-2">
-                    {ACTIVITY_OPTIONS.map((activity) => {
-                      const Icon = activity.icon;
-                      const isSelected = selectedActivities.includes(activity.id);
-                      return (
-                        <button
-                          key={activity.id}
-                          onClick={() => toggleActivity(activity.id)}
-                          className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${
-                            isSelected 
-                              ? "border-primary bg-primary/10 text-primary" 
-                              : "border-border bg-card hover-elevate"
-                          }`}
-                          data-testid={`button-activity-${activity.id}`}
-                        >
-                          <Icon className="w-6 h-6" />
-                          <span className="text-xs">{activity.label}</span>
-                        </button>
-                      );
-                    })}
+                  
+                  <div className="space-y-2">
+                    <Label className="text-xs font-medium">Activities</Label>
+                    <div className="grid grid-cols-4 gap-2">
+                      {ACTIVITY_OPTIONS.map((activity) => {
+                        const Icon = activity.icon;
+                        const isSelected = selectedActivities.includes(activity.id);
+                        return (
+                          <button
+                            key={activity.id}
+                            onClick={() => toggleActivity(activity.id)}
+                            className={`flex flex-col items-center gap-1 p-3 rounded-xl border-2 transition-all ${
+                              isSelected 
+                                ? "border-primary bg-primary/10 text-primary" 
+                                : "border-border bg-card hover-elevate"
+                            }`}
+                            data-testid={`button-activity-${activity.id}`}
+                          >
+                            <Icon className="w-6 h-6" />
+                            <span className="text-xs">{activity.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   </div>
+
+                  <div className="space-y-3 pt-2 border-t border-border/50">
+                    <Label className="text-xs font-medium">Trip Expenses (Total Cost)</Label>
+                    <p className="text-xs text-muted-foreground">
+                      Enter total costs - these will be split among travelers
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">House Rental</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input 
+                            type="number" 
+                            placeholder="0"
+                            value={houseRental}
+                            onChange={(e) => setHouseRental(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-house-rental"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Taxi/Transport</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input 
+                            type="number" 
+                            placeholder="0"
+                            value={taxiRides}
+                            onChange={(e) => setTaxiRides(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-taxi-rides"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Boat Trips</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input 
+                            type="number" 
+                            placeholder="0"
+                            value={boatTrips}
+                            onChange={(e) => setBoatTrips(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-boat-trips"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Food/Chef</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input 
+                            type="number" 
+                            placeholder="0"
+                            value={cookingMeals}
+                            onChange={(e) => setCookingMeals(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-cooking-meals"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-1 col-span-2">
+                        <Label className="text-xs text-muted-foreground">Board Rental / Surfboard Travel</Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input 
+                            type="number" 
+                            placeholder="0"
+                            value={boardRental}
+                            onChange={(e) => setBoardRental(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-board-rental"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                    {(houseRental || taxiRides || boatTrips || cookingMeals || boardRental) && (
+                      <div className="bg-primary/10 rounded-lg p-3 mt-2">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Total Trip Cost</span>
+                          <span className="text-lg font-bold text-primary">
+                            ${(parseInt(houseRental || "0") + parseInt(taxiRides || "0") + parseInt(boatTrips || "0") + parseInt(cookingMeals || "0") + parseInt(boardRental || "0")).toLocaleString()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Per person with 4 travelers: ${Math.round((parseInt(houseRental || "0") + parseInt(taxiRides || "0") + parseInt(boatTrips || "0") + parseInt(cookingMeals || "0") + parseInt(boardRental || "0")) / 4).toLocaleString()}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+
                   <Button 
                     onClick={async () => {
-                      if (createdTripId && selectedActivities.length > 0) {
+                      if (createdTripId) {
                         updateActivities.mutate({ 
                           tripId: createdTripId, 
-                          activities: selectedActivities 
+                          activities: selectedActivities,
+                          houseRental: houseRental ? parseInt(houseRental) : undefined,
+                          taxiRides: taxiRides ? parseInt(taxiRides) : undefined,
+                          boatTrips: boatTrips ? parseInt(boatTrips) : undefined,
+                          cookingMeals: cookingMeals ? parseInt(cookingMeals) : undefined,
+                          boardRental: boardRental ? parseInt(boardRental) : undefined,
                         }, {
                           onSuccess: () => {
                             setTripDetailsOpen(false);
                             setSelectedActivities([]);
                             setCreatedTripId(null);
+                            setHouseRental("");
+                            setTaxiRides("");
+                            setBoatTrips("");
+                            setCookingMeals("");
+                            setBoardRental("");
                           }
                         });
                       } else {

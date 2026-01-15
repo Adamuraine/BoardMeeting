@@ -46,17 +46,34 @@ export function useCreateTrip() {
   });
 }
 
+interface UpdateTripDetailsInput {
+  tripId: number;
+  activities?: string[];
+  houseRental?: number;
+  taxiRides?: number;
+  boatTrips?: number;
+  cookingMeals?: number;
+  boardRental?: number;
+}
+
 export function useUpdateTripActivities() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ tripId, activities }: { tripId: number; activities: string[] }) => {
-      const res = await fetch(`/api/trips/${tripId}/activities`, {
+    mutationFn: async ({ tripId, activities, houseRental, taxiRides, boatTrips, cookingMeals, boardRental }: UpdateTripDetailsInput) => {
+      const res = await fetch(`/api/trips/${tripId}/details`, {
         method: 'PATCH',
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ activities }),
+        body: JSON.stringify({ 
+          activities, 
+          houseRental, 
+          taxiRides, 
+          boatTrips, 
+          cookingMeals, 
+          boardRental 
+        }),
         credentials: "include",
       });
-      if (!res.ok) throw new Error("Failed to update trip activities");
+      if (!res.ok) throw new Error("Failed to update trip details");
       return res.json();
     },
     onSuccess: () => {

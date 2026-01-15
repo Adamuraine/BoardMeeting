@@ -6,13 +6,15 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useMyProfile } from "@/hooks/use-profiles";
 import type { Trip, Profile } from "@shared/schema";
+import { useState } from "react";
+import { Slider } from "@/components/ui/slider";
 
 interface TripItineraryProps {
   params?: { id?: string };
@@ -48,6 +50,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const { data: profile } = useMyProfile();
+  const [travelerCount, setTravelerCount] = useState(4);
 
   const { data: trip, isLoading } = useQuery<Trip & { organizer: Profile }>({
     queryKey: ["/api/trips", tripId],
@@ -295,6 +298,165 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                     </Badge>
                   );
                 })}
+              </CardContent>
+            </Card>
+
+            {/* Cost Breakdown Section */}
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <DollarSign className="w-5 h-5 text-primary" />
+                  Trip Cost Breakdown
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {(trip.houseRental || trip.taxiRides || trip.boatTrips || trip.cookingMeals || trip.boardRental) ? (
+                  <>
+                    <div className="space-y-2">
+                      {trip.houseRental && trip.houseRental > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Home className="w-4 h-4 text-muted-foreground" />
+                            <span>House Rental</span>
+                          </div>
+                          <span className="font-medium">${trip.houseRental.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {trip.taxiRides && trip.taxiRides > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Car className="w-4 h-4 text-muted-foreground" />
+                            <span>Taxi / Transport</span>
+                          </div>
+                          <span className="font-medium">${trip.taxiRides.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {trip.boatTrips && trip.boatTrips > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Anchor className="w-4 h-4 text-muted-foreground" />
+                            <span>Boat Trips</span>
+                          </div>
+                          <span className="font-medium">${trip.boatTrips.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {trip.cookingMeals && trip.cookingMeals > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <UtensilsCrossed className="w-4 h-4 text-muted-foreground" />
+                            <span>Food / Chef</span>
+                          </div>
+                          <span className="font-medium">${trip.cookingMeals.toLocaleString()}</span>
+                        </div>
+                      )}
+                      {trip.boardRental && trip.boardRental > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Sailboat className="w-4 h-4 text-muted-foreground" />
+                            <span>Board Rental / Travel</span>
+                          </div>
+                          <span className="font-medium">${trip.boardRental.toLocaleString()}</span>
+                        </div>
+                      )}
+                      <div className="border-t border-border pt-2 mt-2">
+                        <div className="flex items-center justify-between font-semibold">
+                          <span>Total Trip Cost</span>
+                          <span className="text-primary text-lg">${(trip.cost || 0).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="bg-gradient-to-r from-cyan-500/10 to-blue-500/10 rounded-lg p-4 mt-4">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-2">
+                          <Users className="w-4 h-4 text-primary" />
+                          <span className="text-sm font-medium">Travelers</span>
+                        </div>
+                        <span className="text-lg font-bold text-primary">{travelerCount}</span>
+                      </div>
+                      <Slider
+                        value={[travelerCount]}
+                        onValueChange={(value) => setTravelerCount(value[0])}
+                        min={1}
+                        max={20}
+                        step={1}
+                        className="mb-4"
+                        data-testid="slider-travelers"
+                      />
+                      <div className="flex justify-between text-xs text-muted-foreground mb-4">
+                        <span>1</span>
+                        <span>5</span>
+                        <span>10</span>
+                        <span>15</span>
+                        <span>20</span>
+                      </div>
+                      
+                      <div className="bg-card rounded-lg p-3 border border-border">
+                        <div className="text-center">
+                          <p className="text-xs text-muted-foreground mb-1">Cost per person with {travelerCount} travelers</p>
+                          <p className="text-2xl font-bold text-primary">
+                            ${Math.round((trip.cost || 0) / travelerCount).toLocaleString()}
+                          </p>
+                        </div>
+                        
+                        {travelerCount > 1 && (
+                          <div className="mt-3 pt-3 border-t border-border/50 space-y-1 text-xs">
+                            {trip.houseRental && trip.houseRental > 0 && (
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>House: ${Math.round(trip.houseRental / travelerCount)}/person</span>
+                              </div>
+                            )}
+                            {trip.taxiRides && trip.taxiRides > 0 && (
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>Transport: ${Math.round(trip.taxiRides / travelerCount)}/person</span>
+                              </div>
+                            )}
+                            {trip.boatTrips && trip.boatTrips > 0 && (
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>Boat: ${Math.round(trip.boatTrips / travelerCount)}/person</span>
+                              </div>
+                            )}
+                            {trip.cookingMeals && trip.cookingMeals > 0 && (
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>Food: ${Math.round(trip.cookingMeals / travelerCount)}/person</span>
+                              </div>
+                            )}
+                            {trip.boardRental && trip.boardRental > 0 && (
+                              <div className="flex justify-between text-muted-foreground">
+                                <span>Board: ${Math.round(trip.boardRental / travelerCount)}/person</span>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className="mt-4 grid grid-cols-4 gap-2 text-center">
+                        {[2, 4, 8, 12].map((count) => (
+                          <button
+                            key={count}
+                            onClick={() => setTravelerCount(count)}
+                            className={cn(
+                              "py-2 px-3 rounded-lg text-xs font-medium transition-all",
+                              travelerCount === count
+                                ? "bg-primary text-primary-foreground"
+                                : "bg-secondary hover-elevate"
+                            )}
+                            data-testid={`button-travelers-${count}`}
+                          >
+                            <div className="font-bold">{count}</div>
+                            <div className="text-[10px] opacity-75">${Math.round((trip.cost || 0) / count)}/ea</div>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                    <p className="text-sm">No cost breakdown available</p>
+                    <p className="text-xs mt-1">Add expenses when creating or editing the trip</p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 

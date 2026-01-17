@@ -1,0 +1,24 @@
+{
+  "name": "SurfTribe",
+  "short_name": "SurfTribe",
+  "description": "Connect with surfers, check conditions, and plan trips together",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0a0a0a",
+  "theme_color": "#4FC6F7",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/surftribe-icon.jpg",
+      "sizes": "192x192",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/surftribe-icon.jpg",
+      "sizes": "512x512",
+      "type": "image/jpeg",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { InstallAppButton } from "@/components/InstallAppButton";
 
 export default function Profile() {
   const { data: profile, isLoading } = useMyProfile();
@@ -864,7 +865,7 @@ export default function Profile() {
           </div>
 
           {!profile.isPremium && (
-            <div className="mt-12 mb-8">
+            <div className="mt-12 mb-4">
               <Button 
                 onClick={() => setShowPremium(true)}
                 variant="outline"
@@ -875,6 +876,10 @@ export default function Profile() {
               </Button>
             </div>
           )}
+
+          <div className="mb-8">
+            <InstallAppButton />
+          </div>
         </div>
       </div>
     </Layout>

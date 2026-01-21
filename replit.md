@@ -109,3 +109,23 @@ shared/           # Shared code between client/server
 - **Required Config**:
   - `STRIPE_PREMIUM_PRICE_ID` - Price ID for the $5/month subscription (live: price_1Spi6gEGnhrnnleQBcfxR4km)
   - Stripe connector configured via Replit integration (supports both env vars and connector)
+
+### iOS App Store (Capacitor)
+- **Framework**: Capacitor for wrapping web app as native iOS
+- **App ID**: `app.surftribe.mobile`
+- **Key Files**:
+  - `capacitor.config.ts` - Capacitor configuration
+  - `ios/` - Native iOS project folder (open in Xcode)
+- **Build Commands** (run from shell):
+  - `npm run build && npx cap sync ios` - Build web app and sync to iOS
+  - `npx cap open ios` - Open project in Xcode (requires Mac)
+- **App Store Submission Steps**:
+  1. Get an Apple Developer account ($99/year at developer.apple.com)
+  2. Download this project to a Mac with Xcode installed
+  3. Run `npm install` and `npm run build && npx cap sync ios`
+  4. Open `ios/App/App.xcworkspace` in Xcode
+  5. Configure signing with your Apple Developer account
+  6. Generate app icons using the logo (attached_assets/IMG_3279_1768282938756.jpeg)
+  7. Archive and upload to App Store Connect
+  8. Complete App Store listing (screenshots, description, etc.)
+  9. Submit for Apple review (typically 1-2 days)

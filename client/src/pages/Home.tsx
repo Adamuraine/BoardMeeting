@@ -4,13 +4,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Camera, MapPin, ExternalLink, Loader2, Mail, Calendar, Radio, Waves, Zap, TreePine, PartyPopper, Fish } from "lucide-react";
+import { Camera, MapPin, ExternalLink, Loader2, Mail, Calendar, Radio, Waves, Zap, TreePine, PartyPopper, Fish, AlertCircle, X, UserPlus, Plane } from "lucide-react";
 import { ShakaIcon } from "@/components/ShakaIcon";
 import { MessageDialog } from "@/components/MessageDialog";
 import type { PostWithUser, Profile, Trip } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useMyProfile } from "@/hooks/use-profiles";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
@@ -233,15 +234,89 @@ function BroadcastTripCard({ trip }: { trip: Trip & { organizer: Profile } }) {
   );
 }
 
+interface AlertItem {
+  id: string;
+  type: "new_trip" | "join_request";
+  message: string;
+  link?: string;
+  tripId?: number;
+}
+
 export default function Home() {
+  const { data: profile } = useMyProfile();
   const { data: posts, isLoading } = useQuery<(PostWithUser & { location: { name: string } })[]>({
     queryKey: ["/api/posts"],
   });
   const { data: broadcastTrips } = useQuery<(Trip & { organizer: Profile })[]>({
     queryKey: ["/api/trips/broadcast"],
   });
+  
+  // Fetch user's trips to check for pending join requests
+  const { data: myTrips } = useQuery<Trip[]>({
+    queryKey: ["/api/trips/user"],
+    enabled: !!profile,
+  });
+
   const [messageBuddy, setMessageBuddy] = useState<Profile | null>(null);
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
+  const [alerts, setAlerts] = useState<AlertItem[]>([]);
+  const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
+
+  // Build alerts from data
+  useEffect(() => {
+    const newAlerts: AlertItem[] = [];
+    
+    // Check for new broadcast trips (trips starting soon or recently added)
+    if (broadcastTrips) {
+      const oneWeekFromNow = Date.now() + 7 * 24 * 60 * 60 * 1000;
+      broadcastTrips.forEach(trip => {
+        const startDate = new Date(trip.startDate).getTime();
+        // Show alerts for trips starting within a week that aren't the user's own
+        if (startDate < oneWeekFromNow && startDate > Date.now() && trip.organizerId !== profile?.userId) {
+          newAlerts.push({
+            id: `new_trip_${trip.id}`,
+            type: "new_trip",
+            message: `New trip to ${trip.destination} just added!`,
+            link: `/trips/${trip.id}`,
+            tripId: trip.id,
+          });
+        }
+      });
+    }
+    
+    setAlerts(newAlerts.filter(a => !dismissedAlerts.has(a.id)));
+  }, [broadcastTrips, profile, dismissedAlerts]);
+
+  // Fetch pending participants for my trips
+  const { data: pendingRequests } = useQuery<any[]>({
+    queryKey: ["/api/trips/my-pending-requests"],
+    queryFn: async () => {
+      if (!myTrips?.length) return [];
+      const allPending: any[] = [];
+      for (const trip of myTrips) {
+        try {
+          const res = await fetch(`/api/trips/${trip.id}/participants`);
+          if (res.ok) {
+            const participants = await res.json();
+            const pending = participants.filter((p: any) => p.status === "pending");
+            pending.forEach((p: any) => {
+              allPending.push({ ...p, trip });
+            });
+          }
+        } catch {}
+      }
+      return allPending;
+    },
+    enabled: !!myTrips?.length,
+  });
+
+  const dismissAlert = (alertId: string) => {
+    setDismissedAlerts(prev => {
+      const newSet = new Set(prev);
+      newSet.add(alertId);
+      return newSet;
+    });
+  };
 
   const handleMessageClick = (user: Profile) => {
     setMessageBuddy(user);
@@ -265,6 +340,74 @@ export default function Home() {
           </Button>
         </Link>
       </header>
+
+      {/* Alerts Section */}
+      <AnimatePresence>
+        {(alerts.length > 0 || (pendingRequests && pendingRequests.length > 0)) && (
+          <motion.div 
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            className="px-4 pt-4 space-y-2"
+          >
+            {/* New Trip Alerts */}
+            {alerts.map(alert => (
+              <motion.div
+                key={alert.id}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center gap-3"
+              >
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
+                  <Plane className="w-4 h-4 text-primary" />
+                </div>
+                <Link href={alert.link || "#"} className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-primary flex-shrink-0" />
+                    <span className="text-sm font-medium">{alert.message}</span>
+                  </div>
+                </Link>
+                <Button 
+                  size="icon" 
+                  variant="ghost" 
+                  className="h-6 w-6"
+                  onClick={() => dismissAlert(alert.id)}
+                  data-testid={`button-dismiss-alert-${alert.id}`}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </motion.div>
+            ))}
+
+            {/* Pending Join Request Alerts */}
+            {pendingRequests?.map(req => (
+              <motion.div
+                key={`join_${req.id}`}
+                initial={{ opacity: 0, x: -20 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-3"
+              >
+                <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
+                  <UserPlus className="w-4 h-4 text-amber-600" />
+                </div>
+                <Link href={`/trips/${req.trip.id}`} className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span className="text-sm font-medium">
+                      New ride request for {req.trip.destination}!
+                    </span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    {req.profile?.displayName} wants to join your trip
+                  </p>
+                </Link>
+              </motion.div>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       <div className="p-4 pb-0">
         <Link href="/post/new">

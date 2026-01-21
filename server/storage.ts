@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport, type InsertSurfReport,
@@ -10,6 +10,7 @@ import {
   type PostLike,
   type Message, type InsertMessage,
   type Feedback,
+  type TripParticipant, type InsertTripParticipant,
   users
 } from "@shared/schema";
 import { eq, and, desc, sql, notInArray, inArray, or } from "drizzle-orm";
@@ -87,6 +88,12 @@ export interface IStorage {
   updateUserStripeInfo(userId: string, info: { stripeCustomerId?: string; stripeSubscriptionId?: string }): Promise<void>;
   getProfileByStripeCustomerId(customerId: string): Promise<Profile | undefined>;
   updateUserPremiumStatus(userId: string, isPremium: boolean): Promise<void>;
+  
+  // Trip Participants
+  requestToJoinTrip(tripId: number, userId: string): Promise<TripParticipant>;
+  getTripParticipants(tripId: number): Promise<(TripParticipant & { profile: Profile })[]>;
+  updateParticipantStatus(tripId: number, participantUserId: string, status: string, organizerId: string): Promise<TripParticipant>;
+  getUserTripStatus(tripId: number, userId: string): Promise<TripParticipant | undefined>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -835,6 +842,52 @@ export class DatabaseStorage implements IStorage {
         caption: photo.caption,
       });
     }
+  }
+
+  // Trip Participants
+  async requestToJoinTrip(tripId: number, userId: string): Promise<TripParticipant> {
+    // Check if already requested
+    const existing = await db.select().from(tripParticipants)
+      .where(and(eq(tripParticipants.tripId, tripId), eq(tripParticipants.userId, userId)));
+    if (existing.length > 0) {
+      return existing[0];
+    }
+    const [participant] = await db.insert(tripParticipants)
+      .values({ tripId, userId, status: "pending" })
+      .returning();
+    return participant;
+  }
+
+  async getTripParticipants(tripId: number): Promise<(TripParticipant & { profile: Profile })[]> {
+    const results = await db.select({
+      participant: tripParticipants,
+      profile: profiles
+    })
+      .from(tripParticipants)
+      .innerJoin(profiles, eq(tripParticipants.userId, profiles.userId))
+      .where(eq(tripParticipants.tripId, tripId));
+    
+    return results.map(r => ({ ...r.participant, profile: r.profile }));
+  }
+
+  async updateParticipantStatus(tripId: number, participantUserId: string, status: string, organizerId: string): Promise<TripParticipant> {
+    // Verify organizer owns the trip
+    const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+    if (!trip || trip.organizerId !== organizerId) {
+      throw new Error("Not authorized to update this trip");
+    }
+    
+    const [updated] = await db.update(tripParticipants)
+      .set({ status, respondedAt: new Date() })
+      .where(and(eq(tripParticipants.tripId, tripId), eq(tripParticipants.userId, participantUserId)))
+      .returning();
+    return updated;
+  }
+
+  async getUserTripStatus(tripId: number, userId: string): Promise<TripParticipant | undefined> {
+    const [result] = await db.select().from(tripParticipants)
+      .where(and(eq(tripParticipants.tripId, tripId), eq(tripParticipants.userId, userId)));
+    return result;
   }
 }
 

@@ -373,6 +373,70 @@ export async function registerRoutes(
     }
   });
 
+  // Trip Participants - Request to join
+  app.post("/api/trips/:id/join", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    try {
+      const participant = await storage.requestToJoinTrip(tripId, userId);
+      res.json(participant);
+    } catch (err: any) {
+      console.error("Failed to request to join trip:", err);
+      res.status(500).json({ message: "Failed to request to join trip" });
+    }
+  });
+
+  // Trip Participants - Get all participants
+  app.get("/api/trips/:id/participants", async (req, res) => {
+    const tripId = parseInt(req.params.id);
+    try {
+      const participants = await storage.getTripParticipants(tripId);
+      res.json(participants);
+    } catch (err: any) {
+      console.error("Failed to get participants:", err);
+      res.status(500).json({ message: "Failed to get participants" });
+    }
+  });
+
+  // Trip Participants - Get user's status for a trip
+  app.get("/api/trips/:id/my-status", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    try {
+      const status = await storage.getUserTripStatus(tripId, userId);
+      res.json(status || null);
+    } catch (err: any) {
+      console.error("Failed to get user trip status:", err);
+      res.status(500).json({ message: "Failed to get status" });
+    }
+  });
+
+  // Trip Participants - Approve/Reject (organizer only)
+  app.patch("/api/trips/:id/participants/:userId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const organizerId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    const participantUserId = req.params.userId;
+    const { status } = req.body;
+    
+    if (!["approved", "rejected"].includes(status)) {
+      return res.status(400).json({ message: "Status must be 'approved' or 'rejected'" });
+    }
+    
+    try {
+      const participant = await storage.updateParticipantStatus(tripId, participantUserId, status, organizerId);
+      res.json(participant);
+    } catch (err: any) {
+      console.error("Failed to update participant status:", err);
+      if (err.message === "Not authorized to update this trip") {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      res.status(500).json({ message: "Failed to update participant status" });
+    }
+  });
+
   app.patch("/api/trips/:id", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);

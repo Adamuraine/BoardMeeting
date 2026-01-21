@@ -8,7 +8,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus, UserPlus, Check, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -72,6 +72,60 @@ export default function TripItinerary({ params }: TripItineraryProps) {
     },
     enabled: !!tripId,
   });
+
+  // Fetch participants
+  const { data: participants = [] } = useQuery<any[]>({
+    queryKey: ["/api/trips", tripId, "participants"],
+    queryFn: async () => {
+      const res = await fetch(`/api/trips/${tripId}/participants`);
+      if (!res.ok) throw new Error("Failed to fetch participants");
+      return res.json();
+    },
+    enabled: !!tripId,
+  });
+
+  // Fetch user's join status
+  const { data: myJoinStatus } = useQuery<any>({
+    queryKey: ["/api/trips", tripId, "my-status"],
+    queryFn: async () => {
+      const res = await fetch(`/api/trips/${tripId}/my-status`, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!tripId && !!profile,
+  });
+
+  // Request to join mutation
+  const requestJoinMutation = useMutation({
+    mutationFn: async () => {
+      const res = await fetch(`/api/trips/${tripId}/join`, { 
+        method: "POST", 
+        credentials: "include" 
+      });
+      if (!res.ok) throw new Error("Failed to request to join");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "my-status"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "participants"] });
+      toast({ title: "Request sent!", description: "The organizer will review your request." });
+    },
+  });
+
+  // Approve/reject mutation
+  const updateParticipantMutation = useMutation({
+    mutationFn: async ({ participantUserId, status }: { participantUserId: string; status: string }) => {
+      const res = await apiRequest("PATCH", `/api/trips/${tripId}/participants/${participantUserId}`, { status });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "participants"] });
+      toast({ title: "Updated", description: "Participant status updated!" });
+    },
+  });
+
+  const approvedParticipants = participants.filter((p: any) => p.status === "approved");
+  const pendingParticipants = participants.filter((p: any) => p.status === "pending");
 
   const updateTripMutation = useMutation({
     mutationFn: async (updates: Partial<Trip>) => {
@@ -290,6 +344,117 @@ export default function TripItinerary({ params }: TripItineraryProps) {
               </div>
             </div>
           </div>
+
+          {/* Who's Going Section */}
+          <Card className="mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Users className="w-5 h-5 text-primary" />
+                  Who's Going ({approvedParticipants.length + 1})
+                </div>
+                {!isOrganizer && !myJoinStatus && (
+                  <Button
+                    size="sm"
+                    onClick={() => requestJoinMutation.mutate()}
+                    disabled={requestJoinMutation.isPending}
+                    data-testid="button-request-join"
+                  >
+                    <UserPlus className="w-4 h-4 mr-1" />
+                    Request to Join
+                  </Button>
+                )}
+                {!isOrganizer && myJoinStatus?.status === "pending" && (
+                  <Badge variant="secondary" className="bg-amber-500/20 text-amber-600">
+                    <Clock className="w-3 h-3 mr-1" />
+                    Pending
+                  </Badge>
+                )}
+                {!isOrganizer && myJoinStatus?.status === "approved" && (
+                  <Badge className="bg-green-500 text-white">
+                    <Check className="w-3 h-3 mr-1" />
+                    Approved
+                  </Badge>
+                )}
+                {!isOrganizer && myJoinStatus?.status === "rejected" && (
+                  <Badge variant="destructive">
+                    <XCircle className="w-3 h-3 mr-1" />
+                    Not Approved
+                  </Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {/* Approved participants including organizer */}
+              <div className="flex flex-wrap gap-3 mb-4">
+                {/* Organizer always shows first */}
+                <div className="flex flex-col items-center gap-1">
+                  <Avatar className="w-12 h-12 ring-2 ring-primary">
+                    <AvatarImage src={trip.organizer?.imageUrls?.[0]} />
+                    <AvatarFallback>{trip.organizer?.displayName?.[0]}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-xs font-medium text-center max-w-[60px] truncate">{trip.organizer?.displayName}</span>
+                  <span className="text-[10px] text-primary font-medium">Organizer</span>
+                </div>
+                
+                {/* Approved participants */}
+                {approvedParticipants.map((p: any) => (
+                  <div key={p.id} className="flex flex-col items-center gap-1">
+                    <Avatar className="w-12 h-12">
+                      <AvatarImage src={p.profile?.imageUrls?.[0]} />
+                      <AvatarFallback>{p.profile?.displayName?.[0]}</AvatarFallback>
+                    </Avatar>
+                    <span className="text-xs font-medium text-center max-w-[60px] truncate">{p.profile?.displayName}</span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Pending requests (only visible to organizer) */}
+              {isOrganizer && pendingParticipants.length > 0 && (
+                <div className="border-t pt-3 mt-3">
+                  <p className="text-sm font-medium text-muted-foreground mb-2">
+                    Pending Requests ({pendingParticipants.length})
+                  </p>
+                  <div className="space-y-2">
+                    {pendingParticipants.map((p: any) => (
+                      <div key={p.id} className="flex items-center justify-between bg-secondary/30 rounded-lg p-2">
+                        <div className="flex items-center gap-2">
+                          <Avatar className="w-8 h-8">
+                            <AvatarImage src={p.profile?.imageUrls?.[0]} />
+                            <AvatarFallback>{p.profile?.displayName?.[0]}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <span className="text-sm font-medium">{p.profile?.displayName}</span>
+                            <p className="text-xs text-muted-foreground">{p.profile?.skillLevel}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-green-600 hover:bg-green-500/20"
+                            onClick={() => updateParticipantMutation.mutate({ participantUserId: p.userId, status: "approved" })}
+                            data-testid={`button-approve-${p.userId}`}
+                          >
+                            <Check className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-500/20"
+                            onClick={() => updateParticipantMutation.mutate({ participantUserId: p.userId, status: "rejected" })}
+                            data-testid={`button-reject-${p.userId}`}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <div className="space-y-6">
             <Card>

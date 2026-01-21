@@ -103,6 +103,20 @@ export const trips = pgTable("trips", {
   boardRental: integer("board_rental"), // board rental or travel fees
 });
 
+// === TRIP PARTICIPANTS (Join Requests) ===
+export const tripParticipants = pgTable("trip_participants", {
+  id: serial("id").primaryKey(),
+  tripId: integer("trip_id").notNull().references(() => trips.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  status: text("status").default("pending"), // pending, approved, rejected
+  requestedAt: timestamp("requested_at").defaultNow(),
+  respondedAt: timestamp("responded_at"),
+});
+
+export const insertTripParticipantSchema = createInsertSchema(tripParticipants).omit({ id: true, requestedAt: true, respondedAt: true });
+export type InsertTripParticipant = z.infer<typeof insertTripParticipantSchema>;
+export type TripParticipant = typeof tripParticipants.$inferSelect;
+
 // === POSTS (Surf Photos) ===
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),

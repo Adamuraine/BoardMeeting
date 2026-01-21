@@ -28,6 +28,7 @@ export const profiles = pgTable("profiles", {
   tripExpectations: text("trip_expectations").array(), // Array of trip expectation IDs for buddy matching
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
+  openToGuiding: boolean("open_to_guiding").default(false), // Open to meeting/guiding travelers
 });
 
 // === SWIPES ===

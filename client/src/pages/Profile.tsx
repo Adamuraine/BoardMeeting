@@ -592,6 +592,15 @@ export default function Profile() {
               {profile.isPremium && <Crown className="w-5 h-5 text-accent fill-current" />}
             </h1>
             <p className="text-muted-foreground">{profile.location} - {profile.skillLevel} Surfer</p>
+            {profile.openToGuiding && (
+              <Badge 
+                className="mt-2 bg-green-500 text-white border-green-600"
+                data-testid="badge-open-to-guiding"
+              >
+                <Users className="w-3 h-3 mr-1" />
+                Open to Meeting/Guiding Travelers
+              </Badge>
+            )}
           </div>
 
           <div className="space-y-8">

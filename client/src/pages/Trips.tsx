@@ -1,4 +1,5 @@
 import { useTrips, useCreateTrip, useUpdateTripActivities } from "@/hooks/use-trips";
+import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download } from "lucide-react";
@@ -79,6 +80,8 @@ const PRICE_RANGES = [
 
 export default function Trips() {
   const { data: trips, isLoading } = useTrips();
+  const { data: myProfile } = useMyProfile();
+  const updateProfile = useUpdateProfile();
   const { user } = useAuth();
   const createTrip = useCreateTrip();
   const updateActivities = useUpdateTripActivities();
@@ -684,6 +687,26 @@ export default function Trips() {
                     Connect with surfers visiting your area or find locals when you travel to a new spot
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Open to Guiding Toggle */}
+            <div className="bg-card/90 backdrop-blur-sm rounded-xl p-4 border border-border/50">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex-1">
+                  <h3 className="font-semibold text-sm text-foreground">Open to Meeting/Guiding Travelers</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Show on your profile that you're willing to meet or guide visitors in your area
+                  </p>
+                </div>
+                <Switch
+                  checked={myProfile?.openToGuiding ?? false}
+                  onCheckedChange={(checked) => {
+                    updateProfile.mutate({ openToGuiding: checked });
+                  }}
+                  className="data-[state=checked]:bg-green-500"
+                  data-testid="switch-open-to-guiding"
+                />
               </div>
             </div>
 

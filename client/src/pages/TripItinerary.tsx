@@ -6,14 +6,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useMyProfile } from "@/hooks/use-profiles";
 import type { Trip, Profile } from "@shared/schema";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
 
 interface TripItineraryProps {
@@ -51,6 +53,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   const { toast } = useToast();
   const { data: profile } = useMyProfile();
   const [travelerCount, setTravelerCount] = useState(4);
+  
+  const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
+  const [houseRental, setHouseRental] = useState("");
+  const [taxiRides, setTaxiRides] = useState("");
+  const [boatTrips, setBoatTrips] = useState("");
+  const [cookingMeals, setCookingMeals] = useState("");
+  const [boardRental, setBoardRental] = useState("");
 
   const { data: trip, isLoading } = useQuery<Trip & { organizer: Profile }>({
     queryKey: ["/api/trips", tripId],
@@ -93,6 +102,48 @@ export default function TripItinerary({ params }: TripItineraryProps) {
     updateTripMutation.mutate({ extraActivities: newActivities });
   };
 
+  const updateExpensesMutation = useMutation({
+    mutationFn: async (expenses: { houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number }) => {
+      const res = await fetch(`/api/trips/${tripId}/details`, {
+        method: 'PATCH',
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(expenses),
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Failed to update expenses");
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips/user"] });
+      setExpenseDialogOpen(false);
+      toast({ title: "Expenses saved", description: "Trip costs have been updated!" });
+    },
+  });
+
+  const openExpenseDialog = () => {
+    if (trip) {
+      setHouseRental(trip.houseRental?.toString() || "");
+      setTaxiRides(trip.taxiRides?.toString() || "");
+      setBoatTrips(trip.boatTrips?.toString() || "");
+      setCookingMeals(trip.cookingMeals?.toString() || "");
+      setBoardRental(trip.boardRental?.toString() || "");
+    }
+    setExpenseDialogOpen(true);
+  };
+
+  const saveExpenses = () => {
+    updateExpensesMutation.mutate({
+      houseRental: houseRental ? parseInt(houseRental) : undefined,
+      taxiRides: taxiRides ? parseInt(taxiRides) : undefined,
+      boatTrips: boatTrips ? parseInt(boatTrips) : undefined,
+      cookingMeals: cookingMeals ? parseInt(cookingMeals) : undefined,
+      boardRental: boardRental ? parseInt(boardRental) : undefined,
+    });
+  };
+
+  const expenseTotal = (parseInt(houseRental || "0") + parseInt(taxiRides || "0") + parseInt(boatTrips || "0") + parseInt(cookingMeals || "0") + parseInt(boardRental || "0"));
+
   const toggleBroadcast = (enabled: boolean) => {
     updateTripMutation.mutate({ broadcastEnabled: enabled });
   };
@@ -121,6 +172,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   }
 
   const isPremium = profile?.isPremium;
+  const isOrganizer = profile?.userId === trip.organizerId;
 
   return (
     <Layout>
@@ -304,9 +356,21 @@ export default function TripItinerary({ params }: TripItineraryProps) {
             {/* Cost Breakdown Section */}
             <Card>
               <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <DollarSign className="w-5 h-5 text-primary" />
-                  Trip Cost Breakdown
+                <CardTitle className="text-base flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <DollarSign className="w-5 h-5 text-primary" />
+                    Trip Cost Breakdown
+                  </div>
+                  {isOrganizer && (trip.houseRental || trip.taxiRides || trip.boatTrips || trip.cookingMeals || trip.boardRental) && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={openExpenseDialog}
+                      data-testid="button-edit-expenses"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                  )}
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -457,7 +521,18 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   <div className="text-center py-6 text-muted-foreground">
                     <DollarSign className="w-8 h-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">No cost breakdown available</p>
-                    <p className="text-xs mt-1">Add expenses when creating or editing the trip</p>
+                    {isOrganizer && (
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="mt-3"
+                        onClick={openExpenseDialog}
+                        data-testid="button-add-expenses"
+                      >
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Add Expenses
+                      </Button>
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -511,6 +586,116 @@ export default function TripItinerary({ params }: TripItineraryProps) {
           </div>
         </div>
       </div>
+
+      {/* Edit Expenses Dialog */}
+      <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <DollarSign className="w-5 h-5 text-primary" />
+              Edit Trip Expenses
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Enter total costs - these will be split among travelers
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">House Rental</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input 
+                    type="number" 
+                    placeholder="0"
+                    value={houseRental}
+                    onChange={(e) => setHouseRental(e.target.value)}
+                    className="pl-7"
+                    data-testid="input-edit-house-rental"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Taxi/Transport</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input 
+                    type="number" 
+                    placeholder="0"
+                    value={taxiRides}
+                    onChange={(e) => setTaxiRides(e.target.value)}
+                    className="pl-7"
+                    data-testid="input-edit-taxi-rides"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Boat Trips</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input 
+                    type="number" 
+                    placeholder="0"
+                    value={boatTrips}
+                    onChange={(e) => setBoatTrips(e.target.value)}
+                    className="pl-7"
+                    data-testid="input-edit-boat-trips"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Food/Chef</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input 
+                    type="number" 
+                    placeholder="0"
+                    value={cookingMeals}
+                    onChange={(e) => setCookingMeals(e.target.value)}
+                    className="pl-7"
+                    data-testid="input-edit-cooking-meals"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1 col-span-2">
+                <Label className="text-xs text-muted-foreground">Board Rental / Surfboard Travel</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <Input 
+                    type="number" 
+                    placeholder="0"
+                    value={boardRental}
+                    onChange={(e) => setBoardRental(e.target.value)}
+                    className="pl-7"
+                    data-testid="input-edit-board-rental"
+                  />
+                </div>
+              </div>
+            </div>
+            {expenseTotal > 0 && (
+              <div className="bg-primary/10 rounded-lg p-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">Total Trip Cost</span>
+                  <span className="text-lg font-bold text-primary">
+                    ${expenseTotal.toLocaleString()}
+                  </span>
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Per person with 4 travelers: ${Math.round(expenseTotal / 4).toLocaleString()}
+                </p>
+              </div>
+            )}
+            <Button 
+              onClick={saveExpenses}
+              disabled={updateExpensesMutation.isPending}
+              className="w-full"
+              data-testid="button-save-expenses"
+            >
+              {updateExpensesMutation.isPending ? "Saving..." : "Save Expenses"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 }

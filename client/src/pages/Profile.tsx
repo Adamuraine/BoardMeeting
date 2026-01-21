@@ -2,7 +2,8 @@ import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink } from "lucide-react";
+import { SiYoutube } from "react-icons/si";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -858,18 +859,33 @@ export default function Profile() {
               <div className="flex flex-wrap gap-2">
                 {profile.tricks?.length ? (
                   profile.tricks.map((trick: string) => (
-                    <Badge 
-                      key={trick} 
-                      variant="secondary"
-                      data-testid={`profile-badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
+                    <a
+                      key={trick}
+                      href={`https://www.youtube.com/results?search_query=surfing+${encodeURIComponent(trick)}+tutorial`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group"
                     >
-                      {trick}
-                    </Badge>
+                      <Badge 
+                        variant="secondary"
+                        className="cursor-pointer hover-elevate flex items-center gap-1.5"
+                        data-testid={`profile-badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        {trick}
+                        <SiYoutube className="w-3 h-3 text-red-500 opacity-70 group-hover:opacity-100" />
+                      </Badge>
+                    </a>
                   ))
                 ) : (
                   <p className="text-sm text-muted-foreground italic">No tricks logged yet. Add tricks from the Stats page!</p>
                 )}
               </div>
+              {profile.tricks?.length ? (
+                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                  <SiYoutube className="w-3 h-3 text-red-500" />
+                  Tap any trick for tutorial videos
+                </p>
+              ) : null}
             </div>
           </div>
 

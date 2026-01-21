@@ -73,6 +73,8 @@ export const insertSurfReportSchema = createInsertSchema(surfReports).omit({ id:
 export const trips = pgTable("trips", {
   id: serial("id").primaryKey(),
   organizerId: varchar("organizer_id").notNull().references(() => users.id),
+  name: text("name"), // Trip name/title
+  photos: text("photos").array(), // Trip photos URLs
   startingLocation: text("starting_location"),
   destination: text("destination").notNull(),
   startDate: date("start_date").notNull(),

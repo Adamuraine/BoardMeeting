@@ -773,6 +773,9 @@ function TripCard({ trip }: { trip: any }) {
               <span className="ml-2 text-[10px] text-muted-foreground font-normal normal-case">(flexible dates)</span>
             )}
           </div>
+          {trip.name && (
+            <div className="text-xs text-primary font-medium mb-0.5 truncate">{trip.name}</div>
+          )}
           <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
             <span className="truncate">{trip.startingLocation || "TBD"}</span>
             <span className="text-primary font-bold shrink-0">→</span>
@@ -840,6 +843,9 @@ function CarpoolCard({ trip }: { trip: any }) {
               {trip.hasRide ? "Offering Ride" : "Needs Ride"}
             </span>
           </div>
+          {trip.name && (
+            <div className="text-xs text-primary font-medium mb-1 truncate">{trip.name}</div>
+          )}
           <div className="flex items-center text-sm text-muted-foreground mb-2 gap-1">
             <MapPin className="w-3 h-3 shrink-0" />
             <span className="font-medium text-foreground truncate">{trip.destination}</span>
@@ -872,6 +878,9 @@ function VisitingCard({ trip }: { trip: any }) {
             <span className="font-semibold">{trip.organizer?.displayName || "Surfer"}</span>
             <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Visiting</span>
           </div>
+          {trip.name && (
+            <div className="text-xs text-primary font-medium mb-1 truncate">{trip.name}</div>
+          )}
           <div className="flex items-center text-sm text-muted-foreground mb-2">
             <MapPin className="w-3 h-3 mr-1" />
             <span className="font-medium text-foreground">{trip.destination}</span>
@@ -901,6 +910,7 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
     resolver: zodResolver(insertTripSchema),
     defaultValues: {
       organizerId: user?.id,
+      name: "",
       startingLocation: "",
       destination: "",
       cost: 0,
@@ -958,6 +968,15 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
               </Select>
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label>Trip Name</Label>
+            <Input 
+              {...form.register("name")} 
+              placeholder="e.g. Baja Boys Trip, Indo Mission..."
+              data-testid="input-trip-name"
+            />
+          </div>
 
           <div className="space-y-2">
             <Label>Destination</Label>

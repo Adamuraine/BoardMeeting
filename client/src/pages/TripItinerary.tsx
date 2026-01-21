@@ -8,12 +8,14 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus } from "lucide-react";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { useMyProfile } from "@/hooks/use-profiles";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { Trip, Profile } from "@shared/schema";
 import { useState, useEffect } from "react";
 import { Slider } from "@/components/ui/slider";
@@ -190,6 +192,9 @@ export default function TripItinerary({ params }: TripItineraryProps) {
           </Button>
 
           <div className="mb-6">
+            {trip.name && (
+              <p className="text-sm text-primary font-medium mb-1">{trip.name}</p>
+            )}
             <h1 className="text-2xl font-display font-bold text-foreground mb-2">
               {trip.destination}
             </h1>
@@ -205,6 +210,85 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <span>From: {trip.startingLocation}</span>
               </div>
             )}
+
+            {/* Trip Photos / Who's Going */}
+            <div className="mt-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium text-muted-foreground">Trip Photos</span>
+                {isOrganizer && (
+                  <ObjectUploader
+                    maxNumberOfFiles={5}
+                    onGetUploadParameters={async (file) => {
+                      const res = await fetch("/api/upload/presign", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ filename: file.name, contentType: file.type }),
+                        credentials: "include",
+                      });
+                      const { url, objectPath } = await res.json();
+                      (file as any).objectPath = objectPath;
+                      return { method: "PUT" as const, url };
+                    }}
+                    onComplete={async (result) => {
+                      const uploadedPaths = (result.successful || []).map((f: any) => f.objectPath);
+                      if (uploadedPaths.length > 0) {
+                        const currentPhotos = trip.photos || [];
+                        const newPhotos = [...currentPhotos, ...uploadedPaths];
+                        await apiRequest("PATCH", `/api/trips/${tripId}`, { photos: newPhotos });
+                        queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+                        toast({ title: "Photos added", description: "Trip photos updated!" });
+                      }
+                    }}
+                    buttonClassName="h-8 px-3"
+                  >
+                    <ImagePlus className="w-4 h-4 mr-1" />
+                    Add Photos
+                  </ObjectUploader>
+                )}
+              </div>
+              {trip.photos && trip.photos.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {trip.photos.map((photo, idx) => (
+                    <div key={idx} className="relative group">
+                      <img
+                        src={photo}
+                        alt={`Trip photo ${idx + 1}`}
+                        className="w-16 h-16 rounded-lg object-cover border border-border"
+                      />
+                      {isOrganizer && (
+                        <button
+                          onClick={async () => {
+                            const newPhotos = trip.photos!.filter((_, i) => i !== idx);
+                            await apiRequest("PATCH", `/api/trips/${tripId}`, { photos: newPhotos });
+                            queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+                            toast({ title: "Photo removed" });
+                          }}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                          data-testid={`button-remove-photo-${idx}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  <Camera className="w-4 h-4" />
+                  <span>No photos yet</span>
+                </div>
+              )}
+
+              {/* Show organizer avatar */}
+              <div className="flex items-center gap-2 mt-3">
+                <span className="text-xs text-muted-foreground">Organized by:</span>
+                <Avatar className="w-6 h-6">
+                  <AvatarImage src={trip.organizer?.imageUrls?.[0]} />
+                  <AvatarFallback>{trip.organizer?.displayName?.[0]}</AvatarFallback>
+                </Avatar>
+                <span className="text-xs font-medium">{trip.organizer?.displayName}</span>
+              </div>
+            </div>
           </div>
 
           <div className="space-y-6">

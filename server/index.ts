@@ -5,6 +5,7 @@ import { createServer } from "http";
 import { runMigrations } from 'stripe-replit-sync';
 import { getStripeSync } from "./stripeClient";
 import { WebhookHandlers } from "./webhookHandlers";
+import { storage } from "./storage";
 
 const app = express();
 const httpServer = createServer(app);
@@ -129,9 +130,26 @@ app.use((req, res, next) => {
   next();
 });
 
+async function cleanupExpiredTrips() {
+  try {
+    const deletedCount = await storage.cleanupExpiredTrips();
+    if (deletedCount > 0) {
+      log(`Cleaned up ${deletedCount} expired trip(s)`);
+    }
+  } catch (error: any) {
+    console.error('Error cleaning up expired trips:', error?.message);
+  }
+}
+
 (async () => {
   await initStripe();
   await registerRoutes(httpServer, app);
+
+  // Clean up expired trips on startup
+  await cleanupExpiredTrips();
+
+  // Schedule cleanup to run every hour
+  setInterval(cleanupExpiredTrips, 60 * 60 * 1000);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
     const status = err.status || err.statusCode || 500;

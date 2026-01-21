@@ -41,6 +41,7 @@ export interface IStorage {
   getTripById(tripId: number): Promise<(Trip & { organizer: Profile }) | undefined>;
   getBroadcastTrips(): Promise<(Trip & { organizer: Profile })[]>;
   createTrip(trip: InsertTrip): Promise<Trip>;
+  cleanupExpiredTrips(): Promise<number>;
 
   // Posts
   createPost(post: InsertPost): Promise<Post>;
@@ -302,6 +303,17 @@ export class DatabaseStorage implements IStorage {
       .from(trips)
       .where(eq(trips.organizerId, userId))
       .orderBy(trips.startDate);
+  }
+
+  async cleanupExpiredTrips(): Promise<number> {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    const result = await db.delete(trips)
+      .where(sql`${trips.endDate} < ${today}`)
+      .returning();
+    
+    return result.length;
   }
 
   async createTrip(trip: InsertTrip): Promise<Trip> {

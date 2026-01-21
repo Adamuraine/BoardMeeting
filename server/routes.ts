@@ -303,6 +303,7 @@ export async function registerRoutes(
 
   app.get("/api/trips/:id", async (req, res) => {
     const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
     const trip = await storage.getTripById(tripId);
     if (!trip) return res.sendStatus(404);
     res.json(trip);
@@ -327,6 +328,7 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
     try {
       const { activities } = req.body;
       if (!Array.isArray(activities)) {
@@ -350,6 +352,7 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
     try {
       const { activities, houseRental, taxiRides, boatTrips, cookingMeals, boardRental } = req.body;
       const trip = await storage.updateTripDetails(tripId, userId, { 
@@ -378,6 +381,7 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
     try {
       const participant = await storage.requestToJoinTrip(tripId, userId);
       res.json(participant);
@@ -390,6 +394,7 @@ export async function registerRoutes(
   // Trip Participants - Get all participants
   app.get("/api/trips/:id/participants", async (req, res) => {
     const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
     try {
       const participants = await storage.getTripParticipants(tripId);
       res.json(participants);
@@ -404,6 +409,7 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
     try {
       const status = await storage.getUserTripStatus(tripId, userId);
       res.json(status || null);
@@ -418,6 +424,7 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const organizerId = getUserId(req);
     const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
     const participantUserId = req.params.userId;
     const { status } = req.body;
     
@@ -441,6 +448,7 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
     try {
       const { expectations, activities, waveType, rideStyle, locationPreference, vibe, extraActivities, broadcastEnabled } = req.body;
       

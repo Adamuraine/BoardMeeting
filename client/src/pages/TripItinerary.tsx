@@ -855,13 +855,11 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    enterKeyHint="done"
+                    type="tel"
                     placeholder="0"
                     value={houseRental}
-                    onChange={(e) => setHouseRental(e.target.value.replace(/[^0-9]/g, ''))}
+                    onChange={(e) => setHouseRental(e.target.value)}
+                    onBlur={(e) => (e.target as HTMLInputElement).blur()}
                     className="pl-7"
                     data-testid="input-edit-house-rental"
                   />
@@ -872,13 +870,11 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    enterKeyHint="done"
+                    type="tel"
                     placeholder="0"
                     value={taxiRides}
-                    onChange={(e) => setTaxiRides(e.target.value.replace(/[^0-9]/g, ''))}
+                    onChange={(e) => setTaxiRides(e.target.value)}
+                    onBlur={(e) => (e.target as HTMLInputElement).blur()}
                     className="pl-7"
                     data-testid="input-edit-taxi-rides"
                   />
@@ -889,13 +885,11 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    enterKeyHint="done"
+                    type="tel"
                     placeholder="0"
                     value={boatTrips}
-                    onChange={(e) => setBoatTrips(e.target.value.replace(/[^0-9]/g, ''))}
+                    onChange={(e) => setBoatTrips(e.target.value)}
+                    onBlur={(e) => (e.target as HTMLInputElement).blur()}
                     className="pl-7"
                     data-testid="input-edit-boat-trips"
                   />
@@ -906,13 +900,11 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    enterKeyHint="done"
+                    type="tel"
                     placeholder="0"
                     value={cookingMeals}
-                    onChange={(e) => setCookingMeals(e.target.value.replace(/[^0-9]/g, ''))}
+                    onChange={(e) => setCookingMeals(e.target.value)}
+                    onBlur={(e) => (e.target as HTMLInputElement).blur()}
                     className="pl-7"
                     data-testid="input-edit-cooking-meals"
                   />
@@ -923,13 +915,11 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="text"
-                    inputMode="numeric"
-                    pattern="[0-9]*"
-                    enterKeyHint="done"
+                    type="tel"
                     placeholder="0"
                     value={boardRental}
-                    onChange={(e) => setBoardRental(e.target.value.replace(/[^0-9]/g, ''))}
+                    onChange={(e) => setBoardRental(e.target.value)}
+                    onBlur={(e) => (e.target as HTMLInputElement).blur()}
                     className="pl-7"
                     data-testid="input-edit-board-rental"
                   />

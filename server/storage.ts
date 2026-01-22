@@ -163,10 +163,38 @@ export class DatabaseStorage implements IStorage {
     const swipedIds = swiped.map(s => s.swipedId);
     swipedIds.push(userId); // Exclude self
 
-    return await db.select()
+    // Get current user's profile for safety filtering
+    const [currentUser] = await db.select().from(profiles).where(eq(profiles.userId, userId));
+    
+    let potentialMatches = await db.select()
       .from(profiles)
       .where(notInArray(profiles.userId, swipedIds))
-      .limit(20);
+      .limit(50); // Get more to filter from
+    
+    // Safety filter: Prevent adult males (18+) from matching with underage females (<18)
+    if (currentUser) {
+      const userAge = currentUser.age || 0;
+      const userGender = currentUser.gender?.toLowerCase();
+      
+      potentialMatches = potentialMatches.filter(match => {
+        const matchAge = match.age || 0;
+        const matchGender = match.gender?.toLowerCase();
+        
+        // If current user is male 18+, exclude females under 18
+        if (userGender === 'male' && userAge >= 18 && matchGender === 'female' && matchAge < 18) {
+          return false;
+        }
+        
+        // If current user is female under 18, exclude males 18+
+        if (userGender === 'female' && userAge < 18 && matchGender === 'male' && matchAge >= 18) {
+          return false;
+        }
+        
+        return true;
+      });
+    }
+    
+    return potentialMatches.slice(0, 20);
   }
 
   async createSwipe(swipe: InsertSwipe): Promise<Swipe> {

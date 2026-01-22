@@ -320,7 +320,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                       <Pencil className="w-3 h-3 ml-2" />
                     </Button>
                   </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0" align="start">
+                  <PopoverContent className="w-auto p-0 z-50" align="start" side="bottom" sideOffset={8} collisionPadding={16} avoidCollisions={true}>
                     <CalendarComponent
                       mode="range"
                       defaultMonth={new Date(trip.startDate)}

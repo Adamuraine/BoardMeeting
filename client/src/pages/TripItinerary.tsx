@@ -17,7 +17,7 @@ import { useMyProfile } from "@/hooks/use-profiles";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { Trip, Profile } from "@shared/schema";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Slider } from "@/components/ui/slider";
 
 interface TripItineraryProps {
@@ -57,11 +57,12 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   const [travelerCount, setTravelerCount] = useState(4);
   
   const [expenseDialogOpen, setExpenseDialogOpen] = useState(false);
-  const [houseRental, setHouseRental] = useState("");
-  const [taxiRides, setTaxiRides] = useState("");
-  const [boatTrips, setBoatTrips] = useState("");
-  const [cookingMeals, setCookingMeals] = useState("");
-  const [boardRental, setBoardRental] = useState("");
+  const [expenseKey, setExpenseKey] = useState(0);
+  const houseRentalRef = useRef<HTMLInputElement>(null);
+  const taxiRidesRef = useRef<HTMLInputElement>(null);
+  const boatTripsRef = useRef<HTMLInputElement>(null);
+  const cookingMealsRef = useRef<HTMLInputElement>(null);
+  const boardRentalRef = useRef<HTMLInputElement>(null);
 
   const { data: trip, isLoading } = useQuery<Trip & { organizer: Profile }>({
     queryKey: ["/api/trips", tripId],
@@ -178,17 +179,17 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   });
 
   const openExpenseDialog = () => {
-    if (trip) {
-      setHouseRental(trip.houseRental?.toString() || "");
-      setTaxiRides(trip.taxiRides?.toString() || "");
-      setBoatTrips(trip.boatTrips?.toString() || "");
-      setCookingMeals(trip.cookingMeals?.toString() || "");
-      setBoardRental(trip.boardRental?.toString() || "");
-    }
+    setExpenseKey(prev => prev + 1);
     setExpenseDialogOpen(true);
   };
 
   const saveExpenses = () => {
+    const houseRental = houseRentalRef.current?.value || "";
+    const taxiRides = taxiRidesRef.current?.value || "";
+    const boatTrips = boatTripsRef.current?.value || "";
+    const cookingMeals = cookingMealsRef.current?.value || "";
+    const boardRental = boardRentalRef.current?.value || "";
+    
     updateExpensesMutation.mutate({
       houseRental: houseRental ? parseInt(houseRental) : undefined,
       taxiRides: taxiRides ? parseInt(taxiRides) : undefined,
@@ -197,8 +198,6 @@ export default function TripItinerary({ params }: TripItineraryProps) {
       boardRental: boardRental ? parseInt(boardRental) : undefined,
     });
   };
-
-  const expenseTotal = (parseInt(houseRental || "0") + parseInt(taxiRides || "0") + parseInt(boatTrips || "0") + parseInt(cookingMeals || "0") + parseInt(boardRental || "0"));
 
   const toggleBroadcast = (enabled: boolean) => {
     updateTripMutation.mutate({ broadcastEnabled: enabled });
@@ -849,17 +848,18 @@ export default function TripItinerary({ params }: TripItineraryProps) {
             <p className="text-sm text-muted-foreground">
               Enter total costs - these will be split among travelers
             </p>
-            <div className="grid grid-cols-2 gap-3">
+            <div key={expenseKey} className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs text-muted-foreground">House Rental</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <input 
+                    ref={houseRentalRef}
                     type="text"
+                    inputMode="numeric"
                     pattern="[0-9]*"
                     placeholder="0"
-                    defaultValue={houseRental}
-                    onBlur={(e) => setHouseRental(e.target.value)}
+                    defaultValue={trip?.houseRental?.toString() || ""}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-house-rental"
                   />
@@ -870,11 +870,12 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <input 
+                    ref={taxiRidesRef}
                     type="text"
+                    inputMode="numeric"
                     pattern="[0-9]*"
                     placeholder="0"
-                    defaultValue={taxiRides}
-                    onBlur={(e) => setTaxiRides(e.target.value)}
+                    defaultValue={trip?.taxiRides?.toString() || ""}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-taxi-rides"
                   />
@@ -885,11 +886,12 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <input 
+                    ref={boatTripsRef}
                     type="text"
+                    inputMode="numeric"
                     pattern="[0-9]*"
                     placeholder="0"
-                    defaultValue={boatTrips}
-                    onBlur={(e) => setBoatTrips(e.target.value)}
+                    defaultValue={trip?.boatTrips?.toString() || ""}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-boat-trips"
                   />
@@ -900,11 +902,12 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <input 
+                    ref={cookingMealsRef}
                     type="text"
+                    inputMode="numeric"
                     pattern="[0-9]*"
                     placeholder="0"
-                    defaultValue={cookingMeals}
-                    onBlur={(e) => setCookingMeals(e.target.value)}
+                    defaultValue={trip?.cookingMeals?.toString() || ""}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-cooking-meals"
                   />
@@ -915,30 +918,18 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <input 
+                    ref={boardRentalRef}
                     type="text"
+                    inputMode="numeric"
                     pattern="[0-9]*"
                     placeholder="0"
-                    defaultValue={boardRental}
-                    onBlur={(e) => setBoardRental(e.target.value)}
+                    defaultValue={trip?.boardRental?.toString() || ""}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-board-rental"
                   />
                 </div>
               </div>
             </div>
-            {expenseTotal > 0 && (
-              <div className="bg-primary/10 rounded-lg p-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium">Total Trip Cost</span>
-                  <span className="text-lg font-bold text-primary">
-                    ${expenseTotal.toLocaleString()}
-                  </span>
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Per person with 4 travelers: ${Math.round(expenseTotal / 4).toLocaleString()}
-                </p>
-              </div>
-            )}
             <Button 
               onClick={saveExpenses}
               disabled={updateExpensesMutation.isPending}

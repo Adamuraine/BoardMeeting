@@ -8,8 +8,11 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
 import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus, UserPlus, Check, XCircle, Clock } from "lucide-react";
 import { format } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -305,37 +308,41 @@ export default function TripItinerary({ params }: TripItineraryProps) {
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4" />
               {isOrganizer ? (
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="date"
-                    defaultValue={trip.startDate}
-                    onBlur={async (e) => {
-                      const newDate = e.target.value;
-                      if (newDate && newDate !== trip.startDate) {
-                        await apiRequest("PATCH", `/api/trips/${tripId}`, { startDate: newDate });
-                        queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
-                        toast({ title: "Start date updated" });
-                      }
-                    }}
-                    className="h-7 w-auto border-dashed"
-                    data-testid="input-trip-start-date"
-                  />
-                  <span>-</span>
-                  <Input
-                    type="date"
-                    defaultValue={trip.endDate}
-                    onBlur={async (e) => {
-                      const newDate = e.target.value;
-                      if (newDate && newDate !== trip.endDate) {
-                        await apiRequest("PATCH", `/api/trips/${tripId}`, { endDate: newDate });
-                        queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
-                        toast({ title: "End date updated" });
-                      }
-                    }}
-                    className="h-7 w-auto border-dashed"
-                    data-testid="input-trip-end-date"
-                  />
-                </div>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 border border-dashed text-muted-foreground hover-elevate"
+                      data-testid="button-edit-trip-dates"
+                    >
+                      {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d, yyyy")}
+                      <Pencil className="w-3 h-3 ml-2" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <CalendarComponent
+                      mode="range"
+                      defaultMonth={new Date(trip.startDate)}
+                      selected={{
+                        from: new Date(trip.startDate),
+                        to: new Date(trip.endDate),
+                      }}
+                      onSelect={async (range: DateRange | undefined) => {
+                        if (range?.from && range?.to) {
+                          const startDate = format(range.from, "yyyy-MM-dd");
+                          const endDate = format(range.to, "yyyy-MM-dd");
+                          if (startDate !== trip.startDate || endDate !== trip.endDate) {
+                            await apiRequest("PATCH", `/api/trips/${tripId}`, { startDate, endDate });
+                            queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+                            toast({ title: "Trip dates updated" });
+                          }
+                        }
+                      }}
+                      numberOfMonths={2}
+                    />
+                  </PopoverContent>
+                </Popover>
               ) : (
                 <span>
                   {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d, yyyy")}

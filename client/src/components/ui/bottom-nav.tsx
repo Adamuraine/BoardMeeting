@@ -1,17 +1,16 @@
 import { Link, useLocation } from "wouter";
-import { User, Waves, Plane, Users, Activity, Home as HomeIcon, MessageCircle } from "lucide-react";
+import { User, Waves, Plane, Users, Home as HomeIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BottomNav() {
   const [location] = useLocation();
 
   const navItems = [
-    { href: "/profile", icon: User, label: "Profile" },
     { href: "/home", icon: HomeIcon, label: "Home" },
-    { href: "/stats", icon: Activity, label: "Stats" },
+    { href: "/surf", icon: Waves, label: "Surf" },
     { href: "/buddies", icon: Users, label: "Buddies" },
     { href: "/trips", icon: Plane, label: "Trips" },
-    { href: "/messages", icon: MessageCircle, label: "Messages" },
+    { href: "/profile", icon: User, label: "Profile" },
   ];
 
   // Don't show on onboarding

@@ -275,15 +275,15 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   <ObjectUploader
                     maxNumberOfFiles={5}
                     onGetUploadParameters={async (file) => {
-                      const res = await fetch("/api/upload/presign", {
+                      const res = await fetch("/api/uploads/request-url", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ filename: file.name, contentType: file.type }),
+                        body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
                         credentials: "include",
                       });
-                      const { url, objectPath } = await res.json();
+                      const { uploadURL, objectPath } = await res.json();
                       (file as any).objectPath = objectPath;
-                      return { method: "PUT" as const, url };
+                      return { method: "PUT" as const, url: uploadURL, headers: { "Content-Type": file.type || "application/octet-stream" } };
                     }}
                     onComplete={async (result) => {
                       const uploadedPaths = (result.successful || []).map((f: any) => f.objectPath);

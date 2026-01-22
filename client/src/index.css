@@ -15,8 +15,9 @@
   --popover: 0 0% 100%;
   --popover-foreground: 222 47% 11%;
   
-  --primary: 199 89% 48%; /* Ocean Blue */
-  --primary-foreground: 210 40% 98%;
+  --primary: 199 100% 45%; /* Vibrant Ocean Blue */
+  --primary-foreground: 0 0% 100%;
+  --primary-border: 199 100% 35%;
   
   --secondary: 180 50% 96%; /* Soft Foam */
   --secondary-foreground: 199 89% 40%;
@@ -50,8 +51,9 @@
   --popover: 217 33% 17%;
   --popover-foreground: 210 40% 98%;
   
-  --primary: 199 89% 58%;
-  --primary-foreground: 222 47% 11%;
+  --primary: 199 100% 55%; /* Vibrant Ocean Blue */
+  --primary-foreground: 0 0% 100%;
+  --primary-border: 199 100% 45%;
   
   --secondary: 217 33% 17%;
   --secondary-foreground: 210 40% 98%;

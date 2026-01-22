@@ -1,6 +1,6 @@
 {
-  "name": "SurfTribe",
-  "short_name": "SurfTribe",
+  "name": "Board Meeting",
+  "short_name": "BoardMeeting",
   "description": "Connect with surfers, check conditions, and plan trips together",
   "start_url": "/",
   "display": "standalone",
@@ -9,13 +9,13 @@
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/surftribe-icon.jpg",
+      "src": "/boardmeeting-icon.jpg",
       "sizes": "192x192",
       "type": "image/jpeg",
       "purpose": "any maskable"
     },
     {
-      "src": "/surftribe-icon.jpg",
+      "src": "/boardmeeting-icon.jpg",
       "sizes": "512x512",
       "type": "image/jpeg",
       "purpose": "any maskable"

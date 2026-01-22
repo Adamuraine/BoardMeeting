@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'app.surftribe.mobile',
-  appName: 'SurfTribe',
+  appId: 'app.boardmeeting.mobile',
+  appName: 'Board Meeting',
   webDir: 'dist/public',
   server: {
     androidScheme: 'https',

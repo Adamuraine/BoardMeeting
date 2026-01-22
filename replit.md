@@ -1,8 +1,8 @@
-# SurfTribe - Replit Agent Guide
+# Board Meeting - Replit Agent Guide
 
 ## Overview
 
-SurfTribe is a social mobile-first web application for surfers to connect with each other, check surf conditions, and plan trips together. The app features a Tinder-style buddy matching system, surf report viewing, trip planning, and a social feed. Built as a full-stack TypeScript application with React frontend and Express backend, using PostgreSQL for data persistence.
+Board Meeting is a social mobile-first web application for surfers to connect with each other, check surf conditions, and plan trips together. The app features a Tinder-style buddy matching system, surf report viewing, trip planning, and a social feed. Built as a full-stack TypeScript application with React frontend and Express backend, using PostgreSQL for data persistence.
 
 ## User Preferences
 
@@ -112,7 +112,7 @@ shared/           # Shared code between client/server
 
 ### iOS App Store (Capacitor)
 - **Framework**: Capacitor for wrapping web app as native iOS
-- **App ID**: `app.surftribe.mobile`
+- **App ID**: `app.boardmeeting.mobile`
 - **Key Files**:
   - `capacitor.config.ts` - Capacitor configuration
   - `ios/` - Native iOS project folder (open in Xcode)
@@ -125,7 +125,7 @@ shared/           # Shared code between client/server
   3. Run `npm install` and `npm run build && npx cap sync ios`
   4. Open `ios/App/App.xcworkspace` in Xcode
   5. Configure signing with your Apple Developer account
-  6. Generate app icons using the logo (attached_assets/IMG_3279_1768282938756.jpeg)
+  6. Generate app icons using the logo (attached_assets/IMG_3950_1769110363136.jpeg)
   7. Archive and upload to App Store Connect
   8. Complete App Store listing (screenshots, description, etc.)
   9. Submit for Apple review (typically 1-2 days)

@@ -607,11 +607,11 @@ export default function Trips() {
                   </div>
                 )}
 
-                {/* Share SurfTribe QR Code */}
+                {/* Share Board Meeting QR Code */}
                 <div className="bg-card/90 backdrop-blur-sm rounded-xl p-4 border border-border/50 mt-6">
                   <div className="flex items-center gap-2 mb-3">
                     <Share2 className="w-5 h-5 text-primary" />
-                    <h3 className="font-semibold">Share SurfTribe</h3>
+                    <h3 className="font-semibold">Share Board Meeting</h3>
                   </div>
                   <p className="text-sm text-muted-foreground mb-4">
                     Invite your surf buddies! Scan or share this QR code to download the app.
@@ -619,15 +619,15 @@ export default function Trips() {
                   <div className="flex flex-col items-center gap-3">
                     <div className="bg-white p-3 rounded-xl">
                       <img 
-                        src="/surftribe-qr-code.png" 
-                        alt="SurfTribe QR Code" 
+                        src="/boardmeeting-qr-code.png" 
+                        alt="Board Meeting QR Code" 
                         className="w-40 h-40"
                         data-testid="img-qr-code"
                       />
                     </div>
                     <a 
-                      href="/surftribe-qr-code.png" 
-                      download="surftribe-qr-code.png"
+                      href="/boardmeeting-qr-code.png" 
+                      download="boardmeeting-qr-code.png"
                       className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
                       data-testid="link-download-qr"
                     >

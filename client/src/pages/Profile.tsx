@@ -18,7 +18,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Link } from "wouter";
 import type { Profile as ProfileType, Trip } from "@shared/schema";
 import { format } from "date-fns";
-import surfTribeLogo from "@assets/IMG_3279_1768282938756.jpeg";
+import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
@@ -468,7 +468,7 @@ export default function Profile() {
               Send Feedback
             </DialogTitle>
             <DialogDescription>
-              Help us improve SurfTribe! Share your suggestions, report bugs, or tell us what you love.
+              Help us improve Board Meeting! Share your suggestions, report bugs, or tell us what you love.
             </DialogDescription>
           </DialogHeader>
           
@@ -545,8 +545,8 @@ export default function Profile() {
         <div className="h-72 relative flex items-center justify-center" style={{ backgroundColor: '#4FC6F7' }}>
           <div className="absolute left-1/2 top-[50%] -translate-x-1/2 -translate-y-1/2">
             <img 
-              src={surfTribeLogo} 
-              alt="SurfTribe Logo" 
+              src={boardMeetingLogo} 
+              alt="Board Meeting Logo" 
               className="w-[22rem] h-[22rem] object-contain max-w-none"
             />
           </div>

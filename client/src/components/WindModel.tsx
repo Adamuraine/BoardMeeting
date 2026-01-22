@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import surfTribeLogo from "@assets/IMG_3279_1768282938756.jpeg";
+import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -97,11 +97,11 @@ function WindyEmbed({
         className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-teal-600 to-teal-500 rounded-lg shadow-md"
       >
         <img 
-          src={surfTribeLogo} 
-          alt="SurfTribe Logo" 
+          src={boardMeetingLogo} 
+          alt="Board Meeting Logo" 
           className="w-6 h-6 rounded-full object-cover"
         />
-        <span className="text-white font-semibold text-sm tracking-wide">SurfTribe</span>
+        <span className="text-white font-semibold text-sm tracking-wide">Board Meeting</span>
       </div>
     </div>
   );

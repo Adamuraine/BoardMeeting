@@ -1,8 +1,8 @@
-# SurfTribe - App Store Submission Materials
+# Board Meeting - App Store Submission Materials
 
 ## App Information
 
-**App Name:** SurfTribe  
+**App Name:** Board Meeting  
 **Subtitle:** Connect. Surf. Explore Together  
 **Category:** Primary: Social Networking | Secondary: Sports  
 **Age Rating:** 12+ (Infrequent/Mild Social Networking)
@@ -16,9 +16,9 @@ Find your perfect surf buddy, check live conditions, and plan epic trips togethe
 
 **Full Description:**
 
-SurfTribe is the ultimate social platform for surfers who want to connect, share, and explore the waves together.
+Board Meeting is the ultimate social platform for surfers who want to connect, share, and explore the waves together.
 
-**FIND YOUR SURF TRIBE**
+**FIND YOUR SURF CREW**
 Match with fellow surfers using our Tinder-style buddy system. Swipe right on surfers who share your vibe, skill level, and wave preferences. When you both match, you're connected and ready to paddle out together.
 
 **LIVE SURF CONDITIONS**
@@ -40,9 +40,9 @@ Upgrade to Premium for:
 - Broadcast your trips to attract more surfers
 - Priority matching
 
-Whether you're a beginner looking for patient surf buddies or an experienced charger seeking adventure partners, SurfTribe helps you find your people.
+Whether you're a beginner looking for patient surf buddies or an experienced charger seeking adventure partners, Board Meeting helps you find your people.
 
-Download now and join the tribe!
+Download now and join the meeting!
 
 ---
 

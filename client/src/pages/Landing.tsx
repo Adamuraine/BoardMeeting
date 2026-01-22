@@ -3,7 +3,7 @@ import { Waves } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
 import { useEffect } from "react";
-import surfTribeLogo from "@assets/IMG_3279_1768282938756.jpeg";
+import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
 
 export default function Landing() {
   const { user, isLoading } = useAuth();
@@ -19,7 +19,7 @@ export default function Landing() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-32 h-32 rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 animate-pulse">
-          <img src={surfTribeLogo} alt="SurfTribe" className="w-full h-full object-contain" />
+          <img src={boardMeetingLogo} alt="Board Meeting" className="w-full h-full object-contain" />
         </div>
       </div>
     );
@@ -40,7 +40,7 @@ export default function Landing() {
 
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen px-6 text-center">
         <div className="w-40 h-40 rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 mb-4">
-          <img src={surfTribeLogo} alt="SurfTribe Logo" className="w-full h-full object-contain" />
+          <img src={boardMeetingLogo} alt="Board Meeting Logo" className="w-full h-full object-contain" />
         </div>
 
         <h1 className="text-xl md:text-2xl font-display font-bold mb-4 leading-tight bg-white/90 px-4 py-3 rounded-xl">

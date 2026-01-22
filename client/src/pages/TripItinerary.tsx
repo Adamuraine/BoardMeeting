@@ -282,11 +282,11 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                         credentials: "include",
                       });
                       const { uploadURL, objectPath } = await res.json();
-                      (file as any).objectPath = objectPath;
+                      file.meta.objectPath = objectPath;
                       return { method: "PUT" as const, url: uploadURL, headers: { "Content-Type": file.type || "application/octet-stream" } };
                     }}
                     onComplete={async (result) => {
-                      const uploadedPaths = (result.successful || []).map((f: any) => f.objectPath);
+                      const uploadedPaths = (result.successful || []).map((f: any) => f.meta?.objectPath).filter(Boolean);
                       if (uploadedPaths.length > 0) {
                         const currentPhotos = trip.photos || [];
                         const newPhotos = [...currentPhotos, ...uploadedPaths];

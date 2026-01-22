@@ -911,7 +911,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
               </CardContent>
             </Card>
 
-            <Card className={cn(!isPremium && "opacity-60")}>
+            <Card className={cn("border-2 border-amber-400/70 dark:border-amber-500/50", !isPremium && "opacity-60")}>
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
                   <Radio className="w-5 h-5 text-primary" />

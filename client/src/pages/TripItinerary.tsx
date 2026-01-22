@@ -20,8 +20,15 @@ import type { Trip, Profile } from "@shared/schema";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Slider } from "@/components/ui/slider";
 
-// Map to store objectPaths for uploaded files by file ID
-const uploadedPathsMap = new Map<string, string>();
+// Use window object to persist across hot reloads
+declare global {
+  interface Window {
+    __tripPhotoUploadPaths?: Record<string, string>;
+  }
+}
+if (typeof window !== 'undefined' && !window.__tripPhotoUploadPaths) {
+  window.__tripPhotoUploadPaths = {};
+}
 
 interface TripItineraryProps {
   params?: { id?: string };
@@ -285,12 +292,15 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                         credentials: "include",
                       });
                       const { uploadURL, objectPath } = await res.json();
-                      uploadedPathsMap.set(file.name || file.id, objectPath);
+                      if (window.__tripPhotoUploadPaths) {
+                        window.__tripPhotoUploadPaths[file.name || file.id] = objectPath;
+                      }
                       return { method: "PUT" as const, url: uploadURL, headers: { "Content-Type": file.type || "application/octet-stream" } };
                     }}
                     onComplete={async (result) => {
+                      const pathsMap = window.__tripPhotoUploadPaths || {};
                       const paths = (result.successful || [])
-                        .map((f: any) => uploadedPathsMap.get(f.name) || uploadedPathsMap.get(f.id))
+                        .map((f: any) => pathsMap[f.name] || pathsMap[f.id])
                         .filter(Boolean) as string[];
                       if (paths.length > 0) {
                         const currentPhotos = trip.photos || [];
@@ -298,7 +308,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                         await apiRequest("PATCH", `/api/trips/${tripId}`, { photos: newPhotos });
                         queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
                         toast({ title: "Photos added", description: "Trip photos updated!" });
-                        uploadedPathsMap.clear();
+                        window.__tripPhotoUploadPaths = {};
                       }
                     }}
                     buttonClassName="h-8 px-3"

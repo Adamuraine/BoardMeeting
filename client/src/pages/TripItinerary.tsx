@@ -285,12 +285,12 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                         credentials: "include",
                       });
                       const { uploadURL, objectPath } = await res.json();
-                      uploadedPathsMap.set(file.id, objectPath);
+                      uploadedPathsMap.set(file.name || file.id, objectPath);
                       return { method: "PUT" as const, url: uploadURL, headers: { "Content-Type": file.type || "application/octet-stream" } };
                     }}
                     onComplete={async (result) => {
                       const paths = (result.successful || [])
-                        .map((f: any) => uploadedPathsMap.get(f.id))
+                        .map((f: any) => uploadedPathsMap.get(f.name) || uploadedPathsMap.get(f.id))
                         .filter(Boolean) as string[];
                       if (paths.length > 0) {
                         const currentPhotos = trip.photos || [];
@@ -298,11 +298,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                         await apiRequest("PATCH", `/api/trips/${tripId}`, { photos: newPhotos });
                         queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
                         toast({ title: "Photos added", description: "Trip photos updated!" });
-                        paths.forEach(p => {
-                          const entries = Array.from(uploadedPathsMap.entries());
-                          const entry = entries.find(([_, v]) => v === p);
-                          if (entry) uploadedPathsMap.delete(entry[0]);
-                        });
+                        uploadedPathsMap.clear();
                       }
                     }}
                     buttonClassName="h-8 px-3"

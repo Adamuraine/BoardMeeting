@@ -854,13 +854,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <Label className="text-xs text-muted-foreground">House Rental</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                  <Input 
-                    type="number"
-                    inputMode="numeric"
+                  <input 
+                    type="text"
+                    pattern="[0-9]*"
                     placeholder="0"
-                    value={houseRental}
-                    onChange={(e) => setHouseRental(e.target.value)}
-                    className="pl-7"
+                    defaultValue={houseRental}
+                    onBlur={(e) => setHouseRental(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-house-rental"
                   />
                 </div>
@@ -869,13 +869,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <Label className="text-xs text-muted-foreground">Taxi/Transport</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                  <Input 
-                    type="number"
-                    inputMode="numeric"
+                  <input 
+                    type="text"
+                    pattern="[0-9]*"
                     placeholder="0"
-                    value={taxiRides}
-                    onChange={(e) => setTaxiRides(e.target.value)}
-                    className="pl-7"
+                    defaultValue={taxiRides}
+                    onBlur={(e) => setTaxiRides(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-taxi-rides"
                   />
                 </div>
@@ -884,13 +884,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <Label className="text-xs text-muted-foreground">Boat Trips</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                  <Input 
-                    type="number"
-                    inputMode="numeric"
+                  <input 
+                    type="text"
+                    pattern="[0-9]*"
                     placeholder="0"
-                    value={boatTrips}
-                    onChange={(e) => setBoatTrips(e.target.value)}
-                    className="pl-7"
+                    defaultValue={boatTrips}
+                    onBlur={(e) => setBoatTrips(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-boat-trips"
                   />
                 </div>
@@ -899,13 +899,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <Label className="text-xs text-muted-foreground">Food/Chef</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                  <Input 
-                    type="number"
-                    inputMode="numeric"
+                  <input 
+                    type="text"
+                    pattern="[0-9]*"
                     placeholder="0"
-                    value={cookingMeals}
-                    onChange={(e) => setCookingMeals(e.target.value)}
-                    className="pl-7"
+                    defaultValue={cookingMeals}
+                    onBlur={(e) => setCookingMeals(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-cooking-meals"
                   />
                 </div>
@@ -914,13 +914,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <Label className="text-xs text-muted-foreground">Board Rental / Surfboard Travel</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
-                  <Input 
-                    type="number"
-                    inputMode="numeric"
+                  <input 
+                    type="text"
+                    pattern="[0-9]*"
                     placeholder="0"
-                    value={boardRental}
-                    onChange={(e) => setBoardRental(e.target.value)}
-                    className="pl-7"
+                    defaultValue={boardRental}
+                    onBlur={(e) => setBoardRental(e.target.value)}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-board-rental"
                   />
                 </div>

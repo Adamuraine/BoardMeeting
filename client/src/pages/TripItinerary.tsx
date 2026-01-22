@@ -743,6 +743,15 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                             )}
                           </div>
                         )}
+                        
+                        {trip.airfare && trip.airfare > 0 && (
+                          <div className="mt-3 pt-3 border-t border-border/50">
+                            <div className="flex justify-between text-xs">
+                              <span className="text-muted-foreground">Airfare (individual)</span>
+                              <span className="font-medium">${trip.airfare.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="mt-4 grid grid-cols-4 gap-2 text-center">

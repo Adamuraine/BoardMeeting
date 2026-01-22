@@ -753,13 +753,12 @@ export class DatabaseStorage implements IStorage {
     if (details.boardRental !== undefined) updateData.boardRental = details.boardRental;
     if (details.airfare !== undefined) updateData.airfare = details.airfare;
     
-    // Also update total cost
+    // Also update total cost (excludes airfare - everyone pays their own ticket)
     const totalCost = (details.houseRental || trip.houseRental || 0) + 
                       (details.taxiRides || trip.taxiRides || 0) + 
                       (details.boatTrips || trip.boatTrips || 0) + 
                       (details.cookingMeals || trip.cookingMeals || 0) + 
-                      (details.boardRental || trip.boardRental || 0) +
-                      (details.airfare || trip.airfare || 0);
+                      (details.boardRental || trip.boardRental || 0);
     updateData.cost = totalCost;
     
     const [updated] = await db.update(trips)

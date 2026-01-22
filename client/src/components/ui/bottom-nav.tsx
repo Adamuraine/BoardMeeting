@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { User, Waves, Plane, Users, Home as HomeIcon, Activity } from "lucide-react";
+import { User, Waves, Plane, Users, Home as HomeIcon, Activity, MessageCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BottomNav() {
@@ -11,6 +11,7 @@ export default function BottomNav() {
     { href: "/stats", icon: Activity, label: "Stats" },
     { href: "/buddies", icon: Users, label: "Buddies" },
     { href: "/trips", icon: Plane, label: "Trips" },
+    { href: "/messages", icon: MessageCircle, label: "Messages" },
     { href: "/profile", icon: User, label: "Profile" },
   ];
 

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { User, Waves, Plane, Users, Home as HomeIcon } from "lucide-react";
+import { User, Waves, Plane, Users, Home as HomeIcon, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function BottomNav() {
@@ -8,6 +8,7 @@ export default function BottomNav() {
   const navItems = [
     { href: "/home", icon: HomeIcon, label: "Home" },
     { href: "/surf", icon: Waves, label: "Surf" },
+    { href: "/stats", icon: Activity, label: "Stats" },
     { href: "/buddies", icon: Users, label: "Buddies" },
     { href: "/trips", icon: Plane, label: "Trips" },
     { href: "/profile", icon: User, label: "Profile" },

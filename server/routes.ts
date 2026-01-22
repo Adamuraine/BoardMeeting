@@ -451,7 +451,7 @@ export async function registerRoutes(
     const tripId = parseInt(req.params.id);
     if (isNaN(tripId)) return res.sendStatus(400);
     try {
-      const { expectations, activities, waveType, rideStyle, locationPreference, vibe, extraActivities, broadcastEnabled } = req.body;
+      const { name, photos, expectations, activities, waveType, rideStyle, locationPreference, vibe, extraActivities, broadcastEnabled } = req.body;
       
       // Premium check for broadcast feature
       if (broadcastEnabled === true) {
@@ -461,7 +461,7 @@ export async function registerRoutes(
         }
       }
       
-      const trip = await storage.updateTrip(tripId, userId, { expectations, activities, waveType, rideStyle, locationPreference, vibe, extraActivities, broadcastEnabled });
+      const trip = await storage.updateTrip(tripId, userId, { name, photos, expectations, activities, waveType, rideStyle, locationPreference, vibe, extraActivities, broadcastEnabled });
       res.json(trip);
     } catch (err: any) {
       console.error("Failed to update trip:", err);

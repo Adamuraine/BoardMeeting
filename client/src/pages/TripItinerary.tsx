@@ -63,6 +63,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   const boatTripsRef = useRef<HTMLInputElement>(null);
   const cookingMealsRef = useRef<HTMLInputElement>(null);
   const boardRentalRef = useRef<HTMLInputElement>(null);
+  const airfareRef = useRef<HTMLInputElement>(null);
 
   const { data: trip, isLoading } = useQuery<Trip & { organizer: Profile }>({
     queryKey: ["/api/trips", tripId],
@@ -160,7 +161,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   };
 
   const updateExpensesMutation = useMutation({
-    mutationFn: async (expenses: { houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number }) => {
+    mutationFn: async (expenses: { houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number }) => {
       const res = await fetch(`/api/trips/${tripId}/details`, {
         method: 'PATCH',
         headers: { "Content-Type": "application/json" },
@@ -189,6 +190,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
     const boatTrips = boatTripsRef.current?.value || "";
     const cookingMeals = cookingMealsRef.current?.value || "";
     const boardRental = boardRentalRef.current?.value || "";
+    const airfare = airfareRef.current?.value || "";
     
     updateExpensesMutation.mutate({
       houseRental: houseRental ? parseInt(houseRental) : undefined,
@@ -196,6 +198,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
       boatTrips: boatTrips ? parseInt(boatTrips) : undefined,
       cookingMeals: cookingMeals ? parseInt(cookingMeals) : undefined,
       boardRental: boardRental ? parseInt(boardRental) : undefined,
+      airfare: airfare ? parseInt(airfare) : undefined,
     });
   };
 
@@ -913,8 +916,8 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   />
                 </div>
               </div>
-              <div className="space-y-1 col-span-2">
-                <Label className="text-xs text-muted-foreground">Board Rental / Surfboard Travel</Label>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Board Rental</Label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <input 
@@ -926,6 +929,22 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                     defaultValue={trip?.boardRental?.toString() || ""}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-board-rental"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Airfare</Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <input 
+                    ref={airfareRef}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="0"
+                    defaultValue={trip?.airfare?.toString() || ""}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
+                    data-testid="input-edit-airfare"
                   />
                 </div>
               </div>

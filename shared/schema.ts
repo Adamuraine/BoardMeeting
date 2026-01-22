@@ -101,6 +101,7 @@ export const trips = pgTable("trips", {
   boatTrips: integer("boat_trips"), // boat charters
   cookingMeals: integer("cooking_meals"), // chef/food costs
   boardRental: integer("board_rental"), // board rental or travel fees
+  airfare: integer("airfare"), // flight costs
 });
 
 // === TRIP PARTICIPANTS (Join Requests) ===

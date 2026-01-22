@@ -258,9 +258,27 @@ export default function TripItinerary({ params }: TripItineraryProps) {
           </Button>
 
           <div className="mb-6">
-            {trip.name && (
+            {isOrganizer ? (
+              <div className="flex items-center gap-2 mb-1">
+                <Input
+                  defaultValue={trip.name || ""}
+                  onBlur={async (e) => {
+                    const newName = e.target.value.trim();
+                    if (newName !== (trip.name || "")) {
+                      await apiRequest("PATCH", `/api/trips/${tripId}`, { name: newName || null });
+                      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+                      toast({ title: "Trip name updated" });
+                    }
+                  }}
+                  placeholder="Add trip name (e.g., 'Epic Bali Trip')"
+                  className="text-sm text-primary font-medium border-dashed h-8 max-w-xs"
+                  data-testid="input-trip-name"
+                />
+                <Pencil className="w-3 h-3 text-muted-foreground" />
+              </div>
+            ) : trip.name ? (
               <p className="text-sm text-primary font-medium mb-1">{trip.name}</p>
-            )}
+            ) : null}
             <h1 className="text-2xl font-display font-bold text-foreground mb-2">
               {trip.destination}
             </h1>

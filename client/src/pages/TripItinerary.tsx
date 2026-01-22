@@ -17,8 +17,11 @@ import { useMyProfile } from "@/hooks/use-profiles";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { Trip, Profile } from "@shared/schema";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Slider } from "@/components/ui/slider";
+
+// Map to store objectPaths for uploaded files by file ID
+const uploadedPathsMap = new Map<string, string>();
 
 interface TripItineraryProps {
   params?: { id?: string };
@@ -282,17 +285,24 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                         credentials: "include",
                       });
                       const { uploadURL, objectPath } = await res.json();
-                      file.meta.objectPath = objectPath;
+                      uploadedPathsMap.set(file.id, objectPath);
                       return { method: "PUT" as const, url: uploadURL, headers: { "Content-Type": file.type || "application/octet-stream" } };
                     }}
                     onComplete={async (result) => {
-                      const uploadedPaths = (result.successful || []).map((f: any) => f.meta?.objectPath).filter(Boolean);
-                      if (uploadedPaths.length > 0) {
+                      const paths = (result.successful || [])
+                        .map((f: any) => uploadedPathsMap.get(f.id))
+                        .filter(Boolean) as string[];
+                      if (paths.length > 0) {
                         const currentPhotos = trip.photos || [];
-                        const newPhotos = [...currentPhotos, ...uploadedPaths];
+                        const newPhotos = [...currentPhotos, ...paths];
                         await apiRequest("PATCH", `/api/trips/${tripId}`, { photos: newPhotos });
                         queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
                         toast({ title: "Photos added", description: "Trip photos updated!" });
+                        paths.forEach(p => {
+                          const entries = Array.from(uploadedPathsMap.entries());
+                          const entry = entries.find(([_, v]) => v === p);
+                          if (entry) uploadedPathsMap.delete(entry[0]);
+                        });
                       }
                     }}
                     buttonClassName="h-8 px-3"

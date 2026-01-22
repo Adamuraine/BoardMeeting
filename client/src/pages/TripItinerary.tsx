@@ -279,21 +279,93 @@ export default function TripItinerary({ params }: TripItineraryProps) {
             ) : trip.name ? (
               <p className="text-sm text-primary font-medium mb-1">{trip.name}</p>
             ) : null}
-            <h1 className="text-2xl font-display font-bold text-foreground mb-2">
-              {trip.destination}
-            </h1>
+            {isOrganizer ? (
+              <div className="flex items-center gap-2 mb-2">
+                <Input
+                  defaultValue={trip.destination}
+                  onBlur={async (e) => {
+                    const newDest = e.target.value.trim();
+                    if (newDest && newDest !== trip.destination) {
+                      await apiRequest("PATCH", `/api/trips/${tripId}`, { destination: newDest });
+                      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+                      toast({ title: "Destination updated" });
+                    }
+                  }}
+                  placeholder="Destination"
+                  className="text-2xl font-display font-bold border-dashed h-10 max-w-sm"
+                  data-testid="input-trip-destination"
+                />
+                <Pencil className="w-4 h-4 text-muted-foreground" />
+              </div>
+            ) : (
+              <h1 className="text-2xl font-display font-bold text-foreground mb-2">
+                {trip.destination}
+              </h1>
+            )}
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <Calendar className="w-4 h-4" />
-              <span>
-                {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d, yyyy")}
-              </span>
+              {isOrganizer ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="date"
+                    defaultValue={trip.startDate}
+                    onBlur={async (e) => {
+                      const newDate = e.target.value;
+                      if (newDate && newDate !== trip.startDate) {
+                        await apiRequest("PATCH", `/api/trips/${tripId}`, { startDate: newDate });
+                        queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+                        toast({ title: "Start date updated" });
+                      }
+                    }}
+                    className="h-7 w-auto border-dashed"
+                    data-testid="input-trip-start-date"
+                  />
+                  <span>-</span>
+                  <Input
+                    type="date"
+                    defaultValue={trip.endDate}
+                    onBlur={async (e) => {
+                      const newDate = e.target.value;
+                      if (newDate && newDate !== trip.endDate) {
+                        await apiRequest("PATCH", `/api/trips/${tripId}`, { endDate: newDate });
+                        queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+                        toast({ title: "End date updated" });
+                      }
+                    }}
+                    className="h-7 w-auto border-dashed"
+                    data-testid="input-trip-end-date"
+                  />
+                </div>
+              ) : (
+                <span>
+                  {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d, yyyy")}
+                </span>
+              )}
             </div>
-            {trip.startingLocation && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
-                <MapPin className="w-4 h-4" />
+            <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
+              <MapPin className="w-4 h-4" />
+              {isOrganizer ? (
+                <div className="flex items-center gap-1">
+                  <span>From:</span>
+                  <Input
+                    defaultValue={trip.startingLocation || ""}
+                    onBlur={async (e) => {
+                      const newLoc = e.target.value.trim();
+                      if (newLoc !== (trip.startingLocation || "")) {
+                        await apiRequest("PATCH", `/api/trips/${tripId}`, { startingLocation: newLoc || null });
+                        queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId] });
+                        toast({ title: "Starting location updated" });
+                      }
+                    }}
+                    placeholder="Starting location"
+                    className="h-7 border-dashed max-w-xs"
+                    data-testid="input-trip-starting-location"
+                  />
+                </div>
+              ) : trip.startingLocation ? (
                 <span>From: {trip.startingLocation}</span>
-              </div>
-            )}
+              ) : null}
+            </div>
 
             {/* Trip Photos / Who's Going */}
             <div className="mt-4">

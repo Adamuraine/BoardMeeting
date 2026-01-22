@@ -71,7 +71,7 @@ export interface IStorage {
   
   // Trip Activities
   updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
-  updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
+  updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; destination?: string; startingLocation?: string; startDate?: string; endDate?: string; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
   updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number }): Promise<Trip>;
   
   // Surf Reports
@@ -717,7 +717,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip> {
+  async updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; destination?: string; startingLocation?: string; startDate?: string; endDate?: string; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip> {
     const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
     if (!trip) throw new Error("Trip not found");
     if (trip.organizerId !== userId) throw new Error("Not authorized to update this trip");
@@ -725,6 +725,10 @@ export class DatabaseStorage implements IStorage {
     const updateData: any = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.photos !== undefined) updateData.photos = updates.photos;
+    if (updates.destination !== undefined) updateData.destination = updates.destination;
+    if (updates.startingLocation !== undefined) updateData.startingLocation = updates.startingLocation;
+    if (updates.startDate !== undefined) updateData.startDate = updates.startDate;
+    if (updates.endDate !== undefined) updateData.endDate = updates.endDate;
     if (updates.expectations !== undefined) updateData.expectations = updates.expectations;
     if (updates.activities !== undefined) updateData.activities = updates.activities;
     if (updates.waveType !== undefined) updateData.waveType = updates.waveType;

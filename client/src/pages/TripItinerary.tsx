@@ -855,10 +855,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    enterKeyHint="done"
                     placeholder="0"
                     value={houseRental}
-                    onChange={(e) => setHouseRental(e.target.value)}
+                    onChange={(e) => setHouseRental(e.target.value.replace(/[^0-9]/g, ''))}
                     className="pl-7"
                     data-testid="input-edit-house-rental"
                   />
@@ -869,10 +872,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    enterKeyHint="done"
                     placeholder="0"
                     value={taxiRides}
-                    onChange={(e) => setTaxiRides(e.target.value)}
+                    onChange={(e) => setTaxiRides(e.target.value.replace(/[^0-9]/g, ''))}
                     className="pl-7"
                     data-testid="input-edit-taxi-rides"
                   />
@@ -883,10 +889,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    enterKeyHint="done"
                     placeholder="0"
                     value={boatTrips}
-                    onChange={(e) => setBoatTrips(e.target.value)}
+                    onChange={(e) => setBoatTrips(e.target.value.replace(/[^0-9]/g, ''))}
                     className="pl-7"
                     data-testid="input-edit-boat-trips"
                   />
@@ -897,10 +906,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    enterKeyHint="done"
                     placeholder="0"
                     value={cookingMeals}
-                    onChange={(e) => setCookingMeals(e.target.value)}
+                    onChange={(e) => setCookingMeals(e.target.value.replace(/[^0-9]/g, ''))}
                     className="pl-7"
                     data-testid="input-edit-cooking-meals"
                   />
@@ -911,10 +923,13 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                   <Input 
-                    type="number" 
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    enterKeyHint="done"
                     placeholder="0"
                     value={boardRental}
-                    onChange={(e) => setBoardRental(e.target.value)}
+                    onChange={(e) => setBoardRental(e.target.value.replace(/[^0-9]/g, ''))}
                     className="pl-7"
                     data-testid="input-edit-board-rental"
                   />

@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef } from "react";
@@ -36,6 +36,8 @@ export default function Profile() {
   const [confirmAction, setConfirmAction] = useState<"clearChat" | "clearMatches" | "suspend" | "delete" | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
   const [tripExpectations, setTripExpectations] = useState("");
+  const [editingBio, setEditingBio] = useState(false);
+  const [bioText, setBioText] = useState("");
   const { toast } = useToast();
   const manageSubscription = useManageSubscription();
 
@@ -272,6 +274,16 @@ export default function Profile() {
     if (feedbackText.trim()) {
       submitFeedbackMutation.mutate(feedbackText);
     }
+  };
+
+  const handleEditBio = () => {
+    setBioText(profile?.bio || "");
+    setEditingBio(true);
+  };
+
+  const handleSaveBio = () => {
+    updateProfileMutation.mutate({ bio: bioText });
+    setEditingBio(false);
   };
 
   if (isLoading) return <ProfileSkeleton />;
@@ -626,10 +638,53 @@ export default function Profile() {
 
           <div className="space-y-8">
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">About</h3>
-              <p className="text-foreground/80 leading-relaxed">
-                {profile.bio || "No bio yet."}
-              </p>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+                <span>About</span>
+                {!editingBio && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={handleEditBio}
+                    data-testid="button-edit-bio"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </h3>
+              {editingBio ? (
+                <div className="space-y-2">
+                  <Textarea
+                    value={bioText}
+                    onChange={(e) => setBioText(e.target.value)}
+                    placeholder="Write something about yourself..."
+                    className="min-h-[100px] resize-none"
+                    data-testid="input-bio"
+                  />
+                  <div className="flex gap-2 justify-end">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => setEditingBio(false)}
+                      data-testid="button-cancel-bio"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveBio}
+                      disabled={updateProfileMutation.isPending}
+                      data-testid="button-save-bio"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-foreground/80 leading-relaxed">
+                  {profile.bio || "No bio yet. Tap the pencil to add one!"}
+                </p>
+              )}
             </div>
 
             <div>

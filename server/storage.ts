@@ -29,6 +29,7 @@ export interface IStorage {
   getSwipesCountToday(userId: string): Promise<number>;
   checkMatch(userId1: string, userId2: string): Promise<boolean>;
   getMatchedBuddies(userId: string): Promise<Profile[]>;
+  removeBuddy(userId: string, buddyId: string): Promise<void>;
 
   // Locations & Reports
   getLocations(): Promise<(Location & { reports: SurfReport[] })[]>;
@@ -266,6 +267,22 @@ export class DatabaseStorage implements IStorage {
     return await db.select()
       .from(profiles)
       .where(inArray(profiles.userId, mutualIds));
+  }
+
+  async removeBuddy(userId: string, buddyId: string): Promise<void> {
+    await db.delete(swipes)
+      .where(
+        or(
+          and(eq(swipes.swiperId, userId), eq(swipes.swipedId, buddyId)),
+          and(eq(swipes.swiperId, buddyId), eq(swipes.swipedId, userId))
+        )
+      );
+    
+    const profile = await this.getProfile(userId);
+    if (profile?.topBuddyIds?.includes(buddyId)) {
+      const newTopBuddyIds = profile.topBuddyIds.filter((id: string) => id !== buddyId);
+      await this.updateProfile(userId, { topBuddyIds: newTopBuddyIds });
+    }
   }
 
   async getLocations(): Promise<(Location & { reports: SurfReport[] })[]> {

@@ -202,6 +202,14 @@ export async function registerRoutes(
     res.json(buddies);
   });
 
+  app.delete("/api/buddies/:buddyId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const { buddyId } = req.params;
+    await storage.removeBuddy(userId, buddyId);
+    res.sendStatus(200);
+  });
+
   // === LOCATIONS & REPORTS ===
   app.get("/api/locations/favorites", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

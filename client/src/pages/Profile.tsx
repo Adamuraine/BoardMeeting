@@ -248,6 +248,26 @@ export default function Profile() {
     }
   });
 
+  const removeBuddyMutation = useMutation({
+    mutationFn: async (buddyId: string) => {
+      await apiRequest("DELETE", `/api/buddies/${buddyId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/buddies"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
+      toast({ title: "Buddy removed", description: "They've been removed from your buddies list." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to remove buddy.", variant: "destructive" });
+    }
+  });
+
+  const handleRemoveBuddy = (buddyId: string, buddyName: string) => {
+    if (confirm(`Remove ${buddyName} from your buddies? This will also remove any match between you.`)) {
+      removeBuddyMutation.mutate(buddyId);
+    }
+  };
+
   const handleSubmitFeedback = () => {
     if (feedbackText.trim()) {
       submitFeedbackMutation.mutate(feedbackText);
@@ -754,6 +774,17 @@ export default function Profile() {
                             <MessageCircle className="h-4 w-4" />
                           </Button>
                         </Link>
+                        
+                        <Button 
+                          size="icon" 
+                          variant="ghost"
+                          className="text-muted-foreground hover:text-destructive"
+                          onClick={() => handleRemoveBuddy(buddy.userId, buddy.displayName)}
+                          disabled={removeBuddyMutation.isPending}
+                          data-testid={`button-remove-buddy-${buddy.userId}`}
+                        >
+                          <UserX className="h-4 w-4" />
+                        </Button>
                         
                         {isTop && (
                           <Badge variant="outline" className="flex-shrink-0 text-accent border-accent">

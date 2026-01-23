@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { z } from "zod";
-import { Loader2, Camera, X } from "lucide-react";
+import { Loader2, Camera, X, ArrowRight } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useUpload } from "@/hooks/use-upload";
 import { SafeImage } from "@/components/SafeImage";
@@ -32,6 +32,7 @@ export default function Onboarding() {
   const { user } = useAuth();
   const [uploadedPhotos, setUploadedPhotos] = useState<string[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isSkipping, setIsSkipping] = useState(false);
   
   const { uploadFile, isUploading } = useUpload({
     onSuccess: (response) => {
@@ -76,6 +77,29 @@ export default function Onboarding() {
     updateProfile(payload, {
       onSuccess: () => {
         setLocation("/buddies");
+      }
+    });
+  };
+
+  const handleSkip = () => {
+    setIsSkipping(true);
+    const minimalProfile = {
+      userId: user?.id,
+      displayName: user?.firstName || "Surfer",
+      bio: "",
+      location: "",
+      skillLevel: "intermediate",
+      age: 25,
+      gender: "other",
+      imageUrls: ["https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=800&q=80"]
+    };
+
+    updateProfile(minimalProfile, {
+      onSuccess: () => {
+        setLocation("/home");
+      },
+      onSettled: () => {
+        setIsSkipping(false);
       }
     });
   };
@@ -186,11 +210,37 @@ export default function Onboarding() {
 
           <Button 
             type="submit" 
-            disabled={isPending}
+            disabled={isPending || isSkipping}
             className="w-full h-14 rounded-2xl text-lg font-semibold shadow-lg shadow-primary/25"
+            data-testid="button-submit-profile"
           >
             {isPending && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
             Start Surfing
+          </Button>
+
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t border-border" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">or</span>
+            </div>
+          </div>
+
+          <Button 
+            type="button"
+            variant="ghost"
+            disabled={isPending || isSkipping}
+            onClick={handleSkip}
+            className="w-full h-12 rounded-2xl text-muted-foreground"
+            data-testid="button-skip-onboarding"
+          >
+            {isSkipping ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <ArrowRight className="mr-2 h-4 w-4" />
+            )}
+            Skip for now, I'll set this up later
           </Button>
         </form>
       </div>

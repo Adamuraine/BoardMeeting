@@ -8,6 +8,7 @@ import { useMyProfile } from "@/hooks/use-profiles";
 import { Loader2 } from "lucide-react";
 import BottomNav from "@/components/ui/bottom-nav";
 import { lazy, Suspense } from "react";
+import { TrialTimerModal } from "@/components/TrialTimerModal";
 
 import Landing from "@/pages/Landing";
 import Profile from "@/pages/Profile";
@@ -111,6 +112,7 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
+        <TrialTimerModal />
         <Router />
       </TooltipProvider>
     </QueryClientProvider>

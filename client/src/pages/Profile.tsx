@@ -298,6 +298,23 @@ export default function Profile() {
     <Layout>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
+      {profile?.isIncompleteProfile && (
+        <Link href="/onboarding">
+          <div className="bg-gradient-to-r from-primary to-cyan-500 text-primary-foreground p-3 mb-4 rounded-xl flex items-center justify-between cursor-pointer hover-elevate" data-testid="banner-complete-profile">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                <Pencil className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="font-medium text-sm">Complete your profile</p>
+                <p className="text-xs opacity-80">Add photos and details to connect with surfers</p>
+              </div>
+            </div>
+            <Button size="sm" variant="secondary" className="shrink-0">Set Up</Button>
+          </div>
+        </Link>
+      )}
+      
       <Dialog open={!!selectedTrip} onOpenChange={(open) => !open && setSelectedTrip(null)}>
         <DialogContent className="max-h-[90vh] overflow-y-auto p-0 border-0 overflow-hidden">
           <div className="bg-gradient-to-r from-teal-500 to-cyan-500 p-6 text-white">

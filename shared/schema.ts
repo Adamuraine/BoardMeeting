@@ -29,6 +29,8 @@ export const profiles = pgTable("profiles", {
   stripeCustomerId: text("stripe_customer_id"),
   stripeSubscriptionId: text("stripe_subscription_id"),
   openToGuiding: boolean("open_to_guiding").default(false), // Open to meeting/guiding travelers
+  isIncompleteProfile: boolean("is_incomplete_profile").default(false), // User skipped profile setup
+  trialStartedAt: timestamp("trial_started_at"), // When trial period started for incomplete profiles
 });
 
 // === SWIPES ===

@@ -71,7 +71,9 @@ export default function Onboarding() {
       age: Number(data.age),
       imageUrls: uploadedPhotos.length > 0 ? uploadedPhotos : [
         "https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=800&q=80"
-      ]
+      ],
+      isIncompleteProfile: false,
+      trialStartedAt: null,
     };
 
     updateProfile(payload, {
@@ -91,7 +93,9 @@ export default function Onboarding() {
       skillLevel: "intermediate",
       age: 25,
       gender: "other",
-      imageUrls: ["https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=800&q=80"]
+      imageUrls: ["https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=800&q=80"],
+      isIncompleteProfile: true,
+      trialStartedAt: new Date().toISOString(),
     };
 
     updateProfile(minimalProfile, {

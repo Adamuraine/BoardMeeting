@@ -57,7 +57,7 @@ surf,surfing,waves,ocean,beach,buddy,friends,forecast,swell,trips,social,surfer,
 ## What's New (Version 1.0)
 
 ```
-Welcome to SurfTribe! 
+Welcome to Board Meeting! 
 
 - Match with surfers who share your vibe
 - Check live surf conditions and forecasts
@@ -65,7 +65,7 @@ Welcome to SurfTribe!
 - Track your sessions and unlock achievements
 - Share photos and connect with the community
 
-Paddle out and find your tribe!
+Paddle out and meet your crew!
 ```
 
 ---
@@ -113,7 +113,7 @@ Required sizes (all from your logo):
 
 You'll need a privacy policy. You can:
 1. Use a generator like termly.io or privacypolicies.com
-2. Host it at: surftribe.app/privacy
+2. Host it at: boardmeeting.app/privacy
 
 **Key points to include:**
 - Data collected (profile info, location for surf spots, photos)
@@ -125,7 +125,7 @@ You'll need a privacy policy. You can:
 
 ## Support URL
 
-Create a simple support page or use: surftribe.app/support
+Create a simple support page or use: boardmeeting.app/support
 
 Include:
 - Contact email
@@ -139,7 +139,7 @@ Include:
 ```
 Test Account:
 - The app uses Replit Auth for login
-- You can test the app at: https://surftribesocial.replit.app
+- You can test the app at: https://boardmeeting.replit.app
 - All features are functional with sample data
 
 In-App Purchases:

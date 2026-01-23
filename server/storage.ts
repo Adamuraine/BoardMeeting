@@ -670,7 +670,7 @@ export class DatabaseStorage implements IStorage {
       
       await db.insert(users).values({
         id: fakeUserId,
-        email: `${u.name.toLowerCase()}@surftribe.mock`,
+        email: `${u.name.toLowerCase()}@boardmeeting.mock`,
         firstName: u.name,
         lastName: "Surfer",
       }).onConflictDoNothing();

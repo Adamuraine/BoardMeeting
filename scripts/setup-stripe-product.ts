@@ -2,17 +2,17 @@ import { getUncachableStripeClient } from '../server/stripeClient';
 
 async function setupStripeProduct() {
   try {
-    console.log('Setting up SurfTribe Premium subscription...');
+    console.log('Setting up Board Meeting Premium subscription...');
     
     const stripe = await getUncachableStripeClient();
     
     const existingProducts = await stripe.products.list({ limit: 10 });
-    let product = existingProducts.data.find(p => p.name === 'SurfTribe Premium');
+    let product = existingProducts.data.find(p => p.name === 'Board Meeting Premium');
     
     if (!product) {
-      console.log('Creating SurfTribe Premium product...');
+      console.log('Creating Board Meeting Premium product...');
       product = await stripe.products.create({
-        name: 'SurfTribe Premium',
+        name: 'Board Meeting Premium',
         description: 'Unlock unlimited swipes, 14-day surf forecasts, and trip broadcasting',
       });
       console.log('Product created:', product.id);

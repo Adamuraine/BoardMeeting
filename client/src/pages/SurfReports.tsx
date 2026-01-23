@@ -902,7 +902,7 @@ function SpotPicker({
   );
 }
 
-const STORAGE_KEY = 'surftribe_saved_spots';
+const STORAGE_KEY = 'boardmeeting_saved_spots';
 
 export default function SurfReports() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);

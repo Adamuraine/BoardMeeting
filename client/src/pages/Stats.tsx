@@ -377,7 +377,7 @@ export default function Stats() {
 
   return (
     <div className="max-w-md mx-auto pb-24">
-      <header className="p-2 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
+      <header className="p-4 flex justify-between items-center">
         <div className="w-10" />
         
         <button

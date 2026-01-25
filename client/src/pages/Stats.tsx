@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown, Trophy, MapPin, Timer, Compass, Sailboat, Hotel, Snowflake, Tent, Sunrise, PartyPopper, Beer, Palmtree } from "lucide-react";
+import { Activity, Waves, Gauge, TrendingUp, Plus, Check, Watch, Pencil, Save, X, ChevronDown, Trophy, MapPin, Timer, Compass, Sailboat, Hotel, Snowflake, Tent, Sunrise, PartyPopper, Beer, Palmtree, Download } from "lucide-react";
 import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -127,6 +127,7 @@ export default function Stats() {
   const [editingLongestWave, setEditingLongestWave] = useState(false);
   const [tempSpeed, setTempSpeed] = useState("");
   const [tempLongestWave, setTempLongestWave] = useState("");
+  const [showQR, setShowQR] = useState(false);
   
   const [trophyDialogOpen, setTrophyDialogOpen] = useState(false);
   const [newTrophy, setNewTrophy] = useState<TrophyData>({
@@ -375,14 +376,73 @@ export default function Stats() {
   }
 
   return (
-    <div className="p-4 max-w-md mx-auto space-y-6 pt-8 pb-24">
-      <div className="flex items-start justify-between">
+    <div className="max-w-md mx-auto pb-24">
+      <header className="p-2 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
+        <div className="w-10" />
+        
+        <button
+          className="flex flex-col items-center gap-0.5"
+          onClick={() => setShowQR(true)}
+          data-testid="button-show-qr-stats"
+        >
+          <img 
+            src="/boardmeeting-qr-code.png" 
+            alt="Share App" 
+            className="w-8 h-8 rounded shadow border border-border bg-white"
+          />
+          <span className="text-[8px] font-medium text-muted-foreground">Share</span>
+        </button>
+        
+        <img src={boardMeetingLogo} alt="Board Meeting" className="h-10 w-10 rounded-full object-cover" />
+      </header>
+
+      {showQR && (
+        <div 
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6"
+          onClick={() => setShowQR(false)}
+        >
+          <div 
+            className="bg-card rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Button
+              size="icon"
+              variant="ghost"
+              className="absolute top-2 right-2"
+              onClick={() => setShowQR(false)}
+              data-testid="button-close-qr-stats"
+            >
+              <X className="w-5 h-5" />
+            </Button>
+            <h3 className="font-bold text-lg mb-2">Share Board Meeting</h3>
+            <p className="text-sm text-muted-foreground mb-4">
+              Scan to join the surf community!
+            </p>
+            <img 
+              src="/boardmeeting-qr-code.png" 
+              alt="Board Meeting QR Code" 
+              className="w-48 h-48 mx-auto rounded-lg"
+              data-testid="img-qr-code-modal-stats"
+            />
+            <p className="text-xs text-muted-foreground mt-3 mb-4">boardmeetingsurf.com</p>
+            <a
+              href="/boardmeeting-qr-code.png"
+              download="boardmeeting-qr-code.png"
+              className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+              data-testid="link-download-qr-stats"
+            >
+              <Download className="w-4 h-4" />
+              Download QR Code
+            </a>
+          </div>
+        </div>
+      )}
+
+      <div className="p-4 space-y-6">
         <div>
           <h1 className="text-3xl font-display font-bold text-primary" data-testid="text-stats-title">Your Stats</h1>
           <p className="text-muted-foreground">Track your progression</p>
         </div>
-        <img src={boardMeetingLogo} alt="Board Meeting" className="h-12 w-auto object-contain" />
-      </div>
 
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-2 space-y-0">
@@ -845,6 +905,7 @@ export default function Stats() {
           </div>
         </CardContent>
       </Card>
+      </div>
     </div>
   );
 }

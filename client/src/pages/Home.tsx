@@ -11,7 +11,6 @@ import type { PostWithUser, Profile, Trip } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
 import { useState, useCallback, useEffect } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { Download } from "lucide-react";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
@@ -261,7 +260,6 @@ export default function Home() {
   const [messageBuddy, setMessageBuddy] = useState<Profile | null>(null);
   const [messageDialogOpen, setMessageDialogOpen] = useState(false);
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
-  const [showQR, setShowQR] = useState(false);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
   // Build alerts from data
@@ -335,70 +333,13 @@ export default function Home() {
 
   return (
     <div className="max-w-md mx-auto pb-20">
-      <header className="p-2 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-between items-center">
-        <div className="w-10" />
-        
-        <button
-          className="flex flex-col items-center gap-0.5"
-          onClick={() => setShowQR(true)}
-          data-testid="button-show-qr-home"
-        >
-          <img 
-            src="/boardmeeting-qr-code.png" 
-            alt="Share App" 
-            className="w-8 h-8 rounded shadow border border-border bg-white"
-          />
-          <span className="text-[8px] font-medium text-muted-foreground">Share</span>
-        </button>
-        
+      <header className="p-2 border-b bg-background/80 backdrop-blur sticky top-0 z-10 flex justify-end items-center">
         <Link href="/post/new">
           <Button size="icon" variant="ghost" data-testid="button-camera">
             <Camera className="h-6 w-6" />
           </Button>
         </Link>
       </header>
-
-      {showQR && (
-        <div 
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-6"
-          onClick={() => setShowQR(false)}
-        >
-          <div 
-            className="bg-card rounded-2xl p-6 max-w-xs w-full text-center shadow-2xl relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Button
-              size="icon"
-              variant="ghost"
-              className="absolute top-2 right-2"
-              onClick={() => setShowQR(false)}
-              data-testid="button-close-qr-home"
-            >
-              <X className="w-5 h-5" />
-            </Button>
-            <h3 className="font-bold text-lg mb-2">Share Board Meeting</h3>
-            <p className="text-sm text-muted-foreground mb-4">
-              Scan to join the surf community!
-            </p>
-            <img 
-              src="/boardmeeting-qr-code.png" 
-              alt="Board Meeting QR Code" 
-              className="w-48 h-48 mx-auto rounded-lg"
-              data-testid="img-qr-code-modal-home"
-            />
-            <p className="text-xs text-muted-foreground mt-3 mb-4">boardmeetingsurf.com</p>
-            <a
-              href="/boardmeeting-qr-code.png"
-              download="boardmeeting-qr-code.png"
-              className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-              data-testid="link-download-qr-home"
-            >
-              <Download className="w-4 h-4" />
-              Download QR Code
-            </a>
-          </div>
-        </div>
-      )}
 
       {/* Alerts Section */}
       <AnimatePresence>

@@ -388,7 +388,7 @@ export default function Stats() {
           <img 
             src="/boardmeeting-qr-code.png" 
             alt="Share App" 
-            className="w-8 h-8 rounded shadow border border-border bg-white"
+            className="w-16 h-16 rounded shadow border border-border bg-white"
           />
           <span className="text-[8px] font-medium text-muted-foreground">Share</span>
         </button>

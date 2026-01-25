@@ -393,7 +393,7 @@ export default function Stats() {
           <span className="text-[8px] font-medium text-muted-foreground">Share</span>
         </button>
         
-        <img src={boardMeetingLogo} alt="Board Meeting" className="h-10 w-10 rounded-full object-cover" />
+        <img src={boardMeetingLogo} alt="Board Meeting" className="h-20 w-20 rounded-full object-cover" />
       </header>
 
       {showQR && (

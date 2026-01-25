@@ -7,9 +7,10 @@ interface LayoutProps {
   children: React.ReactNode;
   showNav?: boolean;
   showHeader?: boolean;
+  hideQR?: boolean;
 }
 
-export function Layout({ children, showNav = true, showHeader = true }: LayoutProps) {
+export function Layout({ children, showNav = true, showHeader = true, hideQR = false }: LayoutProps) {
   const [showQR, setShowQR] = useState(false);
 
   return (
@@ -20,19 +21,21 @@ export function Layout({ children, showNav = true, showHeader = true }: LayoutPr
             {children}
           </div>
           
-          {/* QR Code Share Button - Top Right */}
-          <button
-            className="absolute top-2 right-2 flex flex-col items-center gap-0.5 z-50"
-            onClick={() => setShowQR(true)}
-            data-testid="button-show-qr"
-          >
-            <img 
-              src="/boardmeeting-qr-code.png" 
-              alt="Share App" 
-              className="w-8 h-8 rounded shadow border border-border bg-white"
-            />
-            <span className="text-[8px] font-medium text-muted-foreground">Share</span>
-          </button>
+          {/* QR Code Share Button - Top Right (hidden on pages with their own QR) */}
+          {!hideQR && (
+            <button
+              className="absolute top-2 right-2 flex flex-col items-center gap-0.5 z-50"
+              onClick={() => setShowQR(true)}
+              data-testid="button-show-qr"
+            >
+              <img 
+                src="/boardmeeting-qr-code.png" 
+                alt="Share App" 
+                className="w-8 h-8 rounded shadow border border-border bg-white"
+              />
+              <span className="text-[8px] font-medium text-muted-foreground">Share</span>
+            </button>
+          )}
           
           {/* QR Code Modal */}
           {showQR && (

@@ -20,16 +20,19 @@ export function Layout({ children, showNav = true, showHeader = true }: LayoutPr
             {children}
           </div>
           
-          {/* Floating QR Code Button */}
-          <Button
-            size="icon"
-            variant="secondary"
-            className="absolute bottom-20 right-3 w-10 h-10 rounded-full shadow-lg z-50"
+          {/* QR Code Share Button - Top Left */}
+          <button
+            className="absolute top-3 left-3 flex flex-col items-center gap-1 z-50"
             onClick={() => setShowQR(true)}
             data-testid="button-show-qr"
           >
-            <QrCode className="w-5 h-5" />
-          </Button>
+            <img 
+              src="/boardmeeting-qr-code.png" 
+              alt="Share App" 
+              className="w-12 h-12 rounded-md shadow-lg border border-border bg-white"
+            />
+            <span className="text-[10px] font-medium text-muted-foreground">Share App</span>
+          </button>
           
           {/* QR Code Modal */}
           {showQR && (

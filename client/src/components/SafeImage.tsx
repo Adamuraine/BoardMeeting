@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import { ImageOff } from "lucide-react";
+import defaultSurferImg from "@assets/default-surfer.jpeg";
 
 interface SafeImageProps {
   src: string | undefined;
   alt: string;
   className?: string;
   fallbackClassName?: string;
+  showNoPhotoText?: boolean;
 }
 
-export function SafeImage({ src, alt, className, fallbackClassName }: SafeImageProps) {
+export function SafeImage({ src, alt, className, fallbackClassName, showNoPhotoText = true }: SafeImageProps) {
   const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
 
   const normalizedSrc = src?.startsWith('/objects') || src?.startsWith('objects') 
@@ -19,10 +20,21 @@ export function SafeImage({ src, alt, className, fallbackClassName }: SafeImageP
   if (!normalizedSrc || status === 'error') {
     return (
       <div className={cn(
-        "flex items-center justify-center bg-muted/50",
+        "relative flex items-center justify-center bg-muted/50 overflow-hidden",
         fallbackClassName || className
       )}>
-        <ImageOff className="h-8 w-8 text-muted-foreground/50" />
+        <img 
+          src={defaultSurferImg} 
+          alt="Default surfer" 
+          className="w-full h-full object-cover"
+        />
+        {showNoPhotoText && (
+          <div className="absolute inset-0 flex items-end justify-center pb-4 bg-gradient-to-t from-black/60 to-transparent">
+            <span className="text-white text-sm font-medium px-3 py-1 bg-black/40 rounded-full">
+              No user photo yet
+            </span>
+          </div>
+        )}
       </div>
     );
   }

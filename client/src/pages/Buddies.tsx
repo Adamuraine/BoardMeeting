@@ -175,7 +175,7 @@ export default function Buddies() {
             >
               <div className="relative h-3/5 shrink-0 bg-muted">
                  <SafeImage 
-                   src={currentProfile.imageUrls?.[0] || "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80"} 
+                   src={currentProfile.imageUrls?.[0]} 
                    alt={currentProfile.displayName} 
                    className="w-full h-full object-cover"
                  />

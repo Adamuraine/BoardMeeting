@@ -171,7 +171,23 @@ export class DatabaseStorage implements IStorage {
     let potentialMatches = await db.select()
       .from(profiles)
       .where(notInArray(profiles.userId, swipedIds))
-      .limit(50); // Get more to filter from
+      .limit(100); // Get more to filter from
+    
+    // Filter out fake/seed accounts - only show real Replit users (numeric IDs)
+    // Fake accounts have patterns like: mock_user_*, UUID format, test_*, short alphanumeric
+    potentialMatches = potentialMatches.filter(match => {
+      const id = match.userId;
+      // Real Replit user IDs are numeric strings (e.g., "52347908")
+      if (/^\d+$/.test(id)) return true;
+      // Filter out obvious fake patterns
+      if (id.startsWith('mock_user_')) return false;
+      if (id.startsWith('test_')) return false;
+      // UUID pattern (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return false;
+      // Short alphanumeric IDs from tests (like "08zS6L")
+      if (id.length <= 10 && /^[a-zA-Z0-9]+$/.test(id)) return false;
+      return true;
+    });
     
     // Safety filter: Prevent adult males (18+) from matching with underage females (<18)
     if (currentUser) {
@@ -204,8 +220,20 @@ export class DatabaseStorage implements IStorage {
     const results = await db.select()
       .from(profiles)
       .where(sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`)
-      .limit(limit);
-    return results;
+      .limit(limit * 3); // Get more to filter from
+    
+    // Filter out fake/seed accounts - only show real Replit users
+    const filtered = results.filter(match => {
+      const id = match.userId;
+      if (/^\d+$/.test(id)) return true;
+      if (id.startsWith('mock_user_')) return false;
+      if (id.startsWith('test_')) return false;
+      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return false;
+      if (id.length <= 10 && /^[a-zA-Z0-9]+$/.test(id)) return false;
+      return true;
+    });
+    
+    return filtered.slice(0, limit);
   }
 
   async createSwipe(swipe: InsertSwipe): Promise<Swipe> {

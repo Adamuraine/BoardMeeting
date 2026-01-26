@@ -159,17 +159,17 @@ export default function Buddies() {
         </header>
 
         <div className="flex-1 relative flex items-center justify-center px-4 pb-2">
-          <AnimatePresence>
+          <AnimatePresence mode="wait">
             <motion.div
               key={currentProfile.id}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
               onDragEnd={handleDragEnd}
               animate={controls}
-              initial={{ scale: 0.95, opacity: 0 }}
+              initial={searchQuery ? { scale: 1, opacity: 1 } : { scale: 0.95, opacity: 0 }}
               whileInView={{ scale: 1, opacity: 1 }}
               exit={{ scale: 1.05, opacity: 0 }}
-              transition={{ type: "spring", stiffness: 300, damping: 20 }}
+              transition={searchQuery ? { duration: 0.1 } : { type: "spring", stiffness: 300, damping: 20 }}
               className="absolute inset-x-4 top-0 bottom-0 rounded-3xl overflow-hidden shadow-2xl bg-card border border-border/50 select-none cursor-grab active:cursor-grabbing flex flex-col"
             >
               {/* Profile Image - Headshot */}

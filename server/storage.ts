@@ -203,13 +203,7 @@ export class DatabaseStorage implements IStorage {
     const searchTerm = `%${query.toLowerCase()}%`;
     const results = await db.select()
       .from(profiles)
-      .where(
-        or(
-          sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`,
-          sql`LOWER(${profiles.bio}) LIKE ${searchTerm}`,
-          sql`LOWER(${profiles.location}) LIKE ${searchTerm}`
-        )
-      )
+      .where(sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`)
       .limit(limit);
     return results;
   }

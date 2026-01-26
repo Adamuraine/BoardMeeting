@@ -8,6 +8,7 @@ import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "wouter";
 
@@ -100,18 +101,27 @@ export default function Buddies() {
               San Diego, CA
             </div>
           </div>
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
-            <Input
-              type="text"
-              placeholder="Search surfers by name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onFocus={() => setShowResults(true)}
-              onBlur={() => setTimeout(() => setShowResults(false), 200)}
-              className="pl-9 h-10"
-              data-testid="input-search-buddies"
-            />
+          <div className="relative flex gap-2">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
+              <Input
+                type="text"
+                placeholder="Search surfers by name..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setShowResults(true)}
+                onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                className="pl-9 h-10"
+                data-testid="input-search-buddies"
+              />
+            </div>
+            <Button 
+              size="default"
+              onClick={() => setShowResults(true)}
+              data-testid="button-search-execute"
+            >
+              <Search className="w-4 h-4" />
+            </Button>
             
             {showResults && searchQuery.trim() && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">

@@ -1,19 +1,33 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useProfiles, useSwipe } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { AnimatePresence, motion, PanInfo, useAnimation } from "framer-motion";
-import { X, MapPin, Info, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { X, MapPin, Info, Users, Search } from "lucide-react";
 import shakaImg from "@assets/image_1767482724996.png";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
+import { Input } from "@/components/ui/input";
 
 export default function Buddies() {
   const { data: profiles, isLoading, error } = useProfiles();
   const { mutate: swipe } = useSwipe();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const controls = useAnimation();
+
+  const filteredProfiles = useMemo(() => {
+    if (!profiles) return [];
+    if (!searchQuery.trim()) return profiles;
+    
+    const query = searchQuery.toLowerCase().trim();
+    return profiles.filter(profile => 
+      profile.displayName?.toLowerCase().includes(query) ||
+      profile.bio?.toLowerCase().includes(query) ||
+      profile.location?.toLowerCase().includes(query)
+    );
+  }, [profiles, searchQuery]);
 
   if (isLoading) return <BuddiesSkeleton />;
   if (error) {
@@ -38,7 +52,7 @@ export default function Buddies() {
 
   // Filter out profiles already swiped locally (naive approach for MVP)
   // In real app, API shouldn't return them
-  const currentProfile = profiles[currentIndex];
+  const currentProfile = filteredProfiles[currentIndex];
 
   const handleDragEnd = async (_: any, info: PanInfo) => {
     const threshold = 100;
@@ -75,18 +89,73 @@ export default function Buddies() {
     });
   };
 
-  if (!currentProfile) return <NoBuddies />;
+  if (!currentProfile) {
+    if (searchQuery.trim()) {
+      return (
+        <Layout>
+          <div className="h-full flex flex-col">
+            <header className="px-4 py-3 space-y-3">
+              <div className="flex justify-between items-center gap-2">
+                <h1 className="text-2xl font-display font-bold text-foreground">Discover</h1>
+                <div className="bg-secondary/50 px-3 py-1 rounded-full text-xs font-medium text-muted-foreground">
+                  San Diego, CA
+                </div>
+              </div>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  type="text"
+                  placeholder="Search by name, bio, or location..."
+                  value={searchQuery}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setCurrentIndex(0);
+                  }}
+                  className="pl-9 h-10"
+                  data-testid="input-search-buddies"
+                />
+              </div>
+            </header>
+            <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
+              <Search className="w-12 h-12 text-muted-foreground/30 mb-4" />
+              <h2 className="text-xl font-bold mb-2">No matches found</h2>
+              <p className="text-muted-foreground text-sm">
+                No surfers match "{searchQuery}"
+              </p>
+            </div>
+          </div>
+        </Layout>
+      );
+    }
+    return <NoBuddies />;
+  }
 
   return (
     <Layout>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
       <div className="h-full flex flex-col relative">
-        <header className="flex justify-between items-center px-4 py-3 gap-2">
-           <h1 className="text-2xl font-display font-bold text-foreground">Discover</h1>
-           <div className="bg-secondary/50 px-3 py-1 rounded-full text-xs font-medium text-muted-foreground">
-             San Diego, CA
-           </div>
+        <header className="px-4 py-3 space-y-3">
+          <div className="flex justify-between items-center gap-2">
+            <h1 className="text-2xl font-display font-bold text-foreground">Discover</h1>
+            <div className="bg-secondary/50 px-3 py-1 rounded-full text-xs font-medium text-muted-foreground">
+              San Diego, CA
+            </div>
+          </div>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              type="text"
+              placeholder="Search by name, bio, or location..."
+              value={searchQuery}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setCurrentIndex(0);
+              }}
+              className="pl-9 h-10"
+              data-testid="input-search-buddies"
+            />
+          </div>
         </header>
 
         <div className="flex-1 relative flex items-center justify-center px-4 pb-2">

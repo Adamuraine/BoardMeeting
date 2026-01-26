@@ -102,16 +102,19 @@ export default function Buddies() {
               San Diego, CA
             </div>
           </div>
-          <div className="relative flex gap-2">
+          <div className="relative flex gap-2" style={{ zIndex: 100 }}>
             <div className="relative flex-1">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground z-10" />
               <Input
                 type="text"
                 placeholder="Search surfers by name..."
                 value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setShowResults(true);
+                }}
                 onFocus={() => setShowResults(true)}
-                onBlur={() => setTimeout(() => setShowResults(false), 200)}
+                onBlur={() => setTimeout(() => setShowResults(false), 300)}
                 className="pl-9 h-10"
                 data-testid="input-search-buddies"
               />
@@ -125,7 +128,7 @@ export default function Buddies() {
             </Button>
             
             {showResults && searchQuery.trim() && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden z-50">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-card border border-border rounded-lg shadow-lg overflow-hidden" style={{ zIndex: 9999 }}>
                 {searchResults.length > 0 ? (
                   searchResults.map((profile) => (
                     <Link 

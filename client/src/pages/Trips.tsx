@@ -43,6 +43,22 @@ const LOCATIONS = [
   "Costa Rica",
   "Portugal",
   "Australia",
+  "Brazil",
+  "Nicaragua",
+  "El Salvador",
+  "Panama",
+  "Mexico",
+  "Puerto Rico",
+  "Fiji",
+  "Tahiti",
+  "Maldives",
+  "South Africa",
+  "Morocco",
+  "Spain",
+  "France",
+  "Japan",
+  "Philippines",
+  "Sri Lanka",
 ];
 
 const REGIONS: Record<string, string[]> = {
@@ -50,7 +66,13 @@ const REGIONS: Record<string, string[]> = {
   "Orange County": ["Huntington Beach, CA", "Newport Beach, CA", "Trestles, CA"],
   "Los Angeles": ["Malibu, CA"],
   "Northern California": ["Santa Cruz, CA"],
-  "International": ["Hawaii", "Bali, Indonesia", "Costa Rica", "Portugal", "Australia"],
+  "Central America": ["Costa Rica", "Nicaragua", "El Salvador", "Panama", "Mexico"],
+  "South America": ["Brazil"],
+  "Caribbean": ["Puerto Rico"],
+  "Pacific Islands": ["Hawaii", "Fiji", "Tahiti"],
+  "Asia": ["Bali, Indonesia", "Japan", "Philippines", "Sri Lanka", "Maldives"],
+  "Europe": ["Portugal", "Spain", "France", "Morocco"],
+  "Africa & Oceania": ["South Africa", "Australia"],
 };
 
 const ACTIVITY_OPTIONS = [

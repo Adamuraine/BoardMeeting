@@ -145,6 +145,14 @@ export async function registerRoutes(
     res.json(results);
   });
 
+  // Get profile by userId
+  app.get('/api/profiles/user/:userId', async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const profile = await storage.getProfile(req.params.userId);
+    if (!profile) return res.sendStatus(404);
+    res.json(profile);
+  });
+
   app.get(api.profiles.get.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const profile = await storage.getProfile(req.params.id);

@@ -25,6 +25,7 @@ export default function Messages() {
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
+  const [buddyIdFromUrl, setBuddyIdFromUrl] = useState<string | null>(null);
 
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/messages/conversations"],
@@ -37,17 +38,38 @@ export default function Messages() {
     enabled: !!profile,
   });
 
+  // Fetch profile by userId if coming from a profile page
+  const { data: profileFromUrl } = useQuery<Profile>({
+    queryKey: ["/api/profiles/user", buddyIdFromUrl],
+    enabled: !!buddyIdFromUrl && !selectedBuddy,
+  });
+
+  // Get buddy ID from URL on mount
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const buddyId = params.get("buddy");
-    if (buddyId && buddies.length > 0 && !selectedBuddy) {
-      const buddy = buddies.find(b => b.userId === buddyId);
+    if (buddyId) {
+      setBuddyIdFromUrl(buddyId);
+    }
+  }, []);
+
+  // Try to find buddy in buddies list first, then fall back to fetched profile
+  useEffect(() => {
+    if (buddyIdFromUrl && !selectedBuddy) {
+      // First check buddies list
+      const buddy = buddies.find(b => b.userId === buddyIdFromUrl);
       if (buddy) {
         setSelectedBuddy(buddy);
         navigate("/messages", { replace: true });
+        setBuddyIdFromUrl(null);
+      } else if (profileFromUrl) {
+        // Fall back to fetched profile
+        setSelectedBuddy(profileFromUrl);
+        navigate("/messages", { replace: true });
+        setBuddyIdFromUrl(null);
       }
     }
-  }, [buddies, selectedBuddy, navigate]);
+  }, [buddies, buddyIdFromUrl, profileFromUrl, selectedBuddy, navigate]);
 
   const { data: threadMessages = [], isLoading: threadLoading } = useQuery<Message[]>({
     queryKey: ["/api/messages", selectedBuddy?.userId],

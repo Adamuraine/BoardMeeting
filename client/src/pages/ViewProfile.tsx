@@ -99,7 +99,7 @@ export default function ViewProfile({ params }: ViewProfileProps) {
                 {profile.skillLevel}
               </Badge>
               <Button 
-                onClick={() => navigate(`/messages?buddy=${id}`)}
+                onClick={() => navigate(`/messages?buddy=${profile.userId}`)}
                 className="ml-auto"
                 data-testid="button-message"
               >

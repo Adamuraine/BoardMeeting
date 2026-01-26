@@ -173,19 +173,16 @@ export class DatabaseStorage implements IStorage {
       .where(notInArray(profiles.userId, swipedIds))
       .limit(100); // Get more to filter from
     
-    // Filter out fake/seed accounts - only show real Replit users (numeric IDs)
-    // Fake accounts have patterns like: mock_user_*, UUID format, test_*, short alphanumeric
+    // Filter out fake/seed accounts - only show real users
+    // We'll filter based on user_id patterns that are clearly fake
     potentialMatches = potentialMatches.filter(match => {
       const id = match.userId;
-      // Real Replit user IDs are numeric strings (e.g., "52347908")
-      if (/^\d+$/.test(id)) return true;
-      // Filter out obvious fake patterns
+      // Filter out obvious mock/test patterns
       if (id.startsWith('mock_user_')) return false;
       if (id.startsWith('test_')) return false;
-      // UUID pattern (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+      // UUID pattern indicates seed data (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return false;
-      // Short alphanumeric IDs from tests (like "08zS6L")
-      if (id.length <= 10 && /^[a-zA-Z0-9]+$/.test(id)) return false;
+      // Everything else is considered a real user
       return true;
     });
     
@@ -222,14 +219,12 @@ export class DatabaseStorage implements IStorage {
       .where(sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`)
       .limit(limit * 3); // Get more to filter from
     
-    // Filter out fake/seed accounts - only show real Replit users
+    // Filter out fake/seed accounts - only show real users
     const filtered = results.filter(match => {
       const id = match.userId;
-      if (/^\d+$/.test(id)) return true;
       if (id.startsWith('mock_user_')) return false;
       if (id.startsWith('test_')) return false;
       if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return false;
-      if (id.length <= 10 && /^[a-zA-Z0-9]+$/.test(id)) return false;
       return true;
     });
     

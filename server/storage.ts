@@ -168,23 +168,24 @@ export class DatabaseStorage implements IStorage {
     // Get current user's profile for safety filtering
     const [currentUser] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     
+    // Get fake user IDs by checking for seed data email patterns
+    const fakeUsers = await db.select({ id: users.id })
+      .from(users)
+      .where(or(
+        sql`${users.email} LIKE '%@surf.com'`,
+        sql`${users.email} LIKE '%.mock'`,
+        sql`${users.id} LIKE 'mock_user_%'`,
+        sql`${users.id} LIKE 'test_%'`
+      ));
+    const fakeUserIds = fakeUsers.map(u => u.id);
+    
+    // Combine swiped IDs with fake user IDs to exclude
+    const excludeIds = [...swipedIds, ...fakeUserIds];
+    
     let potentialMatches = await db.select()
       .from(profiles)
-      .where(notInArray(profiles.userId, swipedIds))
-      .limit(100); // Get more to filter from
-    
-    // Filter out fake/seed accounts - only show real users
-    // We'll filter based on user_id patterns that are clearly fake
-    potentialMatches = potentialMatches.filter(match => {
-      const id = match.userId;
-      // Filter out obvious mock/test patterns
-      if (id.startsWith('mock_user_')) return false;
-      if (id.startsWith('test_')) return false;
-      // UUID pattern indicates seed data (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return false;
-      // Everything else is considered a real user
-      return true;
-    });
+      .where(notInArray(profiles.userId, excludeIds))
+      .limit(100);
     
     // Safety filter: Prevent adult males (18+) from matching with underage females (<18)
     if (currentUser) {
@@ -214,21 +215,28 @@ export class DatabaseStorage implements IStorage {
 
   async searchProfiles(query: string, limit: number = 20): Promise<Profile[]> {
     const searchTerm = `%${query.toLowerCase()}%`;
+    
+    // Get fake user IDs by checking for seed data email patterns
+    const fakeUsers = await db.select({ id: users.id })
+      .from(users)
+      .where(or(
+        sql`${users.email} LIKE '%@surf.com'`,
+        sql`${users.email} LIKE '%.mock'`,
+        sql`${users.id} LIKE 'mock_user_%'`,
+        sql`${users.id} LIKE 'test_%'`
+      ));
+    const fakeUserIds = fakeUsers.map(u => u.id);
+    
+    // Search profiles excluding fake users
     const results = await db.select()
       .from(profiles)
-      .where(sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`)
-      .limit(limit * 3); // Get more to filter from
+      .where(and(
+        sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`,
+        fakeUserIds.length > 0 ? notInArray(profiles.userId, fakeUserIds) : sql`1=1`
+      ))
+      .limit(limit);
     
-    // Filter out fake/seed accounts - only show real users
-    const filtered = results.filter(match => {
-      const id = match.userId;
-      if (id.startsWith('mock_user_')) return false;
-      if (id.startsWith('test_')) return false;
-      if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) return false;
-      return true;
-    });
-    
-    return filtered.slice(0, limit);
+    return results;
   }
 
   async createSwipe(swipe: InsertSwipe): Promise<Swipe> {

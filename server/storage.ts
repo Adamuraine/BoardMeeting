@@ -199,8 +199,8 @@ export class DatabaseStorage implements IStorage {
     return potentialMatches.slice(0, 20);
   }
 
-  async searchProfiles(query: string, limit: number = 10): Promise<Profile[]> {
-    const searchTerm = `${query.toLowerCase()}%`;
+  async searchProfiles(query: string, limit: number = 20): Promise<Profile[]> {
+    const searchTerm = `%${query.toLowerCase()}%`;
     const results = await db.select()
       .from(profiles)
       .where(sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`)

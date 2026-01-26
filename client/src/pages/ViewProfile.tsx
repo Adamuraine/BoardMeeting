@@ -57,13 +57,11 @@ export default function ViewProfile({ params }: ViewProfileProps) {
       <div className="flex flex-col h-full overflow-y-auto">
         <div className="relative">
           <div className="h-64 bg-gradient-to-br from-primary/20 to-accent/20 relative overflow-hidden">
-            {images[0] && (
-              <SafeImage
-                src={images[0]}
-                alt={displayName}
-                className="w-full h-full object-cover"
-              />
-            )}
+            <SafeImage
+              src={images[0]}
+              alt={displayName}
+              className="w-full h-full object-cover"
+            />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
           </div>
           

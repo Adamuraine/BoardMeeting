@@ -615,9 +615,10 @@ export default function Profile() {
             <div className="relative">
               <div className="w-32 h-32 rounded-full border-4 border-background bg-secondary overflow-hidden shadow-xl">
                  <SafeImage 
-                   src={profile.imageUrls?.[0] || "https://images.unsplash.com/photo-1502680390469-be75c86b636f?w=800&q=80"} 
+                   src={profile.imageUrls?.[0]} 
                    alt={profile.displayName} 
                    className="w-full h-full object-cover"
+                   showNoPhotoText={false}
                  />
               </div>
               <ObjectUploader

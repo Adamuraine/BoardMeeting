@@ -54,12 +54,13 @@ interface UpdateTripDetailsInput {
   boatTrips?: number;
   cookingMeals?: number;
   boardRental?: number;
+  photographer?: number;
 }
 
 export function useUpdateTripActivities() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ tripId, activities, houseRental, taxiRides, boatTrips, cookingMeals, boardRental }: UpdateTripDetailsInput) => {
+    mutationFn: async ({ tripId, activities, houseRental, taxiRides, boatTrips, cookingMeals, boardRental, photographer }: UpdateTripDetailsInput) => {
       const res = await fetch(`/api/trips/${tripId}/details`, {
         method: 'PATCH',
         headers: { "Content-Type": "application/json" },
@@ -69,7 +70,8 @@ export function useUpdateTripActivities() {
           taxiRides, 
           boatTrips, 
           cookingMeals, 
-          boardRental 
+          boardRental,
+          photographer 
         }),
         credentials: "include",
       });

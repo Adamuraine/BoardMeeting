@@ -74,7 +74,7 @@ export interface IStorage {
   // Trip Activities
   updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
   updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; destination?: string; startingLocation?: string; startDate?: string; endDate?: string; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
-  updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number }): Promise<Trip>;
+  updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number; photographer?: number }): Promise<Trip>;
   
   // Surf Reports
   upsertSurfReports(locationId: number, reports: Partial<InsertSurfReport>[]): Promise<void>;
@@ -800,7 +800,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number }): Promise<Trip> {
+  async updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number; photographer?: number }): Promise<Trip> {
     const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
     if (!trip) throw new Error("Trip not found");
     if (trip.organizerId !== userId) throw new Error("Not authorized to update this trip");
@@ -813,13 +813,15 @@ export class DatabaseStorage implements IStorage {
     if (details.cookingMeals !== undefined) updateData.cookingMeals = details.cookingMeals;
     if (details.boardRental !== undefined) updateData.boardRental = details.boardRental;
     if (details.airfare !== undefined) updateData.airfare = details.airfare;
+    if (details.photographer !== undefined) updateData.photographer = details.photographer;
     
     // Also update total cost (excludes airfare - everyone pays their own ticket)
     const totalCost = (details.houseRental || trip.houseRental || 0) + 
                       (details.taxiRides || trip.taxiRides || 0) + 
                       (details.boatTrips || trip.boatTrips || 0) + 
                       (details.cookingMeals || trip.cookingMeals || 0) + 
-                      (details.boardRental || trip.boardRental || 0);
+                      (details.boardRental || trip.boardRental || 0) +
+                      (details.photographer || trip.photographer || 0);
     updateData.cost = totalCost;
     
     const [updated] = await db.update(trips)

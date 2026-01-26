@@ -2,7 +2,7 @@ import { useTrips, useCreateTrip, useUpdateTripActivities } from "@/hooks/use-tr
 import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download, Camera } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -180,6 +180,7 @@ export default function Trips() {
   const [boatTrips, setBoatTrips] = useState<string>("");
   const [cookingMeals, setCookingMeals] = useState<string>("");
   const [boardRental, setBoardRental] = useState<string>("");
+  const [photographer, setPhotographer] = useState<string>("");
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [flexibleDates, setFlexibleDates] = useState(false);
@@ -604,8 +605,8 @@ export default function Trips() {
                           />
                         </div>
                       </div>
-                      <div className="space-y-1 col-span-2">
-                        <Label className="text-xs text-muted-foreground">Board Rental / Surfboard Travel</Label>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground">Board Rental</Label>
                         <div className="relative">
                           <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
                           <Input 
@@ -618,17 +619,34 @@ export default function Trips() {
                           />
                         </div>
                       </div>
+                      <div className="space-y-1">
+                        <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Camera className="h-3 w-3" />
+                          Photographer
+                        </Label>
+                        <div className="relative">
+                          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                          <Input 
+                            type="number" 
+                            placeholder="0"
+                            value={photographer}
+                            onChange={(e) => setPhotographer(e.target.value)}
+                            className="pl-7"
+                            data-testid="input-photographer"
+                          />
+                        </div>
+                      </div>
                     </div>
-                    {(houseRental || taxiRides || boatTrips || cookingMeals || boardRental) && (
+                    {(houseRental || taxiRides || boatTrips || cookingMeals || boardRental || photographer) && (
                       <div className="bg-primary/10 rounded-lg p-3 mt-2">
                         <div className="flex justify-between items-center">
                           <span className="text-sm font-medium">Total Trip Cost</span>
                           <span className="text-lg font-bold text-primary">
-                            ${(parseInt(houseRental || "0") + parseInt(taxiRides || "0") + parseInt(boatTrips || "0") + parseInt(cookingMeals || "0") + parseInt(boardRental || "0")).toLocaleString()}
+                            ${(parseInt(houseRental || "0") + parseInt(taxiRides || "0") + parseInt(boatTrips || "0") + parseInt(cookingMeals || "0") + parseInt(boardRental || "0") + parseInt(photographer || "0")).toLocaleString()}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-1">
-                          Per person with 4 travelers: ${Math.round((parseInt(houseRental || "0") + parseInt(taxiRides || "0") + parseInt(boatTrips || "0") + parseInt(cookingMeals || "0") + parseInt(boardRental || "0")) / 4).toLocaleString()}
+                          Per person with 4 travelers: ${Math.round((parseInt(houseRental || "0") + parseInt(taxiRides || "0") + parseInt(boatTrips || "0") + parseInt(cookingMeals || "0") + parseInt(boardRental || "0") + parseInt(photographer || "0")) / 4).toLocaleString()}
                         </p>
                       </div>
                     )}
@@ -645,6 +663,7 @@ export default function Trips() {
                           boatTrips: boatTrips ? parseInt(boatTrips) : undefined,
                           cookingMeals: cookingMeals ? parseInt(cookingMeals) : undefined,
                           boardRental: boardRental ? parseInt(boardRental) : undefined,
+                          photographer: photographer ? parseInt(photographer) : undefined,
                         }, {
                           onSuccess: () => {
                             setTripDetailsOpen(false);
@@ -655,6 +674,7 @@ export default function Trips() {
                             setBoatTrips("");
                             setCookingMeals("");
                             setBoardRental("");
+                            setPhotographer("");
                           }
                         });
                       } else {
@@ -888,9 +908,56 @@ function TripCard({ trip }: { trip: any }) {
         </div>
       )}
       
-      <p className="text-muted-foreground text-sm mb-4 line-clamp-2">
+      <p className="text-muted-foreground text-sm mb-3 line-clamp-2">
         {trip.description || "No description provided"}
       </p>
+
+      {(trip.houseRental || trip.taxiRides || trip.boatTrips || trip.cookingMeals || trip.boardRental || trip.photographer) && (
+        <div className="bg-secondary/30 rounded-lg p-3 mb-3 space-y-1">
+          <p className="text-xs font-semibold text-muted-foreground mb-2">Price Breakdown</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs">
+            {trip.houseRental > 0 && (
+              <div className="flex justify-between" data-testid="breakdown-house">
+                <span className="text-muted-foreground">House</span>
+                <span className="font-medium">${trip.houseRental}</span>
+              </div>
+            )}
+            {trip.taxiRides > 0 && (
+              <div className="flex justify-between" data-testid="breakdown-taxi">
+                <span className="text-muted-foreground">Transport</span>
+                <span className="font-medium">${trip.taxiRides}</span>
+              </div>
+            )}
+            {trip.boatTrips > 0 && (
+              <div className="flex justify-between" data-testid="breakdown-boat">
+                <span className="text-muted-foreground">Boat</span>
+                <span className="font-medium">${trip.boatTrips}</span>
+              </div>
+            )}
+            {trip.cookingMeals > 0 && (
+              <div className="flex justify-between" data-testid="breakdown-food">
+                <span className="text-muted-foreground">Food</span>
+                <span className="font-medium">${trip.cookingMeals}</span>
+              </div>
+            )}
+            {trip.boardRental > 0 && (
+              <div className="flex justify-between" data-testid="breakdown-board">
+                <span className="text-muted-foreground">Board</span>
+                <span className="font-medium">${trip.boardRental}</span>
+              </div>
+            )}
+            {trip.photographer > 0 && (
+              <div className="flex justify-between" data-testid="breakdown-photographer">
+                <span className="text-muted-foreground flex items-center gap-1">
+                  <Camera className="h-3 w-3" />
+                  Photo
+                </span>
+                <span className="font-medium">${trip.photographer}</span>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       <div className="flex items-center justify-between pt-3 border-t border-border/50 gap-2">
         <div className="flex items-center gap-2 min-w-0">

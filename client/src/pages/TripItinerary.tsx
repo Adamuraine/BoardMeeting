@@ -77,6 +77,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   const cookingMealsRef = useRef<HTMLInputElement>(null);
   const boardRentalRef = useRef<HTMLInputElement>(null);
   const airfareRef = useRef<HTMLInputElement>(null);
+  const photographerRef = useRef<HTMLInputElement>(null);
 
   const { data: trip, isLoading } = useQuery<Trip & { organizer: Profile }>({
     queryKey: ["/api/trips", tripId],
@@ -174,7 +175,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   };
 
   const updateExpensesMutation = useMutation({
-    mutationFn: async (expenses: { houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number }) => {
+    mutationFn: async (expenses: { houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number; photographer?: number }) => {
       const res = await fetch(`/api/trips/${tripId}/details`, {
         method: 'PATCH',
         headers: { "Content-Type": "application/json" },
@@ -204,6 +205,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
     const cookingMeals = cookingMealsRef.current?.value || "";
     const boardRental = boardRentalRef.current?.value || "";
     const airfare = airfareRef.current?.value || "";
+    const photographer = photographerRef.current?.value || "";
     
     updateExpensesMutation.mutate({
       houseRental: houseRental ? parseInt(houseRental) : undefined,
@@ -212,6 +214,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
       cookingMeals: cookingMeals ? parseInt(cookingMeals) : undefined,
       boardRental: boardRental ? parseInt(boardRental) : undefined,
       airfare: airfare ? parseInt(airfare) : undefined,
+      photographer: photographer ? parseInt(photographer) : undefined,
     });
   };
 
@@ -725,7 +728,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                     <DollarSign className="w-5 h-5 text-primary" />
                     Trip Cost Breakdown
                   </div>
-                  {isOrganizer && (trip.houseRental || trip.taxiRides || trip.boatTrips || trip.cookingMeals || trip.boardRental) && (
+                  {isOrganizer && (trip.houseRental || trip.taxiRides || trip.boatTrips || trip.cookingMeals || trip.boardRental || trip.photographer) && (
                     <Button 
                       variant="ghost" 
                       size="sm"
@@ -738,7 +741,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                {(trip.houseRental || trip.taxiRides || trip.boatTrips || trip.cookingMeals || trip.boardRental) ? (
+                {(trip.houseRental || trip.taxiRides || trip.boatTrips || trip.cookingMeals || trip.boardRental || trip.photographer) ? (
                   <>
                     <div className="space-y-2">
                       {trip.houseRental && trip.houseRental > 0 && (
@@ -786,10 +789,19 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                           <span className="font-medium">${trip.boardRental.toLocaleString()}</span>
                         </div>
                       )}
+                      {trip.photographer && trip.photographer > 0 && (
+                        <div className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <Camera className="w-4 h-4 text-muted-foreground" />
+                            <span>Photographer</span>
+                          </div>
+                          <span className="font-medium">${trip.photographer.toLocaleString()}</span>
+                        </div>
+                      )}
                       <div className="border-t border-border pt-2 mt-2">
                         <div className="flex items-center justify-between font-semibold">
                           <span>Total Trip Cost</span>
-                          <span className="text-primary text-lg">${((trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0)).toLocaleString()}</span>
+                          <span className="text-primary text-lg">${((trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0) + (trip.photographer || 0)).toLocaleString()}</span>
                         </div>
                       </div>
                     </div>
@@ -823,7 +835,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                         <div className="text-center">
                           <p className="text-xs text-muted-foreground mb-1">Cost per person with {travelerCount} travelers</p>
                           <p className="text-2xl font-bold text-primary">
-                            ${Math.round(((trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0)) / travelerCount).toLocaleString()}
+                            ${Math.round(((trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0) + (trip.photographer || 0)) / travelerCount).toLocaleString()}
                           </p>
                         </div>
                         
@@ -869,7 +881,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
 
                       <div className="mt-4 grid grid-cols-4 gap-2 text-center">
                         {[2, 4, 8, 12].map((count) => {
-                          const totalCost = (trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0);
+                          const totalCost = (trip.houseRental || 0) + (trip.taxiRides || 0) + (trip.boatTrips || 0) + (trip.cookingMeals || 0) + (trip.boardRental || 0) + (trip.photographer || 0);
                           return (
                             <button
                               key={count}
@@ -1067,6 +1079,25 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                     defaultValue={trip?.airfare?.toString() || ""}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
                     data-testid="input-edit-airfare"
+                  />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground flex items-center gap-1">
+                  <Camera className="h-3 w-3" />
+                  Photographer
+                </Label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground">$</span>
+                  <input 
+                    ref={photographerRef}
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="0"
+                    defaultValue={trip?.photographer?.toString() || ""}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm transition-colors pl-7"
+                    data-testid="input-edit-photographer"
                   />
                 </div>
               </div>

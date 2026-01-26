@@ -381,7 +381,7 @@ export async function registerRoutes(
     const tripId = parseInt(req.params.id);
     if (isNaN(tripId)) return res.sendStatus(400);
     try {
-      const { activities, houseRental, taxiRides, boatTrips, cookingMeals, boardRental, airfare } = req.body;
+      const { activities, houseRental, taxiRides, boatTrips, cookingMeals, boardRental, airfare, photographer } = req.body;
       const trip = await storage.updateTripDetails(tripId, userId, { 
         activities, 
         houseRental, 
@@ -389,7 +389,8 @@ export async function registerRoutes(
         boatTrips, 
         cookingMeals, 
         boardRental,
-        airfare 
+        airfare,
+        photographer 
       });
       res.json(trip);
     } catch (err: any) {

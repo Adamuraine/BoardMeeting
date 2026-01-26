@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { useProfiles, useSwipe } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { AnimatePresence, motion, PanInfo, useAnimation } from "framer-motion";
@@ -11,6 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import type { Profile } from "@shared/schema";
 
 export default function Buddies() {
   const { data: profiles, isLoading, error } = useProfiles();
@@ -21,16 +23,15 @@ export default function Buddies() {
   const [showResults, setShowResults] = useState(false);
   const controls = useAnimation();
 
-  const searchResults = useMemo(() => {
-    if (!profiles || !searchQuery.trim()) return [];
-    
-    const query = searchQuery.toLowerCase().trim();
-    return profiles.filter(profile => 
-      profile.displayName?.toLowerCase().includes(query) ||
-      profile.bio?.toLowerCase().includes(query) ||
-      profile.location?.toLowerCase().includes(query)
-    ).slice(0, 5);
-  }, [profiles, searchQuery]);
+  const { data: searchResults = [] } = useQuery<Profile[]>({
+    queryKey: ['/api/profiles/search', searchQuery],
+    enabled: searchQuery.trim().length > 0,
+    queryFn: async () => {
+      const res = await fetch(`/api/profiles/search?q=${encodeURIComponent(searchQuery.trim())}`);
+      if (!res.ok) return [];
+      return res.json();
+    },
+  });
 
   if (isLoading) return <BuddiesSkeleton />;
   if (error) {

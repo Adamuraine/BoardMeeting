@@ -23,6 +23,7 @@ export interface IStorage {
   createProfile(profile: InsertProfile): Promise<Profile>;
   updateProfile(userId: string, updates: UpdateProfileRequest): Promise<Profile>;
   getPotentialMatches(userId: string): Promise<Profile[]>; // Excludes already swiped
+  searchProfiles(query: string, limit?: number): Promise<Profile[]>; // Search all profiles
   
   // Swipes
   createSwipe(swipe: InsertSwipe): Promise<Swipe>;
@@ -196,6 +197,21 @@ export class DatabaseStorage implements IStorage {
     }
     
     return potentialMatches.slice(0, 20);
+  }
+
+  async searchProfiles(query: string, limit: number = 10): Promise<Profile[]> {
+    const searchTerm = `%${query.toLowerCase()}%`;
+    const results = await db.select()
+      .from(profiles)
+      .where(
+        or(
+          sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`,
+          sql`LOWER(${profiles.bio}) LIKE ${searchTerm}`,
+          sql`LOWER(${profiles.location}) LIKE ${searchTerm}`
+        )
+      )
+      .limit(limit);
+    return results;
   }
 
   async createSwipe(swipe: InsertSwipe): Promise<Swipe> {

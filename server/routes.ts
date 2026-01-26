@@ -134,6 +134,17 @@ export async function registerRoutes(
     res.json(matches);
   });
 
+  // Search all profiles
+  app.get('/api/profiles/search', async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const query = req.query.q as string;
+    if (!query || query.trim().length === 0) {
+      return res.json([]);
+    }
+    const results = await storage.searchProfiles(query.trim(), 10);
+    res.json(results);
+  });
+
   app.get(api.profiles.get.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const profile = await storage.getProfile(req.params.id);

@@ -168,7 +168,7 @@ export class DatabaseStorage implements IStorage {
     // Get current user's profile for safety filtering
     const [currentUser] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     
-    // Get fake user IDs by checking for seed data email patterns
+    // Get fake user IDs by checking for seed data email patterns in users table
     const fakeUsers = await db.select({ id: users.id })
       .from(users)
       .where(or(
@@ -182,9 +182,15 @@ export class DatabaseStorage implements IStorage {
     // Combine swiped IDs with fake user IDs to exclude
     const excludeIds = [...swipedIds, ...fakeUserIds];
     
+    // Query profiles, excluding swiped and known fake users, AND filter by userId pattern
     let potentialMatches = await db.select()
       .from(profiles)
-      .where(notInArray(profiles.userId, excludeIds))
+      .where(and(
+        notInArray(profiles.userId, excludeIds),
+        sql`${profiles.userId} NOT LIKE 'mock_user_%'`,
+        sql`${profiles.userId} NOT LIKE 'test_%'`,
+        sql`${profiles.userId} NOT LIKE '%-%-%-%-%'`  // Exclude UUID patterns (seed data)
+      ))
       .limit(100);
     
     // Safety filter: Prevent adult males (18+) from matching with underage females (<18)
@@ -216,23 +222,14 @@ export class DatabaseStorage implements IStorage {
   async searchProfiles(query: string, limit: number = 20): Promise<Profile[]> {
     const searchTerm = `%${query.toLowerCase()}%`;
     
-    // Get fake user IDs by checking for seed data email patterns
-    const fakeUsers = await db.select({ id: users.id })
-      .from(users)
-      .where(or(
-        sql`${users.email} LIKE '%@surf.com'`,
-        sql`${users.email} LIKE '%.mock'`,
-        sql`${users.id} LIKE 'mock_user_%'`,
-        sql`${users.id} LIKE 'test_%'`
-      ));
-    const fakeUserIds = fakeUsers.map(u => u.id);
-    
-    // Search profiles excluding fake users
+    // Search profiles excluding fake users by userId pattern
     const results = await db.select()
       .from(profiles)
       .where(and(
         sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`,
-        fakeUserIds.length > 0 ? notInArray(profiles.userId, fakeUserIds) : sql`1=1`
+        sql`${profiles.userId} NOT LIKE 'mock_user_%'`,
+        sql`${profiles.userId} NOT LIKE 'test_%'`,
+        sql`${profiles.userId} NOT LIKE '%-%-%-%-%'`  // Exclude UUID patterns (seed data)
       ))
       .limit(limit);
     

@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef } from "react";
@@ -38,6 +38,9 @@ export default function Profile() {
   const [tripExpectations, setTripExpectations] = useState("");
   const [editingBio, setEditingBio] = useState(false);
   const [bioText, setBioText] = useState("");
+  const [editingAvailability, setEditingAvailability] = useState(false);
+  const [scheduleType, setScheduleType] = useState<string>("");
+  const [availabilitySlots, setAvailabilitySlots] = useState<Array<{day: string, startTime: string, endTime: string}>>([]);
   const { toast } = useToast();
   const manageSubscription = useManageSubscription();
 
@@ -284,6 +287,35 @@ export default function Profile() {
   const handleSaveBio = () => {
     updateProfileMutation.mutate({ bio: bioText });
     setEditingBio(false);
+  };
+
+  const handleEditAvailability = () => {
+    setScheduleType(profile?.scheduleType || "");
+    const parsed = (profile?.availability || []).map(slot => {
+      try { return JSON.parse(slot); } catch { return null; }
+    }).filter(Boolean);
+    setAvailabilitySlots(parsed);
+    setEditingAvailability(true);
+  };
+
+  const handleSaveAvailability = () => {
+    const availability = availabilitySlots.map(slot => JSON.stringify(slot));
+    updateProfileMutation.mutate({ scheduleType, availability });
+    setEditingAvailability(false);
+  };
+
+  const addAvailabilitySlot = () => {
+    setAvailabilitySlots([...availabilitySlots, { day: "monday", startTime: "06:00", endTime: "09:00" }]);
+  };
+
+  const removeAvailabilitySlot = (index: number) => {
+    setAvailabilitySlots(availabilitySlots.filter((_, i) => i !== index));
+  };
+
+  const updateAvailabilitySlot = (index: number, field: string, value: string) => {
+    const updated = [...availabilitySlots];
+    updated[index] = { ...updated[index], [field]: value };
+    setAvailabilitySlots(updated);
   };
 
   if (isLoading) return <ProfileSkeleton />;
@@ -702,6 +734,162 @@ export default function Profile() {
                 <p className="text-foreground/80 leading-relaxed">
                   {profile.bio || "No bio yet. Tap the pencil to add one!"}
                 </p>
+              )}
+            </div>
+
+            <div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Clock className="h-4 w-4" />
+                  Surf Availability
+                </span>
+                {!editingAvailability && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost" 
+                    onClick={handleEditAvailability}
+                    data-testid="button-edit-availability"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </h3>
+              {editingAvailability ? (
+                <div className="space-y-4">
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-3">What's your schedule like?</p>
+                    <div className="flex flex-wrap gap-2">
+                      {[
+                        { id: "work", icon: Briefcase, label: "I Work" },
+                        { id: "school", icon: GraduationCap, label: "I'm in School" },
+                        { id: "none", icon: Coffee, label: "I Don't Work" },
+                      ].map(({ id, icon: Icon, label }) => (
+                        <Button
+                          key={id}
+                          type="button"
+                          size="sm"
+                          variant={scheduleType === id ? "default" : "outline"}
+                          className="gap-1.5"
+                          onClick={() => setScheduleType(id)}
+                          data-testid={`button-schedule-${id}`}
+                        >
+                          <Icon className="h-3 w-3" />
+                          {label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <p className="text-sm text-muted-foreground mb-3">When can you surf?</p>
+                    <div className="space-y-2">
+                      {availabilitySlots.map((slot, index) => (
+                        <div key={index} className="flex items-center gap-2 p-3 bg-secondary/30 rounded-lg border border-border/50">
+                          <select
+                            value={slot.day}
+                            onChange={(e) => updateAvailabilitySlot(index, "day", e.target.value)}
+                            className="bg-background border border-border rounded px-2 py-1 text-sm flex-1"
+                            data-testid={`select-day-${index}`}
+                          >
+                            {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map(day => (
+                              <option key={day} value={day}>{day.charAt(0).toUpperCase() + day.slice(1)}</option>
+                            ))}
+                          </select>
+                          <input
+                            type="time"
+                            value={slot.startTime}
+                            onChange={(e) => updateAvailabilitySlot(index, "startTime", e.target.value)}
+                            className="bg-background border border-border rounded px-2 py-1 text-sm"
+                            data-testid={`input-start-time-${index}`}
+                          />
+                          <span className="text-muted-foreground text-sm">to</span>
+                          <input
+                            type="time"
+                            value={slot.endTime}
+                            onChange={(e) => updateAvailabilitySlot(index, "endTime", e.target.value)}
+                            className="bg-background border border-border rounded px-2 py-1 text-sm"
+                            data-testid={`input-end-time-${index}`}
+                          />
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            onClick={() => removeAvailabilitySlot(index)}
+                            className="flex-shrink-0 text-muted-foreground"
+                            data-testid={`button-remove-slot-${index}`}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      ))}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={addAvailabilitySlot}
+                        className="w-full gap-1"
+                        data-testid="button-add-time-slot"
+                      >
+                        <Plus className="h-3 w-3" />
+                        Add Time Slot
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2 justify-end">
+                    <Button 
+                      size="sm" 
+                      variant="ghost" 
+                      onClick={() => setEditingAvailability(false)}
+                      data-testid="button-cancel-availability"
+                    >
+                      Cancel
+                    </Button>
+                    <Button 
+                      size="sm" 
+                      onClick={handleSaveAvailability}
+                      disabled={updateProfileMutation.isPending}
+                      data-testid="button-save-availability"
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Save
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {profile.scheduleType ? (
+                    <div className="flex items-center gap-2">
+                      {profile.scheduleType === "work" && <Briefcase className="h-4 w-4 text-muted-foreground" />}
+                      {profile.scheduleType === "school" && <GraduationCap className="h-4 w-4 text-muted-foreground" />}
+                      {profile.scheduleType === "none" && <Coffee className="h-4 w-4 text-muted-foreground" />}
+                      <span className="text-foreground/80">
+                        {profile.scheduleType === "work" && "I work"}
+                        {profile.scheduleType === "school" && "I'm in school"}
+                        {profile.scheduleType === "none" && "I don't work"}
+                      </span>
+                    </div>
+                  ) : null}
+                  
+                  {profile.availability && profile.availability.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {profile.availability.map((slotStr, index) => {
+                        try {
+                          const slot = JSON.parse(slotStr);
+                          return (
+                            <Badge key={index} variant="secondary" className="gap-1" data-testid={`badge-availability-${index}`}>
+                              <Clock className="h-3 w-3" />
+                              {slot.day.charAt(0).toUpperCase() + slot.day.slice(1)} {slot.startTime}-{slot.endTime}
+                            </Badge>
+                          );
+                        } catch { return null; }
+                      })}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm">
+                      {!profile.scheduleType ? "No availability set. Tap the pencil to add when you can surf!" : "No specific times added yet."}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

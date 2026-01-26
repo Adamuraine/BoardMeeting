@@ -24,55 +24,116 @@ import { type DateRange } from "react-day-picker";
 import treasureMapBg from "@assets/IMG_2639_1767484629952.jpeg";
 
 const LOCATIONS = [
-  "Oceanside, CA",
-  "Carlsbad, CA",
-  "Encinitas, CA",
-  "San Diego, CA",
-  "La Jolla, CA",
-  "Del Mar, CA",
-  "Pacific Beach, CA",
-  "Mission Beach, CA",
-  "Imperial Beach, CA",
-  "Huntington Beach, CA",
-  "Newport Beach, CA",
-  "Trestles, CA",
-  "Malibu, CA",
-  "Santa Cruz, CA",
-  "Hawaii",
-  "Bali, Indonesia",
-  "Costa Rica",
-  "Portugal",
-  "Australia",
-  "Brazil",
-  "Nicaragua",
-  "El Salvador",
-  "Panama",
-  "Mexico",
+  // California - San Diego County
+  "Oceanside, CA", "Carlsbad, CA", "Encinitas, CA", "San Diego, CA", "La Jolla, CA", 
+  "Del Mar, CA", "Pacific Beach, CA", "Mission Beach, CA", "Imperial Beach, CA",
+  // California - Orange County
+  "Huntington Beach, CA", "Newport Beach, CA", "Trestles, CA", "Dana Point, CA",
+  // California - Los Angeles
+  "Malibu, CA", "Venice Beach, CA", "Manhattan Beach, CA", "Hermosa Beach, CA",
+  // California - Central/Northern
+  "Santa Cruz, CA", "Pacifica, CA", "Half Moon Bay, CA", "Pismo Beach, CA",
+  // USA - Hawaii
+  "Oahu, Hawaii", "Maui, Hawaii", "Big Island, Hawaii", "Kauai, Hawaii",
+  "Pipeline, Hawaii", "Waikiki, Hawaii", "North Shore, Hawaii",
+  // USA - East Coast
+  "Cocoa Beach, FL", "Jacksonville, FL", "Outer Banks, NC", "New Jersey Shore",
+  // USA - Other
   "Puerto Rico",
-  "Fiji",
-  "Tahiti",
-  "Maldives",
-  "South Africa",
-  "Morocco",
-  "Spain",
-  "France",
-  "Japan",
-  "Philippines",
-  "Sri Lanka",
+  // Mexico
+  "Sayulita, Mexico", "Puerto Escondido, Mexico", "Baja California, Mexico", 
+  "Todos Santos, Mexico", "Cabo San Lucas, Mexico", "Rosarito, Mexico",
+  // Central America
+  "Santa Teresa, Costa Rica", "Tamarindo, Costa Rica", "Jacó, Costa Rica", "Pavones, Costa Rica",
+  "San Juan del Sur, Nicaragua", "Playa Maderas, Nicaragua", "Popoyo, Nicaragua",
+  "El Sunzal, El Salvador", "El Tunco, El Salvador", "La Libertad, El Salvador",
+  "Santa Catalina, Panama", "Bocas del Toro, Panama",
+  // Caribbean
+  "Barbados", "Dominican Republic", "Jamaica",
+  // South America
+  "Florianópolis, Brazil", "Rio de Janeiro, Brazil", "São Paulo Coast, Brazil", 
+  "Itacaré, Brazil", "Fernando de Noronha, Brazil",
+  "Lima, Peru", "Chicama, Peru", "Máncora, Peru", "Lobitos, Peru",
+  "Montañita, Ecuador", "Galápagos, Ecuador",
+  "Punta de Lobos, Chile", "Arica, Chile",
+  "Mar del Plata, Argentina",
+  "Montevideo, Uruguay", "Punta del Este, Uruguay",
+  // Europe - Portugal
+  "Ericeira, Portugal", "Peniche, Portugal", "Nazaré, Portugal", 
+  "Algarve, Portugal", "Cascais, Portugal", "Azores, Portugal",
+  // Europe - Spain
+  "Zarautz, Spain", "Mundaka, Spain", "San Sebastián, Spain", 
+  "Fuerteventura, Canary Islands", "Tenerife, Canary Islands", "Lanzarote, Canary Islands",
+  // Europe - France
+  "Hossegor, France", "Biarritz, France", "Lacanau, France", "Mimizan, France",
+  // Europe - UK & Ireland
+  "Newquay, UK", "Cornwall, UK", "Devon, UK", "Bundoran, Ireland", "Lahinch, Ireland",
+  // Africa
+  "Jeffrey's Bay, South Africa", "Cape Town, South Africa", "Durban, South Africa",
+  "Taghazout, Morocco", "Anchor Point, Morocco", "Imsouane, Morocco", "Agadir, Morocco",
+  "Dakar, Senegal", "Skeleton Bay, Namibia", "Madagascar",
+  // Middle East
+  "Tel Aviv, Israel",
+  // Asia - Indonesia
+  "Bali, Indonesia", "Uluwatu, Bali", "Canggu, Bali", "Kuta, Bali", "Padang Padang, Bali",
+  "Lombok, Indonesia", "Mentawai Islands, Indonesia", "Sumbawa, Indonesia", 
+  "Sumatra, Indonesia", "Java, Indonesia", "Nias, Indonesia",
+  // Asia - Other
+  "Sri Lanka", "Arugam Bay, Sri Lanka", "Weligama, Sri Lanka",
+  "Maldives", "North Malé Atoll, Maldives",
+  "Siargao, Philippines", "La Union, Philippines", "Baler, Philippines",
+  "Chiba, Japan", "Miyazaki, Japan", "Shonan, Japan",
+  "Cherating, Malaysia", "Phuket, Thailand", "Taiwan", "Vietnam",
+  "India", "Goa, India", "Kerala, India",
+  // Oceania - Australia
+  "Gold Coast, Australia", "Snapper Rocks, Australia", "Byron Bay, Australia",
+  "Sydney, Australia", "Bells Beach, Australia", "Margaret River, Australia",
+  "Noosa, Australia", "Torquay, Australia", "Tasmania, Australia",
+  // Oceania - New Zealand
+  "Raglan, New Zealand", "Piha, New Zealand", "Mount Maunganui, New Zealand",
+  // Pacific Islands
+  "Fiji", "Cloudbreak, Fiji", "Tavarua, Fiji",
+  "Tahiti", "Teahupo'o, Tahiti",
+  "Samoa", "Tonga", "Papua New Guinea",
+  "Micronesia", "Guam",
 ];
 
 const REGIONS: Record<string, string[]> = {
   "San Diego County": ["Oceanside, CA", "Carlsbad, CA", "Encinitas, CA", "San Diego, CA", "La Jolla, CA", "Del Mar, CA", "Pacific Beach, CA", "Mission Beach, CA", "Imperial Beach, CA"],
-  "Orange County": ["Huntington Beach, CA", "Newport Beach, CA", "Trestles, CA"],
-  "Los Angeles": ["Malibu, CA"],
-  "Northern California": ["Santa Cruz, CA"],
-  "Central America": ["Costa Rica", "Nicaragua", "El Salvador", "Panama", "Mexico"],
-  "South America": ["Brazil"],
-  "Caribbean": ["Puerto Rico"],
-  "Pacific Islands": ["Hawaii", "Fiji", "Tahiti"],
-  "Asia": ["Bali, Indonesia", "Japan", "Philippines", "Sri Lanka", "Maldives"],
-  "Europe": ["Portugal", "Spain", "France", "Morocco"],
-  "Africa & Oceania": ["South Africa", "Australia"],
+  "Orange County": ["Huntington Beach, CA", "Newport Beach, CA", "Trestles, CA", "Dana Point, CA"],
+  "Los Angeles": ["Malibu, CA", "Venice Beach, CA", "Manhattan Beach, CA", "Hermosa Beach, CA"],
+  "Central/Northern CA": ["Santa Cruz, CA", "Pacifica, CA", "Half Moon Bay, CA", "Pismo Beach, CA"],
+  "Hawaii": ["Oahu, Hawaii", "Maui, Hawaii", "Big Island, Hawaii", "Kauai, Hawaii", "Pipeline, Hawaii", "Waikiki, Hawaii", "North Shore, Hawaii"],
+  "East Coast USA": ["Cocoa Beach, FL", "Jacksonville, FL", "Outer Banks, NC", "New Jersey Shore", "Puerto Rico"],
+  "Mexico": ["Sayulita, Mexico", "Puerto Escondido, Mexico", "Baja California, Mexico", "Todos Santos, Mexico", "Cabo San Lucas, Mexico", "Rosarito, Mexico"],
+  "Costa Rica": ["Santa Teresa, Costa Rica", "Tamarindo, Costa Rica", "Jacó, Costa Rica", "Pavones, Costa Rica"],
+  "Nicaragua": ["San Juan del Sur, Nicaragua", "Playa Maderas, Nicaragua", "Popoyo, Nicaragua"],
+  "El Salvador": ["El Sunzal, El Salvador", "El Tunco, El Salvador", "La Libertad, El Salvador"],
+  "Panama": ["Santa Catalina, Panama", "Bocas del Toro, Panama"],
+  "Caribbean": ["Barbados", "Dominican Republic", "Jamaica", "Puerto Rico"],
+  "Brazil": ["Florianópolis, Brazil", "Rio de Janeiro, Brazil", "São Paulo Coast, Brazil", "Itacaré, Brazil", "Fernando de Noronha, Brazil"],
+  "Peru": ["Lima, Peru", "Chicama, Peru", "Máncora, Peru", "Lobitos, Peru"],
+  "Ecuador": ["Montañita, Ecuador", "Galápagos, Ecuador"],
+  "Chile": ["Punta de Lobos, Chile", "Arica, Chile"],
+  "Argentina/Uruguay": ["Mar del Plata, Argentina", "Montevideo, Uruguay", "Punta del Este, Uruguay"],
+  "Portugal": ["Ericeira, Portugal", "Peniche, Portugal", "Nazaré, Portugal", "Algarve, Portugal", "Cascais, Portugal", "Azores, Portugal"],
+  "Spain": ["Zarautz, Spain", "Mundaka, Spain", "San Sebastián, Spain", "Fuerteventura, Canary Islands", "Tenerife, Canary Islands", "Lanzarote, Canary Islands"],
+  "France": ["Hossegor, France", "Biarritz, France", "Lacanau, France", "Mimizan, France"],
+  "UK & Ireland": ["Newquay, UK", "Cornwall, UK", "Devon, UK", "Bundoran, Ireland", "Lahinch, Ireland"],
+  "South Africa": ["Jeffrey's Bay, South Africa", "Cape Town, South Africa", "Durban, South Africa"],
+  "Morocco": ["Taghazout, Morocco", "Anchor Point, Morocco", "Imsouane, Morocco", "Agadir, Morocco"],
+  "Africa Other": ["Dakar, Senegal", "Skeleton Bay, Namibia", "Madagascar"],
+  "Indonesia - Bali": ["Bali, Indonesia", "Uluwatu, Bali", "Canggu, Bali", "Kuta, Bali", "Padang Padang, Bali"],
+  "Indonesia - Other": ["Lombok, Indonesia", "Mentawai Islands, Indonesia", "Sumbawa, Indonesia", "Sumatra, Indonesia", "Java, Indonesia", "Nias, Indonesia"],
+  "Sri Lanka": ["Sri Lanka", "Arugam Bay, Sri Lanka", "Weligama, Sri Lanka"],
+  "Maldives": ["Maldives", "North Malé Atoll, Maldives"],
+  "Philippines": ["Siargao, Philippines", "La Union, Philippines", "Baler, Philippines"],
+  "Japan": ["Chiba, Japan", "Miyazaki, Japan", "Shonan, Japan"],
+  "Asia Other": ["Cherating, Malaysia", "Phuket, Thailand", "Taiwan", "Vietnam", "India", "Goa, India", "Kerala, India"],
+  "Australia - East": ["Gold Coast, Australia", "Snapper Rocks, Australia", "Byron Bay, Australia", "Sydney, Australia", "Noosa, Australia"],
+  "Australia - South/West": ["Bells Beach, Australia", "Margaret River, Australia", "Torquay, Australia", "Tasmania, Australia"],
+  "New Zealand": ["Raglan, New Zealand", "Piha, New Zealand", "Mount Maunganui, New Zealand"],
+  "Pacific Islands": ["Fiji", "Cloudbreak, Fiji", "Tavarua, Fiji", "Tahiti", "Teahupo'o, Tahiti", "Samoa", "Tonga", "Papua New Guinea", "Micronesia", "Guam"],
 };
 
 const ACTIVITY_OPTIONS = [

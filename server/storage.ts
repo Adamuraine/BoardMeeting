@@ -168,29 +168,28 @@ export class DatabaseStorage implements IStorage {
     // Get current user's profile for safety filtering
     const [currentUser] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     
-    // Get fake user IDs by checking for seed data email patterns in users table
-    const fakeUsers = await db.select({ id: users.id })
+    // Get real user IDs - users who signed up through Replit Auth with real emails
+    const realUsers = await db.select({ id: users.id })
       .from(users)
-      .where(or(
-        sql`${users.email} LIKE '%@surf.com'`,
-        sql`${users.email} LIKE '%.mock'`,
-        sql`${users.id} LIKE 'mock_user_%'`,
-        sql`${users.id} LIKE 'test_%'`
+      .where(and(
+        sql`${users.email} NOT LIKE '%@surf.com'`,
+        sql`${users.email} NOT LIKE '%.mock'`,
+        sql`${users.email} NOT LIKE '%@example.com'`,
+        sql`${users.id} NOT LIKE 'mock_user_%'`,
+        sql`${users.id} NOT LIKE 'test_%'`
       ));
-    const fakeUserIds = fakeUsers.map(u => u.id);
+    const realUserIds = realUsers.map(u => u.id);
     
-    // Combine swiped IDs with fake user IDs to exclude
-    const excludeIds = [...swipedIds, ...fakeUserIds];
+    // Only show profiles that belong to real users (have entry in users table with real email)
+    // and haven't been swiped yet
+    const validUserIds = realUserIds.filter(id => !swipedIds.includes(id));
     
-    // Query profiles, excluding swiped and known fake users, AND filter by userId pattern
+    if (validUserIds.length === 0) return [];
+    
+    // Query profiles for real users only
     let potentialMatches = await db.select()
       .from(profiles)
-      .where(and(
-        notInArray(profiles.userId, excludeIds),
-        sql`${profiles.userId} NOT LIKE 'mock_user_%'`,
-        sql`${profiles.userId} NOT LIKE 'test_%'`,
-        sql`${profiles.userId} NOT LIKE '%-%-%-%-%'`  // Exclude UUID patterns (seed data)
-      ))
+      .where(inArray(profiles.userId, validUserIds))
       .limit(100);
     
     // Safety filter: Prevent adult males (18+) from matching with underage females (<18)
@@ -222,14 +221,26 @@ export class DatabaseStorage implements IStorage {
   async searchProfiles(query: string, limit: number = 20): Promise<Profile[]> {
     const searchTerm = `%${query.toLowerCase()}%`;
     
-    // Search profiles excluding fake users by userId pattern
+    // Get real user IDs to filter search results
+    const realUsers = await db.select({ id: users.id })
+      .from(users)
+      .where(and(
+        sql`${users.email} NOT LIKE '%@surf.com'`,
+        sql`${users.email} NOT LIKE '%.mock'`,
+        sql`${users.email} NOT LIKE '%@example.com'`,
+        sql`${users.id} NOT LIKE 'mock_user_%'`,
+        sql`${users.id} NOT LIKE 'test_%'`
+      ));
+    const realUserIds = realUsers.map(u => u.id);
+    
+    if (realUserIds.length === 0) return [];
+    
+    // Search profiles only for real users
     const results = await db.select()
       .from(profiles)
       .where(and(
         sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`,
-        sql`${profiles.userId} NOT LIKE 'mock_user_%'`,
-        sql`${profiles.userId} NOT LIKE 'test_%'`,
-        sql`${profiles.userId} NOT LIKE '%-%-%-%-%'`  // Exclude UUID patterns (seed data)
+        inArray(profiles.userId, realUserIds)
       ))
       .limit(limit);
     
@@ -301,10 +312,27 @@ export class DatabaseStorage implements IStorage {
     
     const mutualIds = mutualSwipes.map(s => s.swiperId);
     
-    // Get profiles of matched buddies
+    // Get real user IDs to filter buddies
+    const realUsers = await db.select({ id: users.id })
+      .from(users)
+      .where(and(
+        sql`${users.email} NOT LIKE '%@surf.com'`,
+        sql`${users.email} NOT LIKE '%.mock'`,
+        sql`${users.email} NOT LIKE '%@example.com'`,
+        sql`${users.id} NOT LIKE 'mock_user_%'`,
+        sql`${users.id} NOT LIKE 'test_%'`
+      ));
+    const realUserIds = new Set(realUsers.map(u => u.id));
+    
+    // Only include mutual matches that are real users
+    const realMutualIds = mutualIds.filter(id => realUserIds.has(id));
+    
+    if (realMutualIds.length === 0) return [];
+    
+    // Get profiles of matched buddies (real users only)
     return await db.select()
       .from(profiles)
-      .where(inArray(profiles.userId, mutualIds));
+      .where(inArray(profiles.userId, realMutualIds));
   }
 
   async removeBuddy(userId: string, buddyId: string): Promise<void> {

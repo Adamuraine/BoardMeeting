@@ -168,28 +168,10 @@ export class DatabaseStorage implements IStorage {
     // Get current user's profile for safety filtering
     const [currentUser] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     
-    // Get real user IDs - users who signed up through Replit Auth with real emails
-    const realUsers = await db.select({ id: users.id })
-      .from(users)
-      .where(and(
-        sql`${users.email} NOT LIKE '%@surf.com'`,
-        sql`${users.email} NOT LIKE '%.mock'`,
-        sql`${users.email} NOT LIKE '%@example.com'`,
-        sql`${users.id} NOT LIKE 'mock_user_%'`,
-        sql`${users.id} NOT LIKE 'test_%'`
-      ));
-    const realUserIds = realUsers.map(u => u.id);
-    
-    // Only show profiles that belong to real users (have entry in users table with real email)
-    // and haven't been swiped yet
-    const validUserIds = realUserIds.filter(id => !swipedIds.includes(id));
-    
-    if (validUserIds.length === 0) return [];
-    
-    // Query profiles for real users only
+    // Get all profiles except already swiped ones and self
     let potentialMatches = await db.select()
       .from(profiles)
-      .where(inArray(profiles.userId, validUserIds))
+      .where(notInArray(profiles.userId, swipedIds))
       .limit(100);
     
     // Safety filter: Prevent adult males (18+) from matching with underage females (<18)
@@ -221,27 +203,10 @@ export class DatabaseStorage implements IStorage {
   async searchProfiles(query: string, limit: number = 20): Promise<Profile[]> {
     const searchTerm = `%${query.toLowerCase()}%`;
     
-    // Get real user IDs to filter search results
-    const realUsers = await db.select({ id: users.id })
-      .from(users)
-      .where(and(
-        sql`${users.email} NOT LIKE '%@surf.com'`,
-        sql`${users.email} NOT LIKE '%.mock'`,
-        sql`${users.email} NOT LIKE '%@example.com'`,
-        sql`${users.id} NOT LIKE 'mock_user_%'`,
-        sql`${users.id} NOT LIKE 'test_%'`
-      ));
-    const realUserIds = realUsers.map(u => u.id);
-    
-    if (realUserIds.length === 0) return [];
-    
-    // Search profiles only for real users
+    // Search all profiles by display name
     const results = await db.select()
       .from(profiles)
-      .where(and(
-        sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`,
-        inArray(profiles.userId, realUserIds)
-      ))
+      .where(sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`)
       .limit(limit);
     
     return results;

@@ -44,6 +44,11 @@ async function refreshSurfDataForLocation(locationId: number, lat: number, lng: 
   }
 }
 
+function trafficLog(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  console.log(`[TRAFFIC ${timestamp}] ${message}`, data ? JSON.stringify(data) : '');
+}
+
 export async function registerRoutes(
   httpServer: Server,
   app: Express
@@ -51,6 +56,25 @@ export async function registerRoutes(
   // Auth setup MUST happen first
   await setupAuth(app);
   registerAuthRoutes(app);
+  
+  // Traffic logging middleware for security monitoring
+  app.use((req, res, next) => {
+    const userId = (req.user as any)?.claims?.sub || 'anonymous';
+    const userEmail = (req.user as any)?.claims?.email || 'none';
+    
+    // Log all requests for security auditing
+    trafficLog('Request', {
+      method: req.method,
+      path: req.path,
+      userId,
+      userEmail: userEmail.substring(0, 5) + '***', // Partial email for privacy
+      ip: req.ip || req.headers['x-forwarded-for'],
+      userAgent: req.headers['user-agent']?.substring(0, 50),
+      authenticated: req.isAuthenticated()
+    });
+    
+    next();
+  });
   
   // Object Storage routes for file uploads
   registerObjectStorageRoutes(app);

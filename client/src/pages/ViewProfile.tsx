@@ -1,14 +1,19 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, TrendingUp, MessageCircle, Crown, Users } from "lucide-react";
+import { ArrowLeft, MapPin, TrendingUp, MessageCircle, Crown, Users, UserPlus, Check, LogIn } from "lucide-react";
 import { useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { profiles } from "@shared/schema";
 import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
+import { useAuth } from "@/hooks/use-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useState } from "react";
 
 type Profile = typeof profiles.$inferSelect;
 
@@ -19,9 +24,52 @@ interface ViewProfileProps {
 export default function ViewProfile({ params }: ViewProfileProps) {
   const [, navigate] = useLocation();
   const { id } = params;
+  const { user } = useAuth();
+  const { toast } = useToast();
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [justAdded, setJustAdded] = useState(false);
 
   const { data: profile, isLoading, error } = useQuery<Profile>({
-    queryKey: ["/api/profiles", id],
+    queryKey: ["/api/profiles/user", id],
+  });
+
+  const { data: buddies = [] } = useQuery<Profile[]>({
+    queryKey: ["/api/buddies"],
+    enabled: !!user,
+  });
+
+  const isAlreadyBuddy = buddies.some(b => b.userId === id);
+
+  const addBuddyMutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/swipes", {
+        swipedId: id,
+        direction: "right"
+      });
+      return res.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["/api/buddies"] });
+      setJustAdded(true);
+      if (data.match) {
+        toast({ 
+          title: "You're now buddies!", 
+          description: `You and ${profile?.displayName || 'this surfer'} are now connected.`
+        });
+      } else {
+        toast({ 
+          title: "Request sent!", 
+          description: `${profile?.displayName || 'This surfer'} will see your interest.`
+        });
+      }
+    },
+    onError: () => {
+      toast({ 
+        title: "Couldn't add buddy", 
+        description: "Please try again.",
+        variant: "destructive"
+      });
+    }
   });
 
   if (isLoading) {
@@ -119,9 +167,37 @@ export default function ViewProfile({ params }: ViewProfileProps) {
               </div>
             )}
             
-            <div className="flex items-center gap-3 mt-4">
+            <div className="flex items-center gap-3 mt-4 flex-wrap">
+              {isAlreadyBuddy || justAdded ? (
+                <Button variant="secondary" disabled data-testid="button-already-buddy">
+                  <Check className="h-4 w-4 mr-2" />
+                  Buddies
+                </Button>
+              ) : (
+                <Button 
+                  onClick={() => {
+                    if (!user) {
+                      setShowLoginPrompt(true);
+                    } else {
+                      addBuddyMutation.mutate();
+                    }
+                  }}
+                  disabled={addBuddyMutation.isPending}
+                  data-testid="button-add-buddy"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {addBuddyMutation.isPending ? "Adding..." : "Add Buddy"}
+                </Button>
+              )}
               <Button 
-                onClick={() => navigate(`/messages?buddy=${profile.userId}`)}
+                variant="outline"
+                onClick={() => {
+                  if (!user) {
+                    setShowLoginPrompt(true);
+                  } else {
+                    navigate(`/messages?buddy=${profile.userId}`);
+                  }
+                }}
                 data-testid="button-message"
               >
                 <MessageCircle className="h-4 w-4 mr-2" />
@@ -129,6 +205,38 @@ export default function ViewProfile({ params }: ViewProfileProps) {
               </Button>
             </div>
           </div>
+          
+          <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+            <DialogContent className="max-w-sm">
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  <LogIn className="h-5 w-5" />
+                  Sign in to Connect
+                </DialogTitle>
+                <DialogDescription>
+                  Create a free account to add buddies and message other surfers.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex flex-col gap-3 mt-4">
+                <Button 
+                  onClick={() => window.location.href = '/api/login'}
+                  className="w-full"
+                  data-testid="button-login-prompt"
+                >
+                  <LogIn className="w-4 h-4 mr-2" />
+                  Sign in with Apple or Google
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="w-full"
+                  data-testid="button-continue-browsing"
+                >
+                  Continue Browsing
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
 
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">About</h3>

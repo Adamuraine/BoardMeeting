@@ -8,6 +8,11 @@ import memoize from "memoizee";
 import connectPg from "connect-pg-simple";
 import { authStorage } from "./storage";
 
+function authLog(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  console.log(`[AUTH ${timestamp}] ${message}`, data ? JSON.stringify(data) : '');
+}
+
 const getOidcConfig = memoize(
   async () => {
     return await client.discovery(
@@ -51,13 +56,29 @@ function updateUserSession(
 }
 
 async function upsertUser(claims: any) {
-  await authStorage.upsertUser({
-    id: claims["sub"],
+  authLog('Creating/updating user', { 
+    id: claims["sub"], 
     email: claims["email"],
     firstName: claims["first_name"],
-    lastName: claims["last_name"],
-    profileImageUrl: claims["profile_image_url"],
+    lastName: claims["last_name"]
   });
+  try {
+    await authStorage.upsertUser({
+      id: claims["sub"],
+      email: claims["email"],
+      firstName: claims["first_name"],
+      lastName: claims["last_name"],
+      profileImageUrl: claims["profile_image_url"],
+    });
+    authLog('User created/updated successfully', { id: claims["sub"], email: claims["email"] });
+  } catch (error) {
+    authLog('ERROR: Failed to create/update user', { 
+      id: claims["sub"], 
+      email: claims["email"],
+      error: error instanceof Error ? error.message : String(error)
+    });
+    throw error;
+  }
 }
 
 export async function setupAuth(app: Express) {
@@ -72,10 +93,28 @@ export async function setupAuth(app: Express) {
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
   ) => {
-    const user = {};
-    updateUserSession(user, tokens);
-    await upsertUser(tokens.claims());
-    verified(null, user);
+    try {
+      const claims = tokens.claims();
+      authLog('Auth verification started', { 
+        userId: claims["sub"], 
+        email: claims["email"] 
+      });
+      
+      const user = {};
+      updateUserSession(user, tokens);
+      await upsertUser(claims);
+      
+      authLog('Auth verification successful - user logged in', { 
+        userId: claims["sub"], 
+        email: claims["email"] 
+      });
+      verified(null, user);
+    } catch (error) {
+      authLog('ERROR: Auth verification failed', { 
+        error: error instanceof Error ? error.message : String(error)
+      });
+      verified(error as Error, undefined);
+    }
   };
 
   // Keep track of registered strategies
@@ -103,6 +142,11 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    authLog('Login attempt started', { 
+      hostname: req.hostname, 
+      userAgent: req.headers['user-agent'],
+      ip: req.ip 
+    });
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       prompt: "login consent",
@@ -111,6 +155,20 @@ export async function setupAuth(app: Express) {
   });
 
   app.get("/api/callback", (req, res, next) => {
+    authLog('Auth callback received', { 
+      hostname: req.hostname,
+      hasError: !!req.query.error,
+      error: req.query.error,
+      errorDescription: req.query.error_description
+    });
+    
+    if (req.query.error) {
+      authLog('ERROR: Auth callback failed', {
+        error: req.query.error,
+        errorDescription: req.query.error_description
+      });
+    }
+    
     ensureStrategy(req.hostname);
     passport.authenticate(`replitauth:${req.hostname}`, {
       successReturnToOrRedirect: "/",

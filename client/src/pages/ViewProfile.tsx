@@ -2,11 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, MapPin, TrendingUp, MessageCircle } from "lucide-react";
+import { ArrowLeft, MapPin, TrendingUp, MessageCircle, Crown, Users } from "lucide-react";
 import { useLocation } from "wouter";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { profiles } from "@shared/schema";
+import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
 
 type Profile = typeof profiles.$inferSelect;
 
@@ -56,13 +58,13 @@ export default function ViewProfile({ params }: ViewProfileProps) {
     <Layout>
       <div className="flex flex-col h-full overflow-y-auto">
         <div className="relative">
-          <div className="h-64 bg-gradient-to-br from-primary/20 to-accent/20 relative overflow-hidden">
-            <SafeImage
-              src={images[0]}
-              alt={displayName}
+          <div className="h-48 bg-gradient-to-br from-primary/30 to-accent/30 relative overflow-hidden">
+            <img
+              src={boardMeetingLogo}
+              alt="Board Meeting"
               className="w-full h-full object-cover"
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent" />
           </div>
           
           <Button
@@ -74,33 +76,52 @@ export default function ViewProfile({ params }: ViewProfileProps) {
           >
             <ArrowLeft className="h-5 w-5" />
           </Button>
+
+          <div className="absolute -bottom-16 left-6">
+            <Avatar className="h-32 w-32 border-4 border-background shadow-lg">
+              <AvatarImage src={images[0]} alt={displayName} className="object-cover" />
+              <AvatarFallback className="text-3xl bg-primary/10">{displayName.charAt(0)}</AvatarFallback>
+            </Avatar>
+          </div>
         </div>
 
-        <div className="p-4 space-y-6 -mt-8 relative z-10">
-          <div className="bg-card rounded-xl p-4 border shadow-sm">
-            <div className="flex items-center gap-3 mb-3">
+        <div className="p-4 pt-20 space-y-6">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
               <h1 className="text-2xl font-bold font-display" data-testid="text-profile-name">
                 {displayName}
               </h1>
+              {profile.isPremium && (
+                <Crown className="h-5 w-5 text-yellow-500 fill-yellow-500" />
+              )}
               {profile.age && (
-                <span className="text-lg text-muted-foreground">{profile.age}</span>
+                <span className="text-lg text-muted-foreground">({profile.age})</span>
               )}
             </div>
             
+            <p className="text-muted-foreground capitalize">
+              - {profile.skillLevel} Surfer
+            </p>
+            
             {profile.location && (
-              <div className="flex items-center gap-2 text-muted-foreground mb-3">
+              <div className="flex items-center gap-2 text-muted-foreground mt-1">
                 <MapPin className="h-4 w-4" />
                 <span data-testid="text-profile-location">{profile.location}</span>
               </div>
             )}
             
-            <div className="flex items-center gap-3">
-              <Badge variant="secondary" className="capitalize" data-testid="badge-skill-level">
-                {profile.skillLevel}
-              </Badge>
+            {profile.openToGuiding && (
+              <div className="mt-3">
+                <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                  <Users className="h-3 w-3 mr-1" />
+                  Open to Meeting/Guiding Travelers
+                </Badge>
+              </div>
+            )}
+            
+            <div className="flex items-center gap-3 mt-4">
               <Button 
                 onClick={() => navigate(`/messages?buddy=${profile.userId}`)}
-                className="ml-auto"
                 data-testid="button-message"
               >
                 <MessageCircle className="h-4 w-4 mr-2" />
@@ -109,12 +130,12 @@ export default function ViewProfile({ params }: ViewProfileProps) {
             </div>
           </div>
 
-          {profile.bio && (
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">About</h3>
-              <p className="text-foreground" data-testid="text-profile-bio">{profile.bio}</p>
-            </div>
-          )}
+          <div>
+            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-2">About</h3>
+            <p className="text-foreground" data-testid="text-profile-bio">
+              {profile.bio || "No bio yet."}
+            </p>
+          </div>
 
           <div>
             <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Stats</h3>

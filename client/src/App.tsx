@@ -31,7 +31,7 @@ const PageLoader = () => (
   </div>
 );
 
-// Protected Route Wrapper
+// Protected Route Wrapper - Requires login
 function ProtectedRoute({ component: Component, requiresProfile = true }: { component: React.ComponentType; requiresProfile?: boolean }) {
   const { user, isLoading: authLoading } = useAuth();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
@@ -56,6 +56,26 @@ function ProtectedRoute({ component: Component, requiresProfile = true }: { comp
   );
 }
 
+// Browsable Route - Allows anonymous access, shows bottom nav
+function BrowsableRoute({ component: Component }: { component: React.ComponentType }) {
+  const { user, isLoading: authLoading } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useMyProfile();
+
+  // If logged in user without profile, redirect to onboarding
+  if (user && !authLoading && !profileLoading && !profile) {
+    return <Redirect to="/onboarding" />;
+  }
+
+  return (
+    <div className="pb-16 min-h-screen bg-background">
+      <Suspense fallback={<PageLoader />}>
+        <Component />
+      </Suspense>
+      <BottomNav />
+    </div>
+  );
+}
+
 function Router() {
   const [location] = useLocation();
 
@@ -67,36 +87,38 @@ function Router() {
         return <Landing />;
       }} />
       
-      {/* Protected Routes */}
+      {/* Browsable Routes - Anyone can view */}
       <Route path="/home">
-        <ProtectedRoute component={Home} />
+        <BrowsableRoute component={Home} />
       </Route>
+      <Route path="/buddies">
+        <BrowsableRoute component={Buddies} />
+      </Route>
+      <Route path="/surf">
+        <BrowsableRoute component={SurfReports} />
+      </Route>
+      <Route path="/trips">
+        <BrowsableRoute component={Trips} />
+      </Route>
+      <Route path="/trips/:id">
+        {(params) => <BrowsableRoute component={() => <TripItinerary params={params} />} />}
+      </Route>
+      <Route path="/profile/:id">
+        {(params) => <BrowsableRoute component={() => <ViewProfile params={params} />} />}
+      </Route>
+      
+      {/* Protected Routes - Requires login */}
       <Route path="/stats">
         <ProtectedRoute component={Stats} />
       </Route>
       <Route path="/onboarding">
         <ProtectedRoute component={Onboarding} requiresProfile={false} />
       </Route>
-      <Route path="/buddies">
-        <ProtectedRoute component={Buddies} />
-      </Route>
-      <Route path="/surf">
-        <ProtectedRoute component={SurfReports} />
-      </Route>
-      <Route path="/trips">
-        <ProtectedRoute component={Trips} />
-      </Route>
-      <Route path="/trips/:id">
-        {(params) => <ProtectedRoute component={() => <TripItinerary params={params} />} />}
-      </Route>
       <Route path="/messages">
         <ProtectedRoute component={Messages} />
       </Route>
       <Route path="/profile">
         <ProtectedRoute component={Profile} />
-      </Route>
-      <Route path="/profile/:id">
-        {(params) => <ProtectedRoute component={() => <ViewProfile params={params} />} />}
       </Route>
       <Route path="/post/new">
         <ProtectedRoute component={NewPost} />

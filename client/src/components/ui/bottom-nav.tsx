@@ -1,18 +1,26 @@
 import { Link, useLocation } from "wouter";
-import { User, Waves, Plane, Users, Home as HomeIcon, Activity, MessageCircle } from "lucide-react";
+import { User, Waves, Plane, Users, Home as HomeIcon, Activity, MessageCircle, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function BottomNav() {
   const [location] = useLocation();
+  const { user } = useAuth();
 
-  const navItems = [
+  // Show different nav items for anonymous vs logged-in users
+  const navItems = user ? [
     { href: "/home", icon: HomeIcon, label: "Home" },
     { href: "/surf", icon: Waves, label: "Surf" },
-    { href: "/stats", icon: Activity, label: "Stats" },
     { href: "/buddies", icon: Users, label: "Buddies" },
     { href: "/trips", icon: Plane, label: "Trips" },
     { href: "/messages", icon: MessageCircle, label: "Messages" },
     { href: "/profile", icon: User, label: "Profile" },
+  ] : [
+    { href: "/home", icon: HomeIcon, label: "Home" },
+    { href: "/surf", icon: Waves, label: "Surf" },
+    { href: "/buddies", icon: Users, label: "Buddies" },
+    { href: "/trips", icon: Plane, label: "Trips" },
+    { href: "/", icon: LogIn, label: "Sign In" },
   ];
 
   // Don't show on onboarding

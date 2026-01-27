@@ -62,8 +62,18 @@ export default function Landing() {
         <Button 
           onClick={() => window.location.href = "/api/login"}
           className="w-full max-w-xs h-14 text-lg font-semibold rounded-2xl bg-foreground text-background hover:bg-foreground/90 shadow-xl transition-all hover:scale-[1.02]"
+          data-testid="button-login"
         >
-          Login with Replit
+          Sign in with Apple or Google
+        </Button>
+        
+        <Button 
+          onClick={() => setLocation("/buddies")}
+          variant="ghost"
+          className="w-full max-w-xs h-12 mt-3 text-base font-medium"
+          data-testid="button-browse-first"
+        >
+          Browse First
         </Button>
         
         <p className="mt-6 text-sm text-muted-foreground/60">

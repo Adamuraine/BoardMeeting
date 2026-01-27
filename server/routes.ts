@@ -151,16 +151,27 @@ export async function registerRoutes(
     }
   });
 
-  app.get(api.profiles.list.path, async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
-    const userId = getUserId(req);
-    const matches = await storage.getPotentialMatches(userId);
-    res.json(matches);
+  // Get all browsable profiles (for anonymous users)
+  app.get('/api/profiles/browse', async (req, res) => {
+    // Anyone can browse profiles anonymously
+    const profiles = await storage.getAllProfiles();
+    res.json(profiles);
   });
 
-  // Search all profiles
+  app.get(api.profiles.list.path, async (req, res) => {
+    // If authenticated, get potential matches (excludes already swiped)
+    if (req.isAuthenticated()) {
+      const userId = getUserId(req);
+      const matches = await storage.getPotentialMatches(userId);
+      return res.json(matches);
+    }
+    // If anonymous, return all profiles for browsing
+    const profiles = await storage.getAllProfiles();
+    res.json(profiles);
+  });
+
+  // Search all profiles (anyone can search)
   app.get('/api/profiles/search', async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
     const query = req.query.q as string;
     if (!query || query.trim().length === 0) {
       return res.json([]);
@@ -169,9 +180,8 @@ export async function registerRoutes(
     res.json(results);
   });
 
-  // Get profile by userId
+  // Get profile by userId (anyone can view profiles)
   app.get('/api/profiles/user/:userId', async (req, res) => {
-    if (!req.isAuthenticated()) return res.sendStatus(401);
     const profile = await storage.getProfile(req.params.userId);
     if (!profile) return res.sendStatus(404);
     res.json(profile);

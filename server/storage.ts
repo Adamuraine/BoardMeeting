@@ -23,6 +23,7 @@ export interface IStorage {
   createProfile(profile: InsertProfile): Promise<Profile>;
   updateProfile(userId: string, updates: UpdateProfileRequest): Promise<Profile>;
   getPotentialMatches(userId: string): Promise<Profile[]>; // Excludes already swiped
+  getAllProfiles(): Promise<Profile[]>; // All profiles for anonymous browsing
   searchProfiles(query: string, limit?: number): Promise<Profile[]>; // Search all profiles
   
   // Swipes
@@ -198,6 +199,14 @@ export class DatabaseStorage implements IStorage {
     }
     
     return potentialMatches.slice(0, 20);
+  }
+
+  async getAllProfiles(): Promise<Profile[]> {
+    // Get all profiles for anonymous browsing - no user filtering
+    const allProfiles = await db.select()
+      .from(profiles)
+      .limit(100);
+    return allProfiles;
   }
 
   async searchProfiles(query: string, limit: number = 20): Promise<Profile[]> {

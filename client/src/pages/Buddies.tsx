@@ -1,8 +1,9 @@
 import { useState, useRef } from "react";
 import { useProfiles, useSwipe } from "@/hooks/use-profiles";
+import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { AnimatePresence, motion, PanInfo, useAnimation } from "framer-motion";
-import { X, MapPin, Info, Users, Search, Eye } from "lucide-react";
+import { X, MapPin, Info, Users, Search, Eye, LogIn } from "lucide-react";
 import shakaImg from "@assets/image_1767482724996.png";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -13,12 +14,21 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Profile } from "@shared/schema";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function Buddies() {
+  const { user } = useAuth();
   const { data: profiles, isLoading, error } = useProfiles();
   const { mutate: swipe } = useSwipe();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
+  const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -59,6 +69,13 @@ export default function Buddies() {
   const currentProfile = profiles[currentIndex];
 
   const handleDragEnd = async (_: any, info: PanInfo) => {
+    // Check if user is logged in before allowing swipe
+    if (!user) {
+      controls.start({ x: 0, opacity: 1, rotate: 0 });
+      setShowLoginPrompt(true);
+      return;
+    }
+    
     const threshold = 100;
     if (info.offset.x > threshold) {
       await controls.start({ x: 500, opacity: 0, rotate: 20 });
@@ -73,6 +90,12 @@ export default function Buddies() {
 
   const handleSwipe = (direction: 'left' | 'right') => {
     if (!currentProfile) return;
+    
+    // Check if user is logged in
+    if (!user) {
+      setShowLoginPrompt(true);
+      return;
+    }
     
     setTimeout(() => {
       setCurrentIndex(prev => prev + 1);
@@ -101,6 +124,39 @@ export default function Buddies() {
   return (
     <Layout>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
+      
+      {/* Login prompt for anonymous users */}
+      <Dialog open={showLoginPrompt} onOpenChange={setShowLoginPrompt}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <LogIn className="h-5 w-5" />
+              Sign in to Connect
+            </DialogTitle>
+            <DialogDescription>
+              Create a free account to swipe and connect with surf buddies. Your profile helps others know who they're paddling out with!
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-3 mt-4">
+            <Button 
+              onClick={() => window.location.href = '/api/auth/login'}
+              className="w-full"
+              data-testid="button-login-prompt"
+            >
+              <LogIn className="w-4 h-4 mr-2" />
+              Sign in with Apple or Google
+            </Button>
+            <Button 
+              variant="ghost" 
+              onClick={() => setShowLoginPrompt(false)}
+              className="w-full"
+              data-testid="button-continue-browsing"
+            >
+              Continue Browsing
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
       
       <div className="h-full flex flex-col relative">
         <header className="px-4 py-3 space-y-3 relative z-20">

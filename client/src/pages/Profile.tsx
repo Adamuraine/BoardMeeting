@@ -32,6 +32,7 @@ export default function Profile() {
   const [showPremium, setShowPremium] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showFeedback, setShowFeedback] = useState(false);
+  const [showAdminUsers, setShowAdminUsers] = useState(false);
   const [feedbackText, setFeedbackText] = useState("");
   const [confirmAction, setConfirmAction] = useState<"clearChat" | "clearMatches" | "suspend" | "delete" | null>(null);
   const [selectedTrip, setSelectedTrip] = useState<Trip | null>(null);
@@ -537,6 +538,20 @@ export default function Profile() {
               <MessageSquare className="h-4 w-4 text-muted-foreground" />
               Send Feedback
             </Button>
+            
+            <Separator className="my-2" />
+            
+            <p className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Admin</p>
+            
+            <Button 
+              variant="outline" 
+              className="w-full justify-start gap-3" 
+              onClick={() => { setShowSettings(false); setShowAdminUsers(true); }}
+              data-testid="button-view-users"
+            >
+              <Users className="h-4 w-4 text-muted-foreground" />
+              View Registered Users
+            </Button>
           </div>
         </DialogContent>
       </Dialog>
@@ -621,6 +636,8 @@ export default function Profile() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <AdminUsersDialog open={showAdminUsers} onOpenChange={setShowAdminUsers} />
       
       <div className="relative pb-20 bg-sky-50/50 dark:bg-sky-950/20">
         <div className="h-72 relative flex items-center justify-center" style={{ backgroundColor: '#4FC6F7' }}>
@@ -1200,6 +1217,84 @@ export default function Profile() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+interface AdminUser {
+  id: string;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  createdAt: string;
+  hasProfile: boolean;
+  displayName: string | null;
+  isMockUser: boolean;
+}
+
+function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const { data, isLoading } = useQuery<{ realUsers: AdminUser[]; mockUserCount: number; totalCount: number }>({
+    queryKey: ['/api/admin/users'],
+    enabled: open,
+  });
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md max-h-[80vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            Registered Users
+          </DialogTitle>
+          <DialogDescription>
+            View all real users registered in the app
+          </DialogDescription>
+        </DialogHeader>
+        
+        <div className="flex-1 overflow-y-auto space-y-3 py-2">
+          {isLoading ? (
+            <div className="space-y-2">
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+            </div>
+          ) : data ? (
+            <>
+              <div className="text-sm text-muted-foreground mb-4 p-2 bg-secondary/30 rounded">
+                <p><strong>{data.realUsers.length}</strong> real users</p>
+                <p><strong>{data.mockUserCount}</strong> mock/test users</p>
+                <p><strong>{data.totalCount}</strong> total</p>
+              </div>
+              
+              {data.realUsers.length === 0 ? (
+                <p className="text-center text-muted-foreground py-4">
+                  No real users found (only mock users exist)
+                </p>
+              ) : (
+                data.realUsers.map((user) => (
+                  <div key={user.id} className="p-3 border rounded-lg space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium">
+                        {user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
+                      </span>
+                      <Badge variant={user.hasProfile ? "default" : "secondary"}>
+                        {user.hasProfile ? "Has Profile" : "No Profile"}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground truncate">{user.email || 'No email'}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Joined: {new Date(user.createdAt).toLocaleDateString()}
+                    </p>
+                    <p className="text-xs text-muted-foreground font-mono truncate">ID: {user.id}</p>
+                  </div>
+                ))
+              )}
+            </>
+          ) : (
+            <p className="text-center text-muted-foreground">Failed to load users</p>
+          )}
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

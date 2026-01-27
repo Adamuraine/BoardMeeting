@@ -177,6 +177,50 @@ export async function registerRoutes(
     res.json(profile);
   });
 
+  // Admin: Get all registered users (for debugging)
+  app.get('/api/admin/users', async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    try {
+      const allUsers = await db.select({
+        id: users.id,
+        email: users.email,
+        firstName: users.firstName,
+        lastName: users.lastName,
+        createdAt: users.createdAt
+      }).from(users).orderBy(users.createdAt);
+      
+      // Get profiles for each user
+      const usersWithProfiles = await Promise.all(
+        allUsers.map(async (user) => {
+          const profile = await storage.getProfile(user.id);
+          return {
+            ...user,
+            hasProfile: !!profile,
+            displayName: profile?.displayName || null,
+            isMockUser: user.id.startsWith('mock_user_') || 
+                       user.email?.includes('@surf.com') || 
+                       user.email?.includes('@example.com') ||
+                       user.email?.includes('@surftribe.mock')
+          };
+        })
+      );
+      
+      // Separate real users from mock users
+      const realUsers = usersWithProfiles.filter(u => !u.isMockUser);
+      const mockUsers = usersWithProfiles.filter(u => u.isMockUser);
+      
+      res.json({
+        realUsers,
+        mockUserCount: mockUsers.length,
+        totalCount: usersWithProfiles.length
+      });
+    } catch (err) {
+      console.error('Error fetching users:', err);
+      res.status(500).json({ message: 'Failed to fetch users' });
+    }
+  });
+
   app.get(api.profiles.get.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const profile = await storage.getProfile(req.params.id);

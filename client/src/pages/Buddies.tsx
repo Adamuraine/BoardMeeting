@@ -139,7 +139,7 @@ export default function Buddies() {
           </DialogHeader>
           <div className="flex flex-col gap-3 mt-4">
             <Button 
-              onClick={() => window.location.href = '/api/auth/login'}
+              onClick={() => window.location.href = '/api/login'}
               className="w-full"
               data-testid="button-login-prompt"
             >

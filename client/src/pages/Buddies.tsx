@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useProfiles, useSwipe } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { AnimatePresence, motion, PanInfo, useAnimation } from "framer-motion";
-import { X, MapPin, Info, Users, Search } from "lucide-react";
+import { X, MapPin, Info, Users, Search, Eye } from "lucide-react";
 import shakaImg from "@assets/image_1767482724996.png";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -10,7 +10,7 @@ import { SafeImage } from "@/components/SafeImage";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Profile } from "@shared/schema";
 
@@ -21,6 +21,8 @@ export default function Buddies() {
   const [showPremium, setShowPremium] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+  const [, navigate] = useLocation();
   const controls = useAnimation();
 
   const { data: searchResults = [] } = useQuery<Profile[]>({
@@ -86,6 +88,12 @@ export default function Buddies() {
         }
       }
     });
+  };
+
+  const viewProfile = () => {
+    if (currentProfile && !isDragging) {
+      navigate(`/profile/${currentProfile.userId}`);
+    }
   };
 
   if (!currentProfile) return <NoBuddies />;
@@ -165,13 +173,18 @@ export default function Buddies() {
               key={currentProfile.id}
               drag="x"
               dragConstraints={{ left: 0, right: 0 }}
-              onDragEnd={handleDragEnd}
+              onDragStart={() => setIsDragging(true)}
+              onDragEnd={(e, info) => {
+                setTimeout(() => setIsDragging(false), 100);
+                handleDragEnd(e, info);
+              }}
               animate={controls}
               initial={{ scale: 0.95, opacity: 0 }}
               whileInView={{ scale: 1, opacity: 1 }}
               exit={{ scale: 1.05, opacity: 0 }}
               transition={{ type: "spring", stiffness: 300, damping: 20 }}
               className="absolute inset-x-4 top-0 bottom-0 rounded-3xl overflow-hidden shadow-2xl bg-card border border-border/50 select-none cursor-grab active:cursor-grabbing flex flex-col"
+              onClick={viewProfile}
             >
               <div className="relative h-3/5 shrink-0 bg-muted">
                  <SafeImage 
@@ -247,8 +260,12 @@ export default function Buddies() {
             <X className="w-8 h-8" />
           </button>
           
-          <button className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:bg-secondary transition-all">
-            <Info className="w-5 h-5" />
+          <button 
+            onClick={viewProfile}
+            className="w-12 h-12 rounded-full bg-secondary/50 flex items-center justify-center text-muted-foreground hover:bg-secondary hover:text-primary transition-all"
+            data-testid="button-view-profile"
+          >
+            <Eye className="w-5 h-5" />
           </button>
 
           <button 

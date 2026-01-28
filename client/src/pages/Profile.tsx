@@ -1424,9 +1424,20 @@ function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
                   data.realUsers.map((user) => (
                     <div key={user.id} className="p-3 border rounded-lg space-y-1">
                       <div className="flex items-center justify-between">
-                        <span className="font-medium">
-                          {user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
-                        </span>
+                        {user.hasProfile ? (
+                          <Link 
+                            href={`/profile/${user.id}`}
+                            className="font-medium text-primary hover:underline cursor-pointer"
+                            onClick={() => onOpenChange(false)}
+                            data-testid={`link-user-profile-${user.id}`}
+                          >
+                            {user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
+                          </Link>
+                        ) : (
+                          <span className="font-medium">
+                            {user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
+                          </span>
+                        )}
                         <Badge variant={user.hasProfile ? "default" : "secondary"}>
                           {user.hasProfile ? "Has Profile" : "No Profile"}
                         </Badge>

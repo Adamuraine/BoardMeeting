@@ -158,24 +158,24 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPotentialMatches(userId: string): Promise<Profile[]> {
-    // Get IDs of users already swiped by this user
-    const swiped = await db.select({ swipedId: swipes.swipedId })
-      .from(swipes)
-      .where(eq(swipes.swiperId, userId));
-    
-    const swipedIds = swiped.map(s => s.swipedId);
-    swipedIds.push(userId); // Exclude self
-
     // Get current user's profile for safety filtering
     const [currentUser] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     
-    // Get all complete profiles except already swiped ones and self
+    // Get IDs of users swiped RIGHT only (left swipes can reappear later)
+    const rightSwiped = await db.select({ swipedId: swipes.swipedId })
+      .from(swipes)
+      .where(and(
+        eq(swipes.swiperId, userId),
+        eq(swipes.direction, 'right')
+      ));
+    
+    const excludeIds = rightSwiped.map(s => s.swipedId);
+    excludeIds.push(userId); // Exclude self
+    
+    // Get all profiles except right-swiped ones and self (left swipes can reappear)
     let potentialMatches = await db.select()
       .from(profiles)
-      .where(and(
-        notInArray(profiles.userId, swipedIds),
-        eq(profiles.isIncompleteProfile, false)
-      ))
+      .where(notInArray(profiles.userId, excludeIds))
       .limit(100);
     
     // Safety filter: Prevent adult males (18+) from matching with underage females (<18)
@@ -205,10 +205,9 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllProfiles(): Promise<Profile[]> {
-    // Get all complete profiles for anonymous browsing - no user filtering
+    // Get all profiles for anonymous browsing - no user filtering
     const allProfiles = await db.select()
       .from(profiles)
-      .where(eq(profiles.isIncompleteProfile, false))
       .limit(100);
     return allProfiles;
   }

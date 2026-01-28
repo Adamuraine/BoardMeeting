@@ -172,12 +172,15 @@ export const marketplaceListings = pgTable("marketplace_listings", {
   sellerId: varchar("seller_id").notNull().references(() => users.id),
   title: text("title").notNull(),
   description: text("description"),
-  price: integer("price"), // Price in cents, null for "trade only"
+  price: integer("price"), // Price in cents, null for "trade only" or "free"
   category: text("category").notNull(), // surfboard, wetsuit, accessories, other
   condition: text("condition").notNull(), // new, like-new, good, fair, poor
-  listingType: text("listing_type").notNull(), // sell, trade, both
+  listingType: text("listing_type").notNull(), // sell, trade, both, free
   imageUrls: text("image_urls").array(),
   location: text("location"),
+  zipCode: text("zip_code"),
+  latitude: text("latitude"),
+  longitude: text("longitude"),
   isActive: boolean("is_active").default(true),
   createdAt: timestamp("created_at").defaultNow(),
 });

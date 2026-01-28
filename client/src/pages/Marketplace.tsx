@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -13,12 +13,22 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/hooks/use-auth";
 import { useLocation } from "wouter";
-import { Plus, MessageCircle, MapPin, Tag, X } from "lucide-react";
+import { Plus, MessageCircle, MapPin, Tag, X, Grid3X3, Map, Search, Loader2 } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { MarketplaceListing, Profile } from "@shared/schema";
 import marketplaceBg from "@assets/IMG_4441_1769639666501.jpeg";
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
+import L from 'leaflet';
+
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+});
 
 type ListingWithSeller = MarketplaceListing & { seller: Profile };
 
@@ -41,11 +51,32 @@ const LISTING_TYPES = [
   { value: "sell", label: "For Sale" },
   { value: "trade", label: "Trade Only" },
   { value: "both", label: "Sell or Trade" },
+  { value: "free", label: "Free" },
 ];
 
-function formatPrice(cents: number | null): string {
+const RADIUS_OPTIONS = [
+  { value: 5, label: "5 miles" },
+  { value: 10, label: "10 miles" },
+  { value: 20, label: "20 miles" },
+  { value: 50, label: "50 miles" },
+  { value: 100, label: "100 miles" },
+];
+
+function formatPrice(cents: number | null, listingType: string): string {
+  if (listingType === "free") return "FREE";
   if (cents === null) return "Trade Only";
   return `$${(cents / 100).toFixed(0)}`;
+}
+
+function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 3959;
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+            Math.sin(dLon/2) * Math.sin(dLon/2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  return R * c;
 }
 
 function getConditionColor(condition: string): string {
@@ -69,6 +100,30 @@ function getListingTypeLabel(type: string): string {
   return lt?.label || type;
 }
 
+async function geocodeZipCode(zip: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?postalcode=${encodeURIComponent(zip)}&country=US&format=json`,
+      {
+        headers: {
+          'User-Agent': 'SurfTribe-Marketplace/1.0'
+        }
+      }
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Geocoding error:', error);
+    return null;
+  }
+}
+
 export default function Marketplace() {
   const { user } = useAuth();
   const [, setLocation] = useLocation();
@@ -79,6 +134,13 @@ export default function Marketplace() {
   const [detailsOpen, setDetailsOpen] = useState(false);
   const [selectedListing, setSelectedListing] = useState<ListingWithSeller | null>(null);
   
+  const [viewMode, setViewMode] = useState<'grid' | 'map'>('grid');
+  
+  const [radius, setRadius] = useState<number>(50);
+  const [searchZip, setSearchZip] = useState("");
+  const [userCoords, setUserCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
@@ -87,10 +149,46 @@ export default function Marketplace() {
   const [listingType, setListingType] = useState("");
   const [location, setLocationValue] = useState("");
   const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [zipCode, setZipCode] = useState("");
+  const [listingCoords, setListingCoords] = useState<{lat: number, lng: number} | null>(null);
+  const [isGeocodingZip, setIsGeocodingZip] = useState(false);
 
   const { data: listings, isLoading } = useQuery<ListingWithSeller[]>({
     queryKey: ["/api/marketplace"],
   });
+
+  useEffect(() => {
+    if (zipCode.length === 5) {
+      setIsGeocodingZip(true);
+      geocodeZipCode(zipCode).then(coords => {
+        setListingCoords(coords);
+        setIsGeocodingZip(false);
+      });
+    } else {
+      setListingCoords(null);
+    }
+  }, [zipCode]);
+
+  const handleSearchLocation = async () => {
+    if (!searchZip || searchZip.length !== 5) {
+      toast({ title: "Invalid zip code", description: "Please enter a valid 5-digit zip code", variant: "destructive" });
+      return;
+    }
+    setIsSearchingLocation(true);
+    const coords = await geocodeZipCode(searchZip);
+    if (coords) {
+      setUserCoords(coords);
+      toast({ title: "Location set", description: `Showing listings within ${radius} miles` });
+    } else {
+      toast({ title: "Location not found", description: "Could not find that zip code", variant: "destructive" });
+    }
+    setIsSearchingLocation(false);
+  };
+
+  const clearLocationFilter = () => {
+    setUserCoords(null);
+    setSearchZip("");
+  };
 
   const createListing = useMutation({
     mutationFn: async (data: {
@@ -102,6 +200,9 @@ export default function Marketplace() {
       listingType: string;
       location?: string;
       imageUrls?: string[];
+      zipCode?: string;
+      latitude?: string;
+      longitude?: string;
     }) => {
       const res = await apiRequest("POST", "/api/marketplace", data);
       return res.json();
@@ -126,6 +227,8 @@ export default function Marketplace() {
     setListingType("");
     setLocationValue("");
     setImageUrls([]);
+    setZipCode("");
+    setListingCoords(null);
   };
 
   const handleSubmit = () => {
@@ -134,7 +237,7 @@ export default function Marketplace() {
       return;
     }
 
-    const priceInCents = listingType === "trade" ? null : (price ? Math.round(parseFloat(price) * 100) : null);
+    const priceInCents = (listingType === "trade" || listingType === "free") ? null : (price ? Math.round(parseFloat(price) * 100) : null);
     
     createListing.mutate({
       title,
@@ -145,6 +248,9 @@ export default function Marketplace() {
       listingType,
       location: location || undefined,
       imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+      zipCode: zipCode || undefined,
+      latitude: listingCoords?.lat?.toString() || undefined,
+      longitude: listingCoords?.lng?.toString() || undefined,
     });
   };
 
@@ -157,8 +263,20 @@ export default function Marketplace() {
   const filteredListings = listings?.filter(listing => {
     if (categoryFilter !== "all" && listing.category !== categoryFilter) return false;
     if (listingTypeFilter !== "all" && listing.listingType !== listingTypeFilter) return false;
+    
+    if (userCoords && listing.latitude && listing.longitude) {
+      const listingLat = parseFloat(listing.latitude);
+      const listingLng = parseFloat(listing.longitude);
+      const distance = calculateDistance(userCoords.lat, userCoords.lng, listingLat, listingLng);
+      if (distance > radius) return false;
+    }
+    
     return true;
   }) || [];
+
+  const listingsWithCoords = filteredListings.filter(
+    listing => listing.latitude && listing.longitude
+  );
 
   const handleMessageSeller = (sellerId: string) => {
     if (!user) {
@@ -172,6 +290,12 @@ export default function Marketplace() {
     setSelectedListing(listing);
     setDetailsOpen(true);
   };
+
+  const mapCenter: [number, number] = userCoords 
+    ? [userCoords.lat, userCoords.lng] 
+    : listingsWithCoords.length > 0 
+      ? [parseFloat(listingsWithCoords[0].latitude!), parseFloat(listingsWithCoords[0].longitude!)]
+      : [37.7749, -122.4194];
 
   return (
     <Layout>
@@ -187,6 +311,77 @@ export default function Marketplace() {
           <h1 className="text-2xl font-bold text-white">Surf Gear Market</h1>
           <p className="text-sm text-white/80">Buy, sell, or trade your gear</p>
         </div>
+      </div>
+
+      <div className="mb-4 p-3 bg-muted/50 rounded-lg">
+        <div className="flex flex-wrap items-center gap-2">
+          <div className="flex items-center gap-2 flex-1 min-w-[200px]">
+            <Input
+              placeholder="Enter zip code"
+              value={searchZip}
+              onChange={(e) => setSearchZip(e.target.value.replace(/\D/g, '').slice(0, 5))}
+              className="w-24"
+              data-testid="input-search-zip"
+            />
+            <Button 
+              size="sm" 
+              onClick={handleSearchLocation}
+              disabled={isSearchingLocation || searchZip.length !== 5}
+              data-testid="button-search-location"
+            >
+              {isSearchingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <Search className="w-4 h-4" />}
+              <span className="ml-1 hidden sm:inline">Search</span>
+            </Button>
+            {userCoords && (
+              <Button 
+                size="sm" 
+                variant="ghost" 
+                onClick={clearLocationFilter}
+                data-testid="button-clear-location"
+              >
+                <X className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+          
+          <Select value={radius.toString()} onValueChange={(v) => setRadius(parseInt(v))}>
+            <SelectTrigger className="w-[110px]" data-testid="select-radius">
+              <SelectValue placeholder="Radius" />
+            </SelectTrigger>
+            <SelectContent>
+              {RADIUS_OPTIONS.map(opt => (
+                <SelectItem key={opt.value} value={opt.value.toString()}>{opt.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <div className="flex items-center border rounded-md overflow-visible">
+            <Button
+              size="sm"
+              variant={viewMode === 'grid' ? 'default' : 'ghost'}
+              className="rounded-none"
+              onClick={() => setViewMode('grid')}
+              data-testid="button-view-grid"
+            >
+              <Grid3X3 className="w-4 h-4" />
+            </Button>
+            <Button
+              size="sm"
+              variant={viewMode === 'map' ? 'default' : 'ghost'}
+              className="rounded-none"
+              onClick={() => setViewMode('map')}
+              data-testid="button-view-map"
+            >
+              <Map className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        
+        {userCoords && (
+          <p className="text-xs text-muted-foreground mt-2" data-testid="text-location-status">
+            Showing listings within {radius} miles of {searchZip}
+          </p>
+        )}
       </div>
 
       <div className="flex flex-wrap gap-2 mb-4">
@@ -301,21 +496,44 @@ export default function Marketplace() {
                       value={price} 
                       onChange={(e) => setPrice(e.target.value)} 
                       placeholder="0"
-                      disabled={listingType === "trade"}
+                      disabled={listingType === "trade" || listingType === "free"}
                       data-testid="input-price"
                     />
                   </div>
                 </div>
 
-                <div>
-                  <Label htmlFor="location">Location</Label>
-                  <Input 
-                    id="location" 
-                    value={location} 
-                    onChange={(e) => setLocationValue(e.target.value)} 
-                    placeholder="e.g. San Diego, CA"
-                    data-testid="input-location"
-                  />
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="location">Location</Label>
+                    <Input 
+                      id="location" 
+                      value={location} 
+                      onChange={(e) => setLocationValue(e.target.value)} 
+                      placeholder="e.g. San Diego, CA"
+                      data-testid="input-location"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="zipCode">Zip Code</Label>
+                    <div className="relative">
+                      <Input 
+                        id="zipCode" 
+                        value={zipCode} 
+                        onChange={(e) => setZipCode(e.target.value.replace(/\D/g, '').slice(0, 5))} 
+                        placeholder="e.g. 92101"
+                        data-testid="input-zip-code"
+                      />
+                      {isGeocodingZip && (
+                        <Loader2 className="w-4 h-4 animate-spin absolute right-2 top-1/2 -translate-y-1/2" />
+                      )}
+                    </div>
+                    {listingCoords && (
+                      <p className="text-xs text-green-600 mt-1" data-testid="text-coords-success">
+                        Location found
+                      </p>
+                    )}
+                  </div>
                 </div>
 
                 <div>
@@ -381,9 +599,52 @@ export default function Marketplace() {
           ))}
         </div>
       ) : filteredListings.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
+        <div className="text-center py-12 text-muted-foreground" data-testid="text-no-listings">
           <p>No listings found</p>
-          {user && <p className="text-sm mt-2">Be the first to post an item!</p>}
+          {userCoords && <p className="text-sm mt-2">Try expanding your search radius or clearing the location filter</p>}
+          {!userCoords && user && <p className="text-sm mt-2">Be the first to post an item!</p>}
+        </div>
+      ) : viewMode === 'map' ? (
+        <div className="h-[60vh] rounded-lg overflow-hidden border" data-testid="map-container">
+          {listingsWithCoords.length === 0 ? (
+            <div className="h-full flex items-center justify-center bg-muted text-muted-foreground">
+              <p>No listings with location data to display on map</p>
+            </div>
+          ) : (
+            <MapContainer
+              center={mapCenter}
+              zoom={10}
+              style={{ height: '100%', width: '100%' }}
+            >
+              <TileLayer
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+              />
+              {listingsWithCoords.map((listing) => (
+                <Marker
+                  key={listing.id}
+                  position={[parseFloat(listing.latitude!), parseFloat(listing.longitude!)]}
+                >
+                  <Popup>
+                    <div className="min-w-[150px]">
+                      <h3 className="font-medium text-sm">{listing.title}</h3>
+                      <p className="text-primary font-semibold">
+                        {formatPrice(listing.price, listing.listingType)}
+                      </p>
+                      <Button
+                        size="sm"
+                        className="w-full mt-2"
+                        onClick={() => handleViewDetails(listing)}
+                        data-testid={`button-map-view-${listing.id}`}
+                      >
+                        View Details
+                      </Button>
+                    </div>
+                  </Popup>
+                </Marker>
+              ))}
+            </MapContainer>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">
@@ -415,7 +676,7 @@ export default function Marketplace() {
                   {listing.title}
                 </h3>
                 <p className="text-primary font-semibold text-sm" data-testid={`text-price-${listing.id}`}>
-                  {formatPrice(listing.price)}
+                  {formatPrice(listing.price, listing.listingType)}
                 </p>
                 <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
                   <Avatar className="w-4 h-4">
@@ -453,7 +714,7 @@ export default function Marketplace() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-2xl font-bold text-primary" data-testid="text-detail-price">
-                    {formatPrice(selectedListing.price)}
+                    {formatPrice(selectedListing.price, selectedListing.listingType)}
                   </span>
                   <div className="flex gap-2">
                     <Badge className={getConditionColor(selectedListing.condition)}>
@@ -472,6 +733,7 @@ export default function Marketplace() {
                   <div className="flex items-center gap-1 text-sm text-muted-foreground">
                     <MapPin className="w-4 h-4" />
                     {selectedListing.location}
+                    {selectedListing.zipCode && ` (${selectedListing.zipCode})`}
                   </div>
                 )}
 

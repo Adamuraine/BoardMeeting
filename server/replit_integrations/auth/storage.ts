@@ -34,18 +34,28 @@ class AuthStorage implements IAuthStorage {
       .returning();
     
     // Auto-create profile for new users so they appear in searches
+    // Use as much data from Replit Auth as possible to pre-populate their profile
     if (isNewUser && userData.id) {
       const existingProfile = await db.select().from(profiles).where(eq(profiles.userId, userData.id));
       if (existingProfile.length === 0) {
+        // Build display name from first and last name
+        const displayName = [userData.firstName, userData.lastName]
+          .filter(Boolean)
+          .join(' ') || "Surfer";
+        
+        // Use profile image from Replit if available
+        const imageUrls = userData.profileImageUrl ? [userData.profileImageUrl] : [];
+        
         await db.insert(profiles).values({
           userId: userData.id,
-          displayName: userData.firstName || "Surfer",
+          displayName,
+          imageUrls,
           skillLevel: "intermediate",
           bio: "",
           isIncompleteProfile: true,
           trialStartedAt: new Date(),
         });
-        console.log(`[AUTH] Auto-created profile for new user: ${userData.id}`);
+        console.log(`[AUTH] Auto-created profile for new user: ${userData.id} with name: ${displayName}`);
       }
     }
     

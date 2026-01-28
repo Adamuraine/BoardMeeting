@@ -37,7 +37,7 @@ Preferred communication style: Simple, everyday language.
 - **Protected Routes**: `isAuthenticated` middleware guards API endpoints
 
 ### New User Flow
-- **Auto-profile creation**: When users sign in, a profile is auto-created with their firstName as displayName
+- **Auto-profile creation**: When users sign in, a profile is auto-created with their full name (firstName + lastName) and profile picture from Replit
 - **No separate onboarding**: New users go directly to /profile with `isIncompleteProfile: true`
 - **Inline editing**: Users can tap on their name, location, or skill level to edit them directly on the profile page
 - **Search visibility**: Incomplete profiles ARE visible in searches (no filtering out new users)

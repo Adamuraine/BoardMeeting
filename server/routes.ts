@@ -795,6 +795,12 @@ export async function registerRoutes(
         .orderBy(desc(messages.createdAt))
         .limit(10);
       
+      // Get ALL recent messages in database (to see full picture)
+      const allRecentMessages = await db.select()
+        .from(messages)
+        .orderBy(desc(messages.createdAt))
+        .limit(15);
+      
       // Get user profile
       const profile = await storage.getProfile(userId);
       
@@ -808,6 +814,7 @@ export async function registerRoutes(
         profileDisplayName: profile?.displayName,
         sentCount: sentMessages.length,
         receivedCount: receivedMessages.length,
+        totalRecentMessages: allRecentMessages.length,
         sent: sentMessages.map(m => ({
           id: m.id,
           to: m.receiverId,
@@ -818,6 +825,13 @@ export async function registerRoutes(
           id: m.id,
           from: m.senderId,
           content: m.content?.substring(0, 30),
+          createdAt: m.createdAt
+        })),
+        allRecent: allRecentMessages.map(m => ({
+          id: m.id,
+          from: m.senderId,
+          to: m.receiverId,
+          content: m.content?.substring(0, 20),
           createdAt: m.createdAt
         }))
       });

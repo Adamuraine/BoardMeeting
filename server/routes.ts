@@ -782,12 +782,18 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     try {
-      // Get all messages for this user
-      const allMessages = await db.select()
+      // Separate queries to diagnose the issue
+      const sentMessages = await db.select()
         .from(messages)
-        .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+        .where(eq(messages.senderId, userId))
         .orderBy(desc(messages.createdAt))
-        .limit(20);
+        .limit(10);
+      
+      const receivedMessages = await db.select()
+        .from(messages)
+        .where(eq(messages.receiverId, userId))
+        .orderBy(desc(messages.createdAt))
+        .limit(10);
       
       // Get user profile
       const profile = await storage.getProfile(userId);
@@ -800,13 +806,18 @@ export async function registerRoutes(
         userName: user?.firstName,
         profileId: profile?.id,
         profileDisplayName: profile?.displayName,
-        messageCount: allMessages.length,
-        messages: allMessages.map(m => ({
+        sentCount: sentMessages.length,
+        receivedCount: receivedMessages.length,
+        sent: sentMessages.map(m => ({
           id: m.id,
-          from: m.senderId,
           to: m.receiverId,
           content: m.content?.substring(0, 30),
-          isIncoming: m.receiverId === userId,
+          createdAt: m.createdAt
+        })),
+        received: receivedMessages.map(m => ({
+          id: m.id,
+          from: m.senderId,
+          content: m.content?.substring(0, 30),
           createdAt: m.createdAt
         }))
       });

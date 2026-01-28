@@ -9,7 +9,8 @@ import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSch
 import { authStorage } from "./replit_integrations/auth";
 import { db } from "./db";
 import { users } from "@shared/models/auth";
-import { eq } from "drizzle-orm";
+import { eq, or, desc } from "drizzle-orm";
+import { messages } from "@shared/schema";
 import { fetchStormglassForecast } from "./stormglassService";
 
 // Track API usage to stay within 50 requests/day limit
@@ -719,13 +720,21 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     try {
+      console.log(`[MESSAGE SEND] From: ${userId} To: ${req.body.receiverId} Content: "${req.body.content?.substring(0, 30)}..."`);
+      
+      // Verify receiver exists
+      const receiverProfile = await storage.getProfile(req.body.receiverId);
+      console.log(`[MESSAGE SEND] Receiver profile found: ${receiverProfile ? receiverProfile.displayName : 'NOT FOUND'}`);
+      
       const message = await storage.sendMessage({
         senderId: userId,
         receiverId: req.body.receiverId,
         content: req.body.content,
       });
+      console.log(`[MESSAGE SEND] Message saved with ID: ${message.id}`);
       res.status(201).json(message);
     } catch (err) {
+      console.error(`[MESSAGE SEND] Error:`, err);
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors });
       }
@@ -765,6 +774,45 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error clearing matches:", err);
       res.status(500).json({ message: "Failed to clear matches" });
+    }
+  });
+
+  // Debug endpoint - get user's messaging diagnostic info
+  app.get("/api/debug/messages", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      // Get all messages for this user
+      const allMessages = await db.select()
+        .from(messages)
+        .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
+        .orderBy(desc(messages.createdAt))
+        .limit(20);
+      
+      // Get user profile
+      const profile = await storage.getProfile(userId);
+      
+      // Get the user record
+      const [user] = await db.select().from(users).where(eq(users.id, userId));
+      
+      res.json({
+        userId,
+        userName: user?.firstName,
+        profileId: profile?.id,
+        profileDisplayName: profile?.displayName,
+        messageCount: allMessages.length,
+        messages: allMessages.map(m => ({
+          id: m.id,
+          from: m.senderId,
+          to: m.receiverId,
+          content: m.content?.substring(0, 30),
+          isIncoming: m.receiverId === userId,
+          createdAt: m.createdAt
+        }))
+      });
+    } catch (err) {
+      console.error("Debug error:", err);
+      res.status(500).json({ error: String(err) });
     }
   });
 

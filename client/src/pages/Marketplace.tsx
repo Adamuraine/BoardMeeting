@@ -19,7 +19,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { MarketplaceListing, Profile } from "@shared/schema";
 import marketplaceBg from "@assets/IMG_4441_1769639666501.jpeg";
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -29,6 +29,28 @@ L.Icon.Default.mergeOptions({
   iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
+
+function getZoomForRadius(miles: number): number {
+  if (miles <= 5) return 12;
+  if (miles <= 10) return 11;
+  if (miles <= 20) return 10;
+  if (miles <= 50) return 9;
+  if (miles <= 100) return 8;
+  return 7;
+}
+
+function MapController({ center, radius }: { center: [number, number] | null; radius: number }) {
+  const map = useMap();
+  
+  useEffect(() => {
+    if (center) {
+      const zoom = getZoomForRadius(radius);
+      map.setView(center, zoom, { animate: true });
+    }
+  }, [center, radius, map]);
+  
+  return null;
+}
 
 type ListingWithSeller = MarketplaceListing & { seller: Profile };
 
@@ -608,13 +630,17 @@ export default function Marketplace() {
         <div className="h-[70vh] rounded-lg overflow-hidden border" data-testid="map-container">
           <MapContainer
             center={mapCenter}
-            zoom={userCoords ? 10 : 4}
+            zoom={userCoords ? getZoomForRadius(radius) : 4}
             style={{ height: '100%', width: '100%' }}
             scrollWheelZoom={true}
             touchZoom={true}
             doubleClickZoom={true}
             dragging={true}
           >
+            <MapController 
+              center={userCoords ? [userCoords.lat, userCoords.lng] : null} 
+              radius={radius} 
+            />
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

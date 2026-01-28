@@ -251,6 +251,7 @@ export class DatabaseStorage implements IStorage {
           sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`,
           sql`LOWER(${users.firstName}) LIKE ${searchTerm}`,
           sql`LOWER(${users.lastName}) LIKE ${searchTerm}`,
+          sql`LOWER(${users.email}) LIKE ${searchTerm}`,
           sql`LOWER(CONCAT(${users.firstName}, ' ', ${users.lastName})) LIKE ${searchTerm}`
         )
       )

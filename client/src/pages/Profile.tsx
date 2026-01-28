@@ -1352,7 +1352,7 @@ interface VisitorData {
 function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [activeTab, setActiveTab] = useState<'users' | 'visitors'>('users');
   
-  const { data, isLoading } = useQuery<{ realUsers: AdminUser[]; totalCount: number }>({
+  const { data, isLoading } = useQuery<{ realUsers: AdminUser[]; mockUserCount: number; totalCount: number }>({
     queryKey: ['/api/admin/users'],
     enabled: open && activeTab === 'users',
   });
@@ -1411,12 +1411,14 @@ function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
             ) : data ? (
               <>
                 <div className="text-sm text-muted-foreground mb-4 p-2 bg-secondary/30 rounded">
-                  <p><strong>{data.realUsers.length}</strong> registered users</p>
+                  <p><strong>{data.realUsers.length}</strong> real users</p>
+                  <p><strong>{data.mockUserCount}</strong> mock/test users</p>
+                  <p><strong>{data.totalCount}</strong> total</p>
                 </div>
                 
                 {data.realUsers.length === 0 ? (
                   <p className="text-center text-muted-foreground py-4">
-                    No users found
+                    No real users found (only mock users exist)
                   </p>
                 ) : (
                   data.realUsers.map((user) => (
@@ -1436,8 +1438,8 @@ function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
                             {user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
                           </span>
                         )}
-                        <Badge variant={user.hasProfile ? "default" : "secondary"} className="text-[10px]">
-                          {user.hasProfile ? "Profile" : "No Profile"}
+                        <Badge variant={user.hasProfile ? "default" : "secondary"}>
+                          {user.hasProfile ? "Has Profile" : "No Profile"}
                         </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground truncate">{user.email || 'No email'}</p>

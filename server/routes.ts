@@ -232,7 +232,7 @@ export async function registerRoutes(
         firstName: users.firstName,
         lastName: users.lastName,
         createdAt: users.createdAt
-      }).from(users).orderBy(desc(users.createdAt));
+      }).from(users).orderBy(users.createdAt);
       
       // Get profiles for each user
       const usersWithProfiles = await Promise.all(
@@ -245,20 +245,17 @@ export async function registerRoutes(
             isMockUser: user.id.startsWith('mock_user_') || 
                        user.email?.includes('@surf.com') || 
                        user.email?.includes('@example.com') ||
-                       user.email?.includes('@surftribe.mock') ||
-                       user.email?.includes('@test.com')
+                       user.email?.includes('@surftribe.mock')
           };
         })
       );
       
-      // Return ALL users, with mock flag for display purposes
+      // Separate real users from mock users
       const realUsers = usersWithProfiles.filter(u => !u.isMockUser);
       const mockUsers = usersWithProfiles.filter(u => u.isMockUser);
       
       res.json({
-        allUsers: usersWithProfiles,
         realUsers,
-        mockUsers,
         mockUserCount: mockUsers.length,
         totalCount: usersWithProfiles.length
       });

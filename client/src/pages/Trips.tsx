@@ -1106,16 +1106,17 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
           {!isVisiting && (
             <div className="space-y-2">
               <Label>Starting Location</Label>
-              <Select onValueChange={(v) => form.setValue("startingLocation", v)}>
-                <SelectTrigger data-testid="select-start">
-                  <SelectValue placeholder="Where are you leaving from?" />
-                </SelectTrigger>
-                <SelectContent>
-                  {LOCATIONS.map(loc => (
-                    <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <Input 
+                {...form.register("startingLocation")}
+                list="starting-locations"
+                placeholder="Type or select where you're leaving from"
+                data-testid="input-start"
+              />
+              <datalist id="starting-locations">
+                {LOCATIONS.map(loc => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
             </div>
           )}
 
@@ -1130,16 +1131,17 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
 
           <div className="space-y-2">
             <Label>Destination</Label>
-            <Select onValueChange={(v) => form.setValue("destination", v)}>
-              <SelectTrigger data-testid="select-dest">
-                <SelectValue placeholder="Where to?" />
-              </SelectTrigger>
-              <SelectContent>
-                {LOCATIONS.map(loc => (
-                  <SelectItem key={loc} value={loc}>{loc}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input 
+              {...form.register("destination")}
+              list="destination-locations"
+              placeholder="Type or select your destination"
+              data-testid="input-dest"
+            />
+            <datalist id="destination-locations">
+              {LOCATIONS.map(loc => (
+                <option key={loc} value={loc} />
+              ))}
+            </datalist>
           </div>
           
           <div className="grid grid-cols-2 gap-4">

@@ -1,5 +1,5 @@
 import { Link, useLocation } from "wouter";
-import { Waves, User, Users, MapPin } from "lucide-react";
+import { Waves, User, Users, MapPin, ShoppingBag } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Navigation() {
@@ -8,6 +8,7 @@ export function Navigation() {
   const navItems = [
     { href: "/buddies", icon: Users, label: "Buddies" },
     { href: "/surf", icon: Waves, label: "Surf" },
+    { href: "/marketplace", icon: ShoppingBag, label: "Market" },
     { href: "/trips", icon: MapPin, label: "Trips" },
     { href: "/profile", icon: User, label: "Profile" },
   ];
@@ -22,8 +23,8 @@ export function Navigation() {
               "flex flex-col items-center justify-center space-y-1 w-full h-full transition-colors duration-200",
               isActive ? "text-primary" : "text-muted-foreground hover:text-foreground"
             )}>
-              <item.icon className={cn("w-6 h-6", isActive && "fill-current")} />
-              <span className="text-[10px] font-medium">{item.label}</span>
+              <item.icon className={cn("w-5 h-5", isActive && "fill-current")} />
+              <span className="text-[9px] font-medium">{item.label}</span>
             </Link>
           );
         })}

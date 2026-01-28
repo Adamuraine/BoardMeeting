@@ -166,6 +166,22 @@ export const feedback = pgTable("feedback", {
   createdAt: timestamp("created_at").defaultNow(),
 });
 
+// === MARKETPLACE LISTINGS ===
+export const marketplaceListings = pgTable("marketplace_listings", {
+  id: serial("id").primaryKey(),
+  sellerId: varchar("seller_id").notNull().references(() => users.id),
+  title: text("title").notNull(),
+  description: text("description"),
+  price: integer("price"), // Price in cents, null for "trade only"
+  category: text("category").notNull(), // surfboard, wetsuit, accessories, other
+  condition: text("condition").notNull(), // new, like-new, good, fair, poor
+  listingType: text("listing_type").notNull(), // sell, trade, both
+  imageUrls: text("image_urls").array(),
+  location: text("location"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === SCHEMAS ===
 export const insertProfileSchema = createInsertSchema(profiles).omit({ id: true });
 export const insertSwipeSchema = createInsertSchema(swipes).omit({ id: true, createdAt: true });
@@ -175,6 +191,7 @@ export const insertFavoriteSpotSchema = createInsertSchema(favoriteSpots).omit({
 export const insertPostLikeSchema = createInsertSchema(postLikes).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true, read: true });
 export const insertFeedbackSchema = createInsertSchema(feedback).omit({ id: true, createdAt: true });
+export const insertMarketplaceListingSchema = createInsertSchema(marketplaceListings).omit({ id: true, createdAt: true });
 
 // === TYPES ===
 export type Profile = typeof profiles.$inferSelect;
@@ -196,6 +213,8 @@ export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
+export type MarketplaceListing = typeof marketplaceListings.$inferSelect;
+export type InsertMarketplaceListing = z.infer<typeof insertMarketplaceListingSchema>;
 
 // Request Types
 export type CreateProfileRequest = InsertProfile;

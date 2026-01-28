@@ -1,0 +1,525 @@
+import { useState } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { Layout } from "@/components/Layout";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
+import { Plus, MessageCircle, MapPin, Tag, X } from "lucide-react";
+import { ObjectUploader } from "@/components/ObjectUploader";
+import { queryClient, apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import type { MarketplaceListing, Profile } from "@shared/schema";
+import marketplaceBg from "@assets/IMG_4441_1769639666501.jpeg";
+
+type ListingWithSeller = MarketplaceListing & { seller: Profile };
+
+const CATEGORIES = [
+  { value: "surfboard", label: "Surfboard" },
+  { value: "wetsuit", label: "Wetsuit" },
+  { value: "accessories", label: "Accessories" },
+  { value: "other", label: "Other" },
+];
+
+const CONDITIONS = [
+  { value: "new", label: "New" },
+  { value: "like-new", label: "Like New" },
+  { value: "good", label: "Good" },
+  { value: "fair", label: "Fair" },
+  { value: "poor", label: "Poor" },
+];
+
+const LISTING_TYPES = [
+  { value: "sell", label: "For Sale" },
+  { value: "trade", label: "Trade Only" },
+  { value: "both", label: "Sell or Trade" },
+];
+
+function formatPrice(cents: number | null): string {
+  if (cents === null) return "Trade Only";
+  return `$${(cents / 100).toFixed(0)}`;
+}
+
+function getConditionColor(condition: string): string {
+  switch (condition) {
+    case "new": return "bg-green-500/20 text-green-700 dark:text-green-400";
+    case "like-new": return "bg-emerald-500/20 text-emerald-700 dark:text-emerald-400";
+    case "good": return "bg-blue-500/20 text-blue-700 dark:text-blue-400";
+    case "fair": return "bg-yellow-500/20 text-yellow-700 dark:text-yellow-400";
+    case "poor": return "bg-red-500/20 text-red-700 dark:text-red-400";
+    default: return "bg-muted text-muted-foreground";
+  }
+}
+
+function getCategoryLabel(category: string): string {
+  const cat = CATEGORIES.find(c => c.value === category);
+  return cat?.label || category;
+}
+
+function getListingTypeLabel(type: string): string {
+  const lt = LISTING_TYPES.find(l => l.value === type);
+  return lt?.label || type;
+}
+
+export default function Marketplace() {
+  const { user } = useAuth();
+  const [, setLocation] = useLocation();
+  const { toast } = useToast();
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [listingTypeFilter, setListingTypeFilter] = useState<string>("all");
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
+  const [selectedListing, setSelectedListing] = useState<ListingWithSeller | null>(null);
+  
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [category, setCategory] = useState("");
+  const [condition, setCondition] = useState("");
+  const [listingType, setListingType] = useState("");
+  const [location, setLocationValue] = useState("");
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+
+  const { data: listings, isLoading } = useQuery<ListingWithSeller[]>({
+    queryKey: ["/api/marketplace"],
+  });
+
+  const createListing = useMutation({
+    mutationFn: async (data: {
+      title: string;
+      description?: string;
+      price?: number | null;
+      category: string;
+      condition: string;
+      listingType: string;
+      location?: string;
+      imageUrls?: string[];
+    }) => {
+      const res = await apiRequest("POST", "/api/marketplace", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/marketplace"] });
+      resetForm();
+      setCreateDialogOpen(false);
+      toast({ title: "Listing created!", description: "Your item is now live." });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create listing", variant: "destructive" });
+    },
+  });
+
+  const resetForm = () => {
+    setTitle("");
+    setDescription("");
+    setPrice("");
+    setCategory("");
+    setCondition("");
+    setListingType("");
+    setLocationValue("");
+    setImageUrls([]);
+  };
+
+  const handleSubmit = () => {
+    if (!title || !category || !condition || !listingType) {
+      toast({ title: "Missing fields", description: "Please fill in all required fields", variant: "destructive" });
+      return;
+    }
+
+    const priceInCents = listingType === "trade" ? null : (price ? Math.round(parseFloat(price) * 100) : null);
+    
+    createListing.mutate({
+      title,
+      description: description || undefined,
+      price: priceInCents ?? undefined,
+      category,
+      condition,
+      listingType,
+      location: location || undefined,
+      imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
+    });
+  };
+
+  const handleImageUpload = async (file: { name: string; size: number; type: string }) => {
+    const response = await fetch(`/api/object-storage/presign?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
+    const { url, objectPath } = await response.json();
+    return { method: "PUT" as const, url, objectPath };
+  };
+
+  const filteredListings = listings?.filter(listing => {
+    if (categoryFilter !== "all" && listing.category !== categoryFilter) return false;
+    if (listingTypeFilter !== "all" && listing.listingType !== listingTypeFilter) return false;
+    return true;
+  }) || [];
+
+  const handleMessageSeller = (sellerId: string) => {
+    if (!user) {
+      toast({ title: "Login required", description: "Please log in to message sellers" });
+      return;
+    }
+    setLocation(`/messages?to=${sellerId}`);
+  };
+
+  const handleViewDetails = (listing: ListingWithSeller) => {
+    setSelectedListing(listing);
+    setDetailsOpen(true);
+  };
+
+  return (
+    <Layout>
+      <div className="p-4">
+      <div className="relative h-32 -mx-4 -mt-4 mb-4 overflow-hidden">
+        <img 
+          src={marketplaceBg} 
+          alt="Surf Gear Marketplace" 
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/70" />
+        <div className="absolute inset-0 flex flex-col justify-end p-4">
+          <h1 className="text-2xl font-bold text-white">Surf Gear Market</h1>
+          <p className="text-sm text-white/80">Buy, sell, or trade your gear</p>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Select value={categoryFilter} onValueChange={setCategoryFilter}>
+          <SelectTrigger className="w-[130px]" data-testid="select-category-filter">
+            <SelectValue placeholder="Category" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Categories</SelectItem>
+            {CATEGORIES.map(cat => (
+              <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select value={listingTypeFilter} onValueChange={setListingTypeFilter}>
+          <SelectTrigger className="w-[130px]" data-testid="select-type-filter">
+            <SelectValue placeholder="Type" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            {LISTING_TYPES.map(lt => (
+              <SelectItem key={lt.value} value={lt.value}>{lt.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {user && (
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm" className="ml-auto" data-testid="button-post-item">
+                <Plus className="w-4 h-4 mr-1" /> Post Item
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Post a New Item</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="title">Title *</Label>
+                  <Input 
+                    id="title" 
+                    value={title} 
+                    onChange={(e) => setTitle(e.target.value)} 
+                    placeholder="e.g. 6'2 Shortboard"
+                    data-testid="input-title"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="description">Description</Label>
+                  <Textarea 
+                    id="description" 
+                    value={description} 
+                    onChange={(e) => setDescription(e.target.value)} 
+                    placeholder="Describe your item..."
+                    data-testid="input-description"
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="category">Category *</Label>
+                    <Select value={category} onValueChange={setCategory}>
+                      <SelectTrigger data-testid="select-category">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CATEGORIES.map(cat => (
+                          <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="condition">Condition *</Label>
+                    <Select value={condition} onValueChange={setCondition}>
+                      <SelectTrigger data-testid="select-condition">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {CONDITIONS.map(cond => (
+                          <SelectItem key={cond.value} value={cond.value}>{cond.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="listingType">Listing Type *</Label>
+                    <Select value={listingType} onValueChange={setListingType}>
+                      <SelectTrigger data-testid="select-listing-type">
+                        <SelectValue placeholder="Select" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {LISTING_TYPES.map(lt => (
+                          <SelectItem key={lt.value} value={lt.value}>{lt.label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div>
+                    <Label htmlFor="price">Price ($)</Label>
+                    <Input 
+                      id="price" 
+                      type="number" 
+                      value={price} 
+                      onChange={(e) => setPrice(e.target.value)} 
+                      placeholder="0"
+                      disabled={listingType === "trade"}
+                      data-testid="input-price"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="location">Location</Label>
+                  <Input 
+                    id="location" 
+                    value={location} 
+                    onChange={(e) => setLocationValue(e.target.value)} 
+                    placeholder="e.g. San Diego, CA"
+                    data-testid="input-location"
+                  />
+                </div>
+
+                <div>
+                  <Label>Photos</Label>
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {imageUrls.map((url, idx) => (
+                      <div key={idx} className="relative w-16 h-16">
+                        <img src={url} alt="" className="w-full h-full object-cover rounded" />
+                        <button 
+                          onClick={() => setImageUrls(prev => prev.filter((_, i) => i !== idx))}
+                          className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full p-0.5"
+                          data-testid={`button-remove-image-${idx}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  <ObjectUploader
+                    maxNumberOfFiles={5}
+                    maxFileSize={10485760}
+                    onGetUploadParameters={async (file) => {
+                      const { url } = await handleImageUpload({ name: file.name, size: file.size || 0, type: file.type });
+                      return { method: "PUT" as const, url };
+                    }}
+                    onComplete={(result) => {
+                      const uploaded = result.successful?.map(f => {
+                        const url = new URL(f.uploadURL || "");
+                        return url.pathname;
+                      }) || [];
+                      setImageUrls(prev => [...prev, ...uploaded]);
+                    }}
+                    buttonClassName="w-full"
+                  >
+                    Add Photos
+                  </ObjectUploader>
+                </div>
+
+                <Button 
+                  onClick={handleSubmit} 
+                  className="w-full" 
+                  disabled={createListing.isPending}
+                  data-testid="button-submit-listing"
+                >
+                  {createListing.isPending ? "Posting..." : "Post Listing"}
+                </Button>
+              </div>
+            </DialogContent>
+          </Dialog>
+        )}
+      </div>
+
+      {isLoading ? (
+        <div className="grid grid-cols-2 gap-3">
+          {[1, 2, 3, 4].map(i => (
+            <Card key={i} className="overflow-hidden">
+              <Skeleton className="h-32 w-full" />
+              <CardContent className="p-3">
+                <Skeleton className="h-4 w-3/4 mb-2" />
+                <Skeleton className="h-3 w-1/2" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      ) : filteredListings.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground">
+          <p>No listings found</p>
+          {user && <p className="text-sm mt-2">Be the first to post an item!</p>}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 gap-3">
+          {filteredListings.map((listing) => (
+            <Card 
+              key={listing.id} 
+              className="overflow-hidden cursor-pointer hover-elevate"
+              onClick={() => handleViewDetails(listing)}
+              data-testid={`card-listing-${listing.id}`}
+            >
+              <div className="relative h-32 bg-muted">
+                {listing.imageUrls && listing.imageUrls.length > 0 ? (
+                  <img 
+                    src={listing.imageUrls[0]} 
+                    alt={listing.title} 
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-muted-foreground">
+                    <Tag className="w-8 h-8" />
+                  </div>
+                )}
+                <Badge className={`absolute top-2 right-2 text-xs ${getConditionColor(listing.condition)}`}>
+                  {listing.condition}
+                </Badge>
+              </div>
+              <CardContent className="p-3">
+                <h3 className="font-medium text-sm truncate" data-testid={`text-title-${listing.id}`}>
+                  {listing.title}
+                </h3>
+                <p className="text-primary font-semibold text-sm" data-testid={`text-price-${listing.id}`}>
+                  {formatPrice(listing.price)}
+                </p>
+                <div className="flex items-center gap-1 mt-2 text-xs text-muted-foreground">
+                  <Avatar className="w-4 h-4">
+                    <AvatarImage src={listing.seller.imageUrls?.[0]} />
+                    <AvatarFallback className="text-[8px]">
+                      {listing.seller.displayName?.charAt(0) || "?"}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="truncate">{listing.seller.displayName}</span>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      <Dialog open={detailsOpen} onOpenChange={setDetailsOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          {selectedListing && (
+            <>
+              <DialogHeader>
+                <DialogTitle>{selectedListing.title}</DialogTitle>
+              </DialogHeader>
+              
+              {selectedListing.imageUrls && selectedListing.imageUrls.length > 0 && (
+                <div className="relative h-48 bg-muted rounded-lg overflow-hidden">
+                  <img 
+                    src={selectedListing.imageUrls[0]} 
+                    alt={selectedListing.title} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              )}
+
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span className="text-2xl font-bold text-primary" data-testid="text-detail-price">
+                    {formatPrice(selectedListing.price)}
+                  </span>
+                  <div className="flex gap-2">
+                    <Badge className={getConditionColor(selectedListing.condition)}>
+                      {selectedListing.condition}
+                    </Badge>
+                    <Badge variant="outline">{getListingTypeLabel(selectedListing.listingType)}</Badge>
+                  </div>
+                </div>
+
+                <div>
+                  <span className="text-sm text-muted-foreground">Category: </span>
+                  <span className="text-sm">{getCategoryLabel(selectedListing.category)}</span>
+                </div>
+
+                {selectedListing.location && (
+                  <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                    <MapPin className="w-4 h-4" />
+                    {selectedListing.location}
+                  </div>
+                )}
+
+                {selectedListing.description && (
+                  <p className="text-sm text-muted-foreground" data-testid="text-detail-description">
+                    {selectedListing.description}
+                  </p>
+                )}
+
+                <div className="border-t pt-4">
+                  <div className="flex items-center gap-3">
+                    <Avatar className="w-10 h-10">
+                      <AvatarImage src={selectedListing.seller.imageUrls?.[0]} />
+                      <AvatarFallback>
+                        {selectedListing.seller.displayName?.charAt(0) || "?"}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <p className="font-medium" data-testid="text-seller-name">
+                        {selectedListing.seller.displayName}
+                      </p>
+                      <p className="text-xs text-muted-foreground">Seller</p>
+                    </div>
+                  </div>
+                </div>
+
+                {user && user.id !== selectedListing.sellerId && (
+                  <Button 
+                    className="w-full" 
+                    onClick={() => handleMessageSeller(selectedListing.sellerId)}
+                    data-testid="button-message-seller"
+                  >
+                    <MessageCircle className="w-4 h-4 mr-2" />
+                    Message Seller
+                  </Button>
+                )}
+
+                {!user && (
+                  <p className="text-center text-sm text-muted-foreground">
+                    Log in to message this seller
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+      </div>
+    </Layout>
+  );
+}

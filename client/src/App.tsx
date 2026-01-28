@@ -22,6 +22,7 @@ const Home = lazy(() => import("@/pages/Home"));
 const NewPost = lazy(() => import("@/pages/NewPost"));
 const Messages = lazy(() => import("@/pages/Messages"));
 const TripItinerary = lazy(() => import("@/pages/TripItinerary"));
+const Marketplace = lazy(() => import("@/pages/Marketplace"));
 const NotFound = lazy(() => import("@/pages/not-found"));
 
 const PageLoader = () => (
@@ -99,6 +100,9 @@ function Router() {
       </Route>
       <Route path="/trips">
         <BrowsableRoute component={Trips} />
+      </Route>
+      <Route path="/marketplace">
+        <BrowsableRoute component={Marketplace} />
       </Route>
       <Route path="/trips/:id">
         {(params) => <BrowsableRoute component={() => <TripItinerary params={params} />} />}

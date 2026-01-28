@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants, marketplaceListings,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport, type InsertSurfReport,
@@ -11,6 +11,7 @@ import {
   type Message, type InsertMessage,
   type Feedback,
   type TripParticipant, type InsertTripParticipant,
+  type MarketplaceListing, type InsertMarketplaceListing,
   users
 } from "@shared/schema";
 import { eq, and, desc, sql, notInArray, inArray, or } from "drizzle-orm";
@@ -97,6 +98,14 @@ export interface IStorage {
   getTripParticipants(tripId: number): Promise<(TripParticipant & { profile: Profile })[]>;
   updateParticipantStatus(tripId: number, participantUserId: string, status: string, organizerId: string): Promise<TripParticipant>;
   getUserTripStatus(tripId: number, userId: string): Promise<TripParticipant | undefined>;
+  
+  // Marketplace
+  getMarketplaceListings(): Promise<(MarketplaceListing & { seller: Profile })[]>;
+  getMarketplaceListingById(id: number): Promise<(MarketplaceListing & { seller: Profile }) | undefined>;
+  getUserListings(userId: string): Promise<MarketplaceListing[]>;
+  createMarketplaceListing(listing: InsertMarketplaceListing): Promise<MarketplaceListing>;
+  updateMarketplaceListing(id: number, userId: string, updates: Partial<InsertMarketplaceListing>): Promise<MarketplaceListing>;
+  deleteMarketplaceListing(id: number, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1065,6 +1074,65 @@ export class DatabaseStorage implements IStorage {
     const [result] = await db.select().from(tripParticipants)
       .where(and(eq(tripParticipants.tripId, tripId), eq(tripParticipants.userId, userId)));
     return result;
+  }
+
+  // Marketplace methods
+  async getMarketplaceListings(): Promise<(MarketplaceListing & { seller: Profile })[]> {
+    const results = await db.select({
+      listing: marketplaceListings,
+      seller: profiles
+    })
+    .from(marketplaceListings)
+    .innerJoin(profiles, eq(marketplaceListings.sellerId, profiles.userId))
+    .where(eq(marketplaceListings.isActive, true))
+    .orderBy(desc(marketplaceListings.createdAt));
+    
+    return results.map(r => ({ ...r.listing, seller: r.seller }));
+  }
+
+  async getMarketplaceListingById(id: number): Promise<(MarketplaceListing & { seller: Profile }) | undefined> {
+    const [result] = await db.select({
+      listing: marketplaceListings,
+      seller: profiles
+    })
+    .from(marketplaceListings)
+    .innerJoin(profiles, eq(marketplaceListings.sellerId, profiles.userId))
+    .where(eq(marketplaceListings.id, id));
+    
+    if (!result) return undefined;
+    return { ...result.listing, seller: result.seller };
+  }
+
+  async getUserListings(userId: string): Promise<MarketplaceListing[]> {
+    return await db.select()
+      .from(marketplaceListings)
+      .where(eq(marketplaceListings.sellerId, userId))
+      .orderBy(desc(marketplaceListings.createdAt));
+  }
+
+  async createMarketplaceListing(listing: InsertMarketplaceListing): Promise<MarketplaceListing> {
+    const [newListing] = await db.insert(marketplaceListings).values(listing).returning();
+    return newListing;
+  }
+
+  async updateMarketplaceListing(id: number, userId: string, updates: Partial<InsertMarketplaceListing>): Promise<MarketplaceListing> {
+    const [existing] = await db.select().from(marketplaceListings).where(eq(marketplaceListings.id, id));
+    if (!existing) throw new Error("Listing not found");
+    if (existing.sellerId !== userId) throw new Error("Not authorized to update this listing");
+    
+    const [updated] = await db.update(marketplaceListings)
+      .set(updates)
+      .where(eq(marketplaceListings.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteMarketplaceListing(id: number, userId: string): Promise<void> {
+    const [existing] = await db.select().from(marketplaceListings).where(eq(marketplaceListings.id, id));
+    if (!existing) throw new Error("Listing not found");
+    if (existing.sellerId !== userId) throw new Error("Not authorized to delete this listing");
+    
+    await db.delete(marketplaceListings).where(eq(marketplaceListings.id, id));
   }
 }
 

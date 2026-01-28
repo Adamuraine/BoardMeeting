@@ -939,6 +939,99 @@ export async function registerRoutes(
     }
   });
 
+  // === MARKETPLACE ===
+  app.get("/api/marketplace", async (req, res) => {
+    try {
+      const listings = await storage.getMarketplaceListings();
+      res.json(listings);
+    } catch (err) {
+      console.error("Error fetching marketplace listings:", err);
+      res.status(500).json({ message: "Failed to fetch listings" });
+    }
+  });
+
+  app.get("/api/marketplace/my-listings", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const listings = await storage.getUserListings(userId);
+      res.json(listings);
+    } catch (err) {
+      console.error("Error fetching user listings:", err);
+      res.status(500).json({ message: "Failed to fetch your listings" });
+    }
+  });
+
+  app.get("/api/marketplace/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.sendStatus(400);
+    try {
+      const listing = await storage.getMarketplaceListingById(id);
+      if (!listing) return res.sendStatus(404);
+      res.json(listing);
+    } catch (err) {
+      console.error("Error fetching listing:", err);
+      res.status(500).json({ message: "Failed to fetch listing" });
+    }
+  });
+
+  app.post("/api/marketplace", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const { insertMarketplaceListingSchema } = await import("@shared/schema");
+      const input = insertMarketplaceListingSchema.parse({ ...req.body, sellerId: userId });
+      const listing = await storage.createMarketplaceListing(input);
+      res.status(201).json(listing);
+    } catch (err) {
+      if (err instanceof z.ZodError) {
+        return res.status(400).json({ message: err.errors });
+      }
+      console.error("Error creating listing:", err);
+      res.status(500).json({ message: "Failed to create listing" });
+    }
+  });
+
+  app.patch("/api/marketplace/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.sendStatus(400);
+    try {
+      const listing = await storage.updateMarketplaceListing(id, userId, req.body);
+      res.json(listing);
+    } catch (err: any) {
+      if (err.message === "Listing not found") {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+      if (err.message === "Not authorized to update this listing") {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      console.error("Error updating listing:", err);
+      res.status(500).json({ message: "Failed to update listing" });
+    }
+  });
+
+  app.delete("/api/marketplace/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) return res.sendStatus(400);
+    try {
+      await storage.deleteMarketplaceListing(id, userId);
+      res.json({ success: true });
+    } catch (err: any) {
+      if (err.message === "Listing not found") {
+        return res.status(404).json({ message: "Listing not found" });
+      }
+      if (err.message === "Not authorized to delete this listing") {
+        return res.status(403).json({ message: "Not authorized" });
+      }
+      console.error("Error deleting listing:", err);
+      res.status(500).json({ message: "Failed to delete listing" });
+    }
+  });
+
   // === STRIPE CHECKOUT ===
   app.post("/api/checkout/premium", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

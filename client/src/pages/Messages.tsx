@@ -35,6 +35,17 @@ export default function Messages() {
     setDebugLoading(true);
     try {
       const res = await fetch("/api/debug/messages", { credentials: "include" });
+      if (!res.ok) {
+        setDebugInfo({ 
+          error: `HTTP ${res.status}`, 
+          status: res.status,
+          statusText: res.statusText,
+          hint: res.status === 401 ? "Not logged in or session expired. Try refreshing the page." : "Unknown error"
+        });
+        setShowDebug(true);
+        setDebugLoading(false);
+        return;
+      }
       const data = await res.json();
       setDebugInfo(data);
       setShowDebug(true);

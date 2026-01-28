@@ -1,4 +1,5 @@
 import { users, type User, type UpsertUser } from "@shared/models/auth";
+import { profiles } from "@shared/schema";
 import { db } from "../../db";
 import { eq } from "drizzle-orm";
 
@@ -16,6 +17,10 @@ class AuthStorage implements IAuthStorage {
   }
 
   async upsertUser(userData: UpsertUser): Promise<User> {
+    // Check if user already exists
+    const existingUser = await this.getUser(userData.id!);
+    const isNewUser = !existingUser;
+    
     const [user] = await db
       .insert(users)
       .values(userData)
@@ -27,6 +32,23 @@ class AuthStorage implements IAuthStorage {
         },
       })
       .returning();
+    
+    // Auto-create profile for new users so they appear in searches
+    if (isNewUser && userData.id) {
+      const existingProfile = await db.select().from(profiles).where(eq(profiles.userId, userData.id));
+      if (existingProfile.length === 0) {
+        await db.insert(profiles).values({
+          userId: userData.id,
+          displayName: userData.firstName || "Surfer",
+          skillLevel: "intermediate",
+          bio: "",
+          isIncompleteProfile: true,
+          trialStartedAt: new Date(),
+        });
+        console.log(`[AUTH] Auto-created profile for new user: ${userData.id}`);
+      }
+    }
+    
     return user;
   }
 }

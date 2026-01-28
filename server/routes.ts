@@ -852,6 +852,32 @@ export async function registerRoutes(
     }
   });
 
+  // Debug endpoint - list all profiles in database
+  app.get("/api/debug/profiles", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    try {
+      const allProfiles = await db.select({
+        id: profiles.id,
+        userId: profiles.userId,
+        displayName: profiles.displayName,
+        skillLevel: profiles.skillLevel,
+        location: profiles.location,
+        isIncompleteProfile: profiles.isIncompleteProfile
+      })
+        .from(profiles)
+        .orderBy(profiles.displayName)
+        .limit(100);
+      
+      res.json({
+        totalProfiles: allProfiles.length,
+        profiles: allProfiles
+      });
+    } catch (err) {
+      console.error("Debug profiles error:", err);
+      res.status(500).json({ error: String(err) });
+    }
+  });
+
   // Delete user account
   app.delete("/api/profiles/me", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

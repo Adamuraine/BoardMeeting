@@ -69,9 +69,7 @@ export default function Onboarding() {
       ...data,
       userId: user?.id,
       age: Number(data.age),
-      imageUrls: uploadedPhotos.length > 0 ? uploadedPhotos : [
-        "https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=800&q=80"
-      ],
+      imageUrls: uploadedPhotos.length > 0 ? uploadedPhotos : [],
       isIncompleteProfile: false,
       trialStartedAt: null,
     };
@@ -93,7 +91,7 @@ export default function Onboarding() {
       skillLevel: "intermediate",
       age: 25,
       gender: "other",
-      imageUrls: ["https://images.unsplash.com/photo-1531123414780-f74242c2b052?w=800&q=80"],
+      imageUrls: [],
       isIncompleteProfile: true,
       trialStartedAt: new Date().toISOString(),
     };

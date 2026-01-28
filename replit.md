@@ -36,6 +36,13 @@ Preferred communication style: Simple, everyday language.
 - **User Storage**: Users table in `shared/models/auth.ts` is mandatory for Replit Auth
 - **Protected Routes**: `isAuthenticated` middleware guards API endpoints
 
+### New User Flow
+- **Auto-profile creation**: When users sign in, a profile is auto-created with their firstName as displayName
+- **No separate onboarding**: New users go directly to /profile with `isIncompleteProfile: true`
+- **Inline editing**: Users can tap on their name, location, or skill level to edit them directly on the profile page
+- **Search visibility**: Incomplete profiles ARE visible in searches (no filtering out new users)
+- **Search fields**: displayName, firstName, lastName, email, and full name combinations
+
 ### Project Structure
 ```
 client/           # React frontend

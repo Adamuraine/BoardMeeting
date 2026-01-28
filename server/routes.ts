@@ -5,7 +5,7 @@ import { registerObjectStorageRoutes } from "./replit_integrations/object_storag
 import { storage } from "./storage";
 import { api } from "@shared/routes";
 import { z } from "zod";
-import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, type SurfReport } from "@shared/schema";
+import { insertProfileSchema, insertSwipeSchema, insertTripSchema, insertPostSchema, profiles, type SurfReport } from "@shared/schema";
 import { authStorage } from "./replit_integrations/auth";
 import { db } from "./db";
 import { users } from "@shared/models/auth";

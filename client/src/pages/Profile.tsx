@@ -1351,18 +1351,11 @@ interface VisitorData {
 
 function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [activeTab, setActiveTab] = useState<'users' | 'visitors'>('users');
-  const [userFilter, setUserFilter] = useState<'all' | 'real' | 'mock'>('all');
   
-  const { data, isLoading } = useQuery<{ allUsers: AdminUser[]; realUsers: AdminUser[]; mockUsers: AdminUser[]; mockUserCount: number; totalCount: number }>({
+  const { data, isLoading } = useQuery<{ realUsers: AdminUser[]; totalCount: number }>({
     queryKey: ['/api/admin/users'],
     enabled: open && activeTab === 'users',
   });
-  
-  const filteredUsers = data ? (
-    userFilter === 'all' ? data.allUsers :
-    userFilter === 'real' ? data.realUsers :
-    data.mockUsers
-  ) : [];
 
   const { data: visitorsData, isLoading: visitorsLoading } = useQuery<{ 
     visitors: VisitorData[]; 
@@ -1418,44 +1411,15 @@ function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
             ) : data ? (
               <>
                 <div className="text-sm text-muted-foreground mb-4 p-2 bg-secondary/30 rounded">
-                  <p><strong>{data.totalCount}</strong> total users</p>
-                  <div className="flex gap-1 mt-2">
-                    <Button 
-                      size="sm" 
-                      variant={userFilter === 'all' ? 'default' : 'outline'}
-                      onClick={() => setUserFilter('all')}
-                      className="text-xs h-6"
-                      data-testid="button-filter-all"
-                    >
-                      All ({data.totalCount})
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant={userFilter === 'real' ? 'default' : 'outline'}
-                      onClick={() => setUserFilter('real')}
-                      className="text-xs h-6"
-                      data-testid="button-filter-real"
-                    >
-                      Real ({data.realUsers.length})
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant={userFilter === 'mock' ? 'default' : 'outline'}
-                      onClick={() => setUserFilter('mock')}
-                      className="text-xs h-6"
-                      data-testid="button-filter-mock"
-                    >
-                      Test ({data.mockUserCount})
-                    </Button>
-                  </div>
+                  <p><strong>{data.realUsers.length}</strong> registered users</p>
                 </div>
                 
-                {filteredUsers.length === 0 ? (
+                {data.realUsers.length === 0 ? (
                   <p className="text-center text-muted-foreground py-4">
                     No users found
                   </p>
                 ) : (
-                  filteredUsers.map((user) => (
+                  data.realUsers.map((user) => (
                     <div key={user.id} className="p-3 border rounded-lg space-y-1">
                       <div className="flex items-center justify-between">
                         {user.hasProfile ? (
@@ -1472,14 +1436,9 @@ function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
                             {user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
                           </span>
                         )}
-                        <div className="flex gap-1">
-                          {user.isMockUser && (
-                            <Badge variant="outline" className="text-[10px]">Test</Badge>
-                          )}
-                          <Badge variant={user.hasProfile ? "default" : "secondary"} className="text-[10px]">
-                            {user.hasProfile ? "Profile" : "No Profile"}
-                          </Badge>
-                        </div>
+                        <Badge variant={user.hasProfile ? "default" : "secondary"} className="text-[10px]">
+                          {user.hasProfile ? "Profile" : "No Profile"}
+                        </Badge>
                       </div>
                       <p className="text-xs text-muted-foreground truncate">{user.email || 'No email'}</p>
                       <p className="text-xs text-muted-foreground">

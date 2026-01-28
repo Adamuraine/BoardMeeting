@@ -169,10 +169,13 @@ export class DatabaseStorage implements IStorage {
     // Get current user's profile for safety filtering
     const [currentUser] = await db.select().from(profiles).where(eq(profiles.userId, userId));
     
-    // Get all profiles except already swiped ones and self
+    // Get all complete profiles except already swiped ones and self
     let potentialMatches = await db.select()
       .from(profiles)
-      .where(notInArray(profiles.userId, swipedIds))
+      .where(and(
+        notInArray(profiles.userId, swipedIds),
+        eq(profiles.isIncompleteProfile, false)
+      ))
       .limit(100);
     
     // Safety filter: Prevent adult males (18+) from matching with underage females (<18)
@@ -202,9 +205,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllProfiles(): Promise<Profile[]> {
-    // Get all profiles for anonymous browsing - no user filtering
+    // Get all complete profiles for anonymous browsing - no user filtering
     const allProfiles = await db.select()
       .from(profiles)
+      .where(eq(profiles.isIncompleteProfile, false))
       .limit(100);
     return allProfiles;
   }

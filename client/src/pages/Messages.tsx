@@ -6,11 +6,12 @@ import { useMyProfile } from "@/hooks/use-profiles";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, MessageCircle } from "lucide-react";
+import { ArrowLeft, Send, MessageCircle, Bug } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useLocation } from "wouter";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import type { Profile, Message } from "@shared/schema";
 
 type Conversation = {
@@ -26,6 +27,24 @@ export default function Messages() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [, navigate] = useLocation();
   const [buddyIdFromUrl, setBuddyIdFromUrl] = useState<string | null>(null);
+  const [showDebug, setShowDebug] = useState(false);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [debugLoading, setDebugLoading] = useState(false);
+
+  const fetchDebugInfo = async () => {
+    setDebugLoading(true);
+    try {
+      const res = await fetch("/api/debug/messages", { credentials: "include" });
+      const data = await res.json();
+      setDebugInfo(data);
+      setShowDebug(true);
+    } catch (e) {
+      console.error("Debug fetch error:", e);
+      setDebugInfo({ error: String(e) });
+      setShowDebug(true);
+    }
+    setDebugLoading(false);
+  };
 
   const { data: conversations = [], isLoading: conversationsLoading } = useQuery<Conversation[]>({
     queryKey: ["/api/messages/conversations"],
@@ -205,7 +224,29 @@ export default function Messages() {
   return (
     <Layout>
       <div className="p-4">
-        <h1 className="text-2xl font-display font-bold text-foreground mb-6">Messages</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-display font-bold text-foreground">Messages</h1>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={fetchDebugInfo}
+            disabled={debugLoading}
+            data-testid="button-debug"
+          >
+            <Bug className="h-5 w-5" />
+          </Button>
+        </div>
+
+        <Dialog open={showDebug} onOpenChange={setShowDebug}>
+          <DialogContent className="max-w-lg max-h-[80vh] overflow-auto">
+            <DialogHeader>
+              <DialogTitle>Message Debug Info</DialogTitle>
+            </DialogHeader>
+            <pre className="text-xs bg-muted p-3 rounded overflow-auto max-h-[60vh]">
+              {debugInfo ? JSON.stringify(debugInfo, null, 2) : "Loading..."}
+            </pre>
+          </DialogContent>
+        </Dialog>
 
         {conversationsLoading ? (
           <div className="space-y-4">

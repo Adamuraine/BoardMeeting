@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
-import defaultSurferImg from "@assets/default-surfer.jpeg";
+import defaultSurferImg from "@assets/IMG_4279_1769563661022.jpeg";
 
 interface SafeImageProps {
   src: string | undefined;

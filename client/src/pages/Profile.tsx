@@ -1238,10 +1238,33 @@ interface AdminUser {
   isMockUser: boolean;
 }
 
+interface VisitorData {
+  ip: string;
+  visits: number;
+  lastVisit: string;
+  lastPath: string;
+  userAgent: string;
+  isAuthenticated: boolean;
+  userId: string | null;
+}
+
 function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [activeTab, setActiveTab] = useState<'users' | 'visitors'>('users');
+  
   const { data, isLoading } = useQuery<{ realUsers: AdminUser[]; mockUserCount: number; totalCount: number }>({
     queryKey: ['/api/admin/users'],
-    enabled: open,
+    enabled: open && activeTab === 'users',
+  });
+
+  const { data: visitorsData, isLoading: visitorsLoading } = useQuery<{ 
+    visitors: VisitorData[]; 
+    totalVisits: number; 
+    uniqueCount: number;
+    anonymousCount: number;
+  }>({
+    queryKey: ['/api/admin/visitors'],
+    enabled: open && activeTab === 'visitors',
+    refetchInterval: 10000, // Refresh every 10 seconds
   });
 
   return (
@@ -1250,54 +1273,119 @@ function AdminUsersDialog({ open, onOpenChange }: { open: boolean; onOpenChange:
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Users className="h-5 w-5" />
-            Registered Users
+            Admin Dashboard
           </DialogTitle>
           <DialogDescription>
-            View all real users registered in the app
+            View registered users and site visitors
           </DialogDescription>
         </DialogHeader>
         
+        <div className="flex gap-2 mb-2">
+          <Button 
+            size="sm" 
+            variant={activeTab === 'users' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('users')}
+            data-testid="button-tab-users"
+          >
+            Users
+          </Button>
+          <Button 
+            size="sm" 
+            variant={activeTab === 'visitors' ? 'default' : 'outline'}
+            onClick={() => setActiveTab('visitors')}
+            data-testid="button-tab-visitors"
+          >
+            Visitors
+          </Button>
+        </div>
+        
         <div className="flex-1 overflow-y-auto space-y-3 py-2">
-          {isLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-              <Skeleton className="h-12 w-full" />
-            </div>
-          ) : data ? (
-            <>
-              <div className="text-sm text-muted-foreground mb-4 p-2 bg-secondary/30 rounded">
-                <p><strong>{data.realUsers.length}</strong> real users</p>
-                <p><strong>{data.mockUserCount}</strong> mock/test users</p>
-                <p><strong>{data.totalCount}</strong> total</p>
+          {activeTab === 'users' ? (
+            isLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
               </div>
-              
-              {data.realUsers.length === 0 ? (
-                <p className="text-center text-muted-foreground py-4">
-                  No real users found (only mock users exist)
-                </p>
-              ) : (
-                data.realUsers.map((user) => (
-                  <div key={user.id} className="p-3 border rounded-lg space-y-1">
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium">
-                        {user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
-                      </span>
-                      <Badge variant={user.hasProfile ? "default" : "secondary"}>
-                        {user.hasProfile ? "Has Profile" : "No Profile"}
-                      </Badge>
+            ) : data ? (
+              <>
+                <div className="text-sm text-muted-foreground mb-4 p-2 bg-secondary/30 rounded">
+                  <p><strong>{data.realUsers.length}</strong> real users</p>
+                  <p><strong>{data.mockUserCount}</strong> mock/test users</p>
+                  <p><strong>{data.totalCount}</strong> total</p>
+                </div>
+                
+                {data.realUsers.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    No real users found (only mock users exist)
+                  </p>
+                ) : (
+                  data.realUsers.map((user) => (
+                    <div key={user.id} className="p-3 border rounded-lg space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="font-medium">
+                          {user.displayName || `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'Unknown'}
+                        </span>
+                        <Badge variant={user.hasProfile ? "default" : "secondary"}>
+                          {user.hasProfile ? "Has Profile" : "No Profile"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground truncate">{user.email || 'No email'}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Joined: {new Date(user.createdAt).toLocaleDateString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground font-mono truncate">ID: {user.id}</p>
                     </div>
-                    <p className="text-xs text-muted-foreground truncate">{user.email || 'No email'}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Joined: {new Date(user.createdAt).toLocaleDateString()}
-                    </p>
-                    <p className="text-xs text-muted-foreground font-mono truncate">ID: {user.id}</p>
-                  </div>
-                ))
-              )}
-            </>
+                  ))
+                )}
+              </>
+            ) : (
+              <p className="text-center text-muted-foreground">Failed to load users</p>
+            )
           ) : (
-            <p className="text-center text-muted-foreground">Failed to load users</p>
+            visitorsLoading ? (
+              <div className="space-y-2">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : visitorsData ? (
+              <>
+                <div className="text-sm text-muted-foreground mb-4 p-2 bg-secondary/30 rounded">
+                  <p><strong>{visitorsData.uniqueCount}</strong> unique visitors</p>
+                  <p><strong>{visitorsData.anonymousCount}</strong> anonymous (not logged in)</p>
+                  <p><strong>{visitorsData.totalVisits}</strong> total page views</p>
+                </div>
+                
+                {visitorsData.visitors.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-4">
+                    No visitors tracked yet
+                  </p>
+                ) : (
+                  visitorsData.visitors.map((visitor, idx) => (
+                    <div key={`${visitor.ip}-${idx}`} className="p-3 border rounded-lg space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-mono text-sm font-medium truncate">{visitor.ip}</span>
+                        <Badge variant={visitor.isAuthenticated ? "default" : "secondary"}>
+                          {visitor.isAuthenticated ? "Logged In" : "Anonymous"}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        <strong>{visitor.visits}</strong> visits - Last: {visitor.lastPath}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(visitor.lastVisit).toLocaleString()}
+                      </p>
+                      <p className="text-xs text-muted-foreground truncate">
+                        {visitor.userAgent.substring(0, 60)}...
+                      </p>
+                    </div>
+                  ))
+                )}
+              </>
+            ) : (
+              <p className="text-center text-muted-foreground">Failed to load visitors</p>
+            )
           )}
         </div>
       </DialogContent>

@@ -16,6 +16,26 @@ import { fetchStormglassForecast } from "./stormglassService";
 let dailyRequestCount = 0;
 let lastResetDate = new Date().toDateString();
 
+// Track recent visitors with IP addresses
+interface Visitor {
+  ip: string;
+  userAgent: string;
+  path: string;
+  timestamp: Date;
+  userId: string | null;
+  isAuthenticated: boolean;
+}
+
+const recentVisitors: Visitor[] = [];
+const MAX_VISITORS = 100; // Keep last 100 visitors
+
+function trackVisitor(visitor: Visitor) {
+  recentVisitors.unshift(visitor);
+  if (recentVisitors.length > MAX_VISITORS) {
+    recentVisitors.pop();
+  }
+}
+
 function checkAndResetDailyCount(): void {
   const today = new Date().toDateString();
   if (today !== lastResetDate) {
@@ -59,16 +79,29 @@ export async function registerRoutes(
   
   // Traffic logging middleware for security monitoring
   app.use((req, res, next) => {
-    const userId = (req.user as any)?.claims?.sub || 'anonymous';
+    const userId = (req.user as any)?.claims?.sub || null;
     const userEmail = (req.user as any)?.claims?.email || 'none';
+    const ip = (req.headers['x-forwarded-for'] as string)?.split(',')[0]?.trim() || req.ip || 'unknown';
+    
+    // Track visitors (only track page-like requests, not assets)
+    if (!req.path.includes('.') && !req.path.startsWith('/@') && !req.path.startsWith('/node_modules')) {
+      trackVisitor({
+        ip,
+        userAgent: req.headers['user-agent'] || 'unknown',
+        path: req.path,
+        timestamp: new Date(),
+        userId,
+        isAuthenticated: req.isAuthenticated()
+      });
+    }
     
     // Log all requests for security auditing
     trafficLog('Request', {
       method: req.method,
       path: req.path,
-      userId,
+      userId: userId || 'anonymous',
       userEmail: userEmail.substring(0, 5) + '***', // Partial email for privacy
-      ip: req.ip || req.headers['x-forwarded-for'],
+      ip,
       userAgent: req.headers['user-agent']?.substring(0, 50),
       authenticated: req.isAuthenticated()
     });
@@ -229,6 +262,56 @@ export async function registerRoutes(
       console.error('Error fetching users:', err);
       res.status(500).json({ message: 'Failed to fetch users' });
     }
+  });
+
+  // Admin: Get recent visitors with IP addresses
+  app.get('/api/admin/visitors', async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    
+    // Group visitors by IP and get unique IPs with their last visit info
+    const visitorsByIp = new Map<string, { 
+      ip: string; 
+      visits: number; 
+      lastVisit: Date; 
+      lastPath: string;
+      userAgent: string;
+      isAuthenticated: boolean;
+      userId: string | null;
+    }>();
+    
+    for (const visitor of recentVisitors) {
+      const existing = visitorsByIp.get(visitor.ip);
+      if (existing) {
+        existing.visits++;
+        if (visitor.timestamp > existing.lastVisit) {
+          existing.lastVisit = visitor.timestamp;
+          existing.lastPath = visitor.path;
+          existing.isAuthenticated = visitor.isAuthenticated;
+          existing.userId = visitor.userId;
+        }
+      } else {
+        visitorsByIp.set(visitor.ip, {
+          ip: visitor.ip,
+          visits: 1,
+          lastVisit: visitor.timestamp,
+          lastPath: visitor.path,
+          userAgent: visitor.userAgent,
+          isAuthenticated: visitor.isAuthenticated,
+          userId: visitor.userId
+        });
+      }
+    }
+    
+    // Convert to array and sort by most recent
+    const uniqueVisitors = Array.from(visitorsByIp.values())
+      .sort((a, b) => b.lastVisit.getTime() - a.lastVisit.getTime());
+    
+    res.json({
+      visitors: uniqueVisitors,
+      totalVisits: recentVisitors.length,
+      uniqueCount: uniqueVisitors.length,
+      anonymousCount: uniqueVisitors.filter(v => !v.isAuthenticated).length
+    });
   });
 
   app.get(api.profiles.get.path, async (req, res) => {

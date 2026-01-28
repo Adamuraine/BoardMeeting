@@ -605,46 +605,44 @@ export default function Marketplace() {
           {!userCoords && user && <p className="text-sm mt-2">Be the first to post an item!</p>}
         </div>
       ) : viewMode === 'map' ? (
-        <div className="h-[60vh] rounded-lg overflow-hidden border" data-testid="map-container">
-          {listingsWithCoords.length === 0 ? (
-            <div className="h-full flex items-center justify-center bg-muted text-muted-foreground">
-              <p>No listings with location data to display on map</p>
-            </div>
-          ) : (
-            <MapContainer
-              center={mapCenter}
-              zoom={10}
-              style={{ height: '100%', width: '100%' }}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              {listingsWithCoords.map((listing) => (
-                <Marker
-                  key={listing.id}
-                  position={[parseFloat(listing.latitude!), parseFloat(listing.longitude!)]}
-                >
-                  <Popup>
-                    <div className="min-w-[150px]">
-                      <h3 className="font-medium text-sm">{listing.title}</h3>
-                      <p className="text-primary font-semibold">
-                        {formatPrice(listing.price, listing.listingType)}
-                      </p>
-                      <Button
-                        size="sm"
-                        className="w-full mt-2"
-                        onClick={() => handleViewDetails(listing)}
-                        data-testid={`button-map-view-${listing.id}`}
-                      >
-                        View Details
-                      </Button>
-                    </div>
-                  </Popup>
-                </Marker>
-              ))}
-            </MapContainer>
-          )}
+        <div className="h-[70vh] rounded-lg overflow-hidden border" data-testid="map-container">
+          <MapContainer
+            center={mapCenter}
+            zoom={userCoords ? 10 : 4}
+            style={{ height: '100%', width: '100%' }}
+            scrollWheelZoom={true}
+            touchZoom={true}
+            doubleClickZoom={true}
+            dragging={true}
+          >
+            <TileLayer
+              attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+              url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            />
+            {listingsWithCoords.map((listing) => (
+              <Marker
+                key={listing.id}
+                position={[parseFloat(listing.latitude!), parseFloat(listing.longitude!)]}
+              >
+                <Popup>
+                  <div className="min-w-[150px]">
+                    <h3 className="font-medium text-sm">{listing.title}</h3>
+                    <p className="text-primary font-semibold">
+                      {formatPrice(listing.price, listing.listingType)}
+                    </p>
+                    <Button
+                      size="sm"
+                      className="w-full mt-2"
+                      onClick={() => handleViewDetails(listing)}
+                      data-testid={`button-map-view-${listing.id}`}
+                    >
+                      View Details
+                    </Button>
+                  </div>
+                </Popup>
+              </Marker>
+            ))}
+          </MapContainer>
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">

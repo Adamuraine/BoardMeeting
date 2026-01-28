@@ -15,10 +15,13 @@ const TRIAL_DURATION_MS = 5 * 60 * 1000;
 
 export function TrialTimerModal() {
   const { data: profile } = useMyProfile();
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [showModal, setShowModal] = useState(false);
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
   const updateProfile = useUpdateProfile();
+  
+  // Hide timer during onboarding/setup
+  const isOnboarding = location === "/onboarding";
 
   useEffect(() => {
     if (!profile?.isIncompleteProfile || !profile?.trialStartedAt) {
@@ -65,7 +68,7 @@ export function TrialTimerModal() {
     return `${minutes}:${seconds.toString().padStart(2, "0")}`;
   };
 
-  if (!profile?.isIncompleteProfile) {
+  if (!profile?.isIncompleteProfile || isOnboarding) {
     return null;
   }
 

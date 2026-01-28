@@ -29,18 +29,18 @@ export default function BottomNav() {
   if (location === "/onboarding") return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t bg-background/80 backdrop-blur-lg px-4 py-2 z-50 safe-area-bottom">
+    <div className="fixed bottom-0 left-0 right-0 border-t bg-background/80 backdrop-blur-lg px-1 py-1 z-50 safe-area-bottom">
       <div className="flex justify-around items-center max-w-md mx-auto">
         {navItems.map(({ href, icon: Icon, label }) => {
           const isActive = location === href;
           return (
             <Link key={href} href={href}>
               <div className={cn(
-                "flex flex-col items-center gap-1 p-2 rounded-lg transition-colors cursor-pointer",
+                "flex flex-col items-center gap-0.5 p-1 rounded-md transition-colors cursor-pointer",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-primary/70"
               )}>
-                <Icon className={cn("h-6 w-6", isActive && "fill-current/20")} />
-                <span className="text-[10px] font-medium">{label}</span>
+                <Icon className={cn("h-4 w-4", isActive && "fill-current/20")} />
+                <span className="text-[8px] font-medium">{label}</span>
               </div>
             </Link>
           );

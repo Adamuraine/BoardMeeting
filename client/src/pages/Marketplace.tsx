@@ -620,14 +620,13 @@ export default function Marketplace() {
             </Card>
           ))}
         </div>
-      ) : filteredListings.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground" data-testid="text-no-listings">
-          <p>No listings found</p>
-          {userCoords && <p className="text-sm mt-2">Try expanding your search radius or clearing the location filter</p>}
-          {!userCoords && user && <p className="text-sm mt-2">Be the first to post an item!</p>}
-        </div>
       ) : viewMode === 'map' ? (
-        <div className="h-[70vh] rounded-lg overflow-hidden border" data-testid="map-container">
+        <div className="h-[70vh] rounded-lg overflow-hidden border relative" data-testid="map-container">
+          {filteredListings.length === 0 && (
+            <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg" data-testid="text-no-listings-map">
+              <p className="text-sm text-muted-foreground">No listings found in this area</p>
+            </div>
+          )}
           <MapContainer
             center={mapCenter}
             zoom={userCoords ? getZoomForRadius(radius) : 4}
@@ -681,6 +680,12 @@ export default function Marketplace() {
               </Marker>
             ))}
           </MapContainer>
+        </div>
+      ) : filteredListings.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground" data-testid="text-no-listings">
+          <p>No listings found</p>
+          {userCoords && <p className="text-sm mt-2">Try expanding your search radius or clearing the location filter</p>}
+          {!userCoords && user && <p className="text-sm mt-2">Be the first to post an item!</p>}
         </div>
       ) : (
         <div className="grid grid-cols-2 gap-3">

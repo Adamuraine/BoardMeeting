@@ -70,9 +70,9 @@ const CONDITIONS = [
 ];
 
 const LISTING_TYPES = [
-  { value: "sell", label: "For Sale" },
-  { value: "trade", label: "Trade Only" },
-  { value: "both", label: "Sell or Trade" },
+  { value: "buy", label: "Buy" },
+  { value: "sell", label: "Sell" },
+  { value: "trade", label: "Trade" },
   { value: "free", label: "Free" },
 ];
 

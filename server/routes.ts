@@ -856,21 +856,19 @@ export async function registerRoutes(
   app.get("/api/debug/profiles", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const allProfiles = await db.select({
-        id: profiles.id,
-        userId: profiles.userId,
-        displayName: profiles.displayName,
-        skillLevel: profiles.skillLevel,
-        location: profiles.location,
-        isIncompleteProfile: profiles.isIncompleteProfile
-      })
-        .from(profiles)
-        .orderBy(profiles.displayName)
-        .limit(100);
+      // Use storage.getAllProfiles() which is already defined
+      const allProfiles = await storage.getAllProfiles();
       
       res.json({
         totalProfiles: allProfiles.length,
-        profiles: allProfiles
+        profiles: allProfiles.map(p => ({
+          id: p.id,
+          userId: p.userId,
+          displayName: p.displayName,
+          skillLevel: p.skillLevel,
+          location: p.location,
+          isIncompleteProfile: p.isIncompleteProfile
+        }))
       });
     } catch (err) {
       console.error("Debug profiles error:", err);

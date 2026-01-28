@@ -807,7 +807,18 @@ export async function registerRoutes(
       // Get the user record
       const [user] = await db.select().from(users).where(eq(users.id, userId));
       
+      // Include environment info to help debug dev vs prod issues
+      const envInfo = {
+        nodeEnv: process.env.NODE_ENV || 'unknown',
+        replSlug: process.env.REPL_SLUG || 'unknown',
+        replOwner: process.env.REPL_OWNER || 'unknown',
+        isProduction: process.env.NODE_ENV === 'production',
+        databaseUrl: process.env.DATABASE_URL ? 'connected' : 'not connected',
+        serverTime: new Date().toISOString()
+      };
+      
       res.json({
+        environment: envInfo,
         userId,
         userName: user?.firstName,
         profileId: profile?.id,

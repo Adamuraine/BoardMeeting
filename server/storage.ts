@@ -212,13 +212,48 @@ export class DatabaseStorage implements IStorage {
   async searchProfiles(query: string, limit: number = 20): Promise<Profile[]> {
     const searchTerm = `%${query.toLowerCase()}%`;
     
-    // Search all profiles by display name
-    const results = await db.select()
+    // Search profiles by display name OR by user's registered first/last name
+    const results = await db.select({
+      id: profiles.id,
+      userId: profiles.userId,
+      displayName: profiles.displayName,
+      bio: profiles.bio,
+      gender: profiles.gender,
+      age: profiles.age,
+      skillLevel: profiles.skillLevel,
+      location: profiles.location,
+      imageUrls: profiles.imageUrls,
+      tricks: profiles.tricks,
+      trophies: profiles.trophies,
+      fastestSpeed: profiles.fastestSpeed,
+      longestWave: profiles.longestWave,
+      biggestWave: profiles.biggestWave,
+      isPremium: profiles.isPremium,
+      topBuddyIds: profiles.topBuddyIds,
+      buddiesPublic: profiles.buddiesPublic,
+      endurance: profiles.endurance,
+      tripExpectations: profiles.tripExpectations,
+      stripeCustomerId: profiles.stripeCustomerId,
+      stripeSubscriptionId: profiles.stripeSubscriptionId,
+      openToGuiding: profiles.openToGuiding,
+      isIncompleteProfile: profiles.isIncompleteProfile,
+      trialStartedAt: profiles.trialStartedAt,
+      scheduleType: profiles.scheduleType,
+      availability: profiles.availability,
+    })
       .from(profiles)
-      .where(sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`)
+      .leftJoin(users, eq(profiles.userId, users.id))
+      .where(
+        or(
+          sql`LOWER(${profiles.displayName}) LIKE ${searchTerm}`,
+          sql`LOWER(${users.firstName}) LIKE ${searchTerm}`,
+          sql`LOWER(${users.lastName}) LIKE ${searchTerm}`,
+          sql`LOWER(CONCAT(${users.firstName}, ' ', ${users.lastName})) LIKE ${searchTerm}`
+        )
+      )
       .limit(limit);
     
-    return results;
+    return results as Profile[];
   }
 
   async createSwipe(swipe: InsertSwipe): Promise<Swipe> {

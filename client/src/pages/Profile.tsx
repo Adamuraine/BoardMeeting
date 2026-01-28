@@ -650,12 +650,13 @@ export default function Profile() {
           </div>
           <Button 
             variant="ghost" 
-            size="icon" 
-            className="absolute top-3 left-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+            size="sm" 
+            className="absolute top-3 left-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white gap-1.5"
             onClick={() => logout()}
             data-testid="button-logout-header"
           >
-            <LogOut className="w-5 h-5 text-white" />
+            <LogOut className="w-4 h-4" />
+            log out
           </Button>
           <Button 
             variant="ghost" 

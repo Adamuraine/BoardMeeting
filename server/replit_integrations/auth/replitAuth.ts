@@ -159,20 +159,52 @@ export async function setupAuth(app: Express) {
       hostname: req.hostname,
       hasError: !!req.query.error,
       error: req.query.error,
-      errorDescription: req.query.error_description
+      errorDescription: req.query.error_description,
+      queryParams: Object.keys(req.query)
     });
     
     if (req.query.error) {
-      authLog('ERROR: Auth callback failed', {
+      authLog('ERROR: Auth callback failed with OAuth error', {
         error: req.query.error,
         errorDescription: req.query.error_description
       });
     }
     
     ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
-      successReturnToOrRedirect: "/",
-      failureRedirect: "/api/login",
+    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
+      authLog('Passport authenticate result', { 
+        hasError: !!err, 
+        hasUser: !!user,
+        info: info,
+        errorMessage: err?.message
+      });
+      
+      if (err) {
+        authLog('ERROR: Passport authentication error', { 
+          error: err.message,
+          stack: err.stack
+        });
+        return res.redirect("/api/login");
+      }
+      
+      if (!user) {
+        authLog('ERROR: No user returned from authentication', { info });
+        return res.redirect("/api/login");
+      }
+      
+      req.logIn(user, (loginErr) => {
+        if (loginErr) {
+          authLog('ERROR: Session login failed', { 
+            error: loginErr.message 
+          });
+          return res.redirect("/api/login");
+        }
+        
+        authLog('SUCCESS: User logged in and session created', { 
+          userId: user.claims?.sub 
+        });
+        return res.redirect("/");
+      });
     })(req, res, next);
   });
 

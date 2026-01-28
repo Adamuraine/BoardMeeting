@@ -555,7 +555,7 @@ export class DatabaseStorage implements IStorage {
             bio: '',
             gender: null,
             age: null,
-            skillLevel: 'intermediate',
+            skillLevel: 'kook',
             location: '',
             imageUrls: [],
             tricks: null,

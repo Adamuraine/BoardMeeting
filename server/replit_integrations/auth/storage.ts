@@ -50,7 +50,7 @@ class AuthStorage implements IAuthStorage {
           userId: userData.id,
           displayName,
           imageUrls,
-          skillLevel: "intermediate",
+          skillLevel: "kook",
           bio: "",
           isIncompleteProfile: true,
           trialStartedAt: new Date(),

@@ -760,6 +760,7 @@ export default function Profile() {
                     className="w-full bg-transparent border-b border-muted-foreground/30 focus:border-primary focus:outline-none py-1"
                     data-testid="select-skill-level"
                   >
+                    <option value="kook">Kook</option>
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
                     <option value="advanced">Advanced</option>

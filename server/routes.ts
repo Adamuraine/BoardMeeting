@@ -852,16 +852,22 @@ export async function registerRoutes(
     }
   });
 
-  // Debug endpoint - list all profiles in database
+  // Debug endpoint - list all profiles in database (supports ?name=partial search)
   app.get("/api/debug/profiles", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      // Use storage.getAllProfiles() which is already defined
       const allProfiles = await storage.getAllProfiles();
+      const searchName = (req.query.name as string || "").toLowerCase();
+      
+      // Filter by partial name if search provided
+      const filtered = searchName 
+        ? allProfiles.filter(p => p.displayName?.toLowerCase().includes(searchName))
+        : allProfiles;
       
       res.json({
-        totalProfiles: allProfiles.length,
-        profiles: allProfiles.map(p => ({
+        searchTerm: searchName || null,
+        totalProfiles: filtered.length,
+        profiles: filtered.map(p => ({
           id: p.id,
           userId: p.userId,
           displayName: p.displayName,

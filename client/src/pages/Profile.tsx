@@ -651,6 +651,15 @@ export default function Profile() {
           <Button 
             variant="ghost" 
             size="icon" 
+            className="absolute top-3 left-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
+            onClick={() => logout()}
+            data-testid="button-logout-header"
+          >
+            <LogOut className="w-5 h-5 text-white" />
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
             className="absolute top-3 right-3 bg-white/20 hover:bg-white/30 backdrop-blur-sm"
             onClick={() => setShowSettings(true)}
             data-testid="button-settings"
@@ -681,9 +690,6 @@ export default function Profile() {
               </ObjectUploader>
             </div>
 
-            <Button variant="ghost" size="icon" className="mb-2" onClick={() => logout()} data-testid="button-logout">
-              <LogOut className="w-5 h-5 text-muted-foreground" />
-            </Button>
           </div>
 
           <div className="mb-8">

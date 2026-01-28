@@ -19,7 +19,7 @@ import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import type { MarketplaceListing, Profile } from "@shared/schema";
 import marketplaceBg from "@assets/IMG_4441_1769639666501.jpeg";
-import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 
@@ -645,6 +645,18 @@ export default function Marketplace() {
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
             />
+            {userCoords && (
+              <Circle
+                center={[userCoords.lat, userCoords.lng]}
+                radius={radius * 1609.34}
+                pathOptions={{
+                  color: '#3b82f6',
+                  fillColor: '#3b82f6',
+                  fillOpacity: 0.1,
+                  weight: 2,
+                }}
+              />
+            )}
             {listingsWithCoords.map((listing) => (
               <Marker
                 key={listing.id}

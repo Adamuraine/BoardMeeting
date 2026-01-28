@@ -8,7 +8,6 @@ import { useMyProfile } from "@/hooks/use-profiles";
 import { Loader2 } from "lucide-react";
 import BottomNav from "@/components/ui/bottom-nav";
 import { lazy, Suspense } from "react";
-import { TrialTimerModal } from "@/components/TrialTimerModal";
 
 import Landing from "@/pages/Landing";
 import Profile from "@/pages/Profile";
@@ -42,8 +41,9 @@ function ProtectedRoute({ component: Component, requiresProfile = true }: { comp
 
   if (!user) return <Redirect to="/" />;
   
+  // Send new users to profile page to complete their info (not separate onboarding)
   if (!profile && requiresProfile) {
-    return <Redirect to="/onboarding" />;
+    return <Redirect to="/profile" />;
   }
 
   return (
@@ -61,9 +61,9 @@ function BrowsableRoute({ component: Component }: { component: React.ComponentTy
   const { user, isLoading: authLoading } = useAuth();
   const { data: profile, isLoading: profileLoading } = useMyProfile();
 
-  // If logged in user without profile, redirect to onboarding
+  // If logged in user without profile, redirect to profile page to complete setup
   if (user && !authLoading && !profileLoading && !profile) {
-    return <Redirect to="/onboarding" />;
+    return <Redirect to="/profile" />;
   }
 
   return (
@@ -118,7 +118,7 @@ function Router() {
         <ProtectedRoute component={Messages} />
       </Route>
       <Route path="/profile">
-        <ProtectedRoute component={Profile} />
+        <ProtectedRoute component={Profile} requiresProfile={false} />
       </Route>
       <Route path="/post/new">
         <ProtectedRoute component={NewPost} />
@@ -134,7 +134,6 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
-        <TrialTimerModal />
         <Router />
       </TooltipProvider>
     </QueryClientProvider>

@@ -329,6 +329,13 @@ export async function registerRoutes(
     try {
       const input = insertSwipeSchema.parse({ ...req.body, swiperId: userId });
       
+      // Verify target user exists before creating swipe (prevents FK constraint errors)
+      const targetProfile = await storage.getProfile(input.swipedId);
+      if (!targetProfile) {
+        console.error(`[SWIPE] Target user ${input.swipedId} does not have a profile`);
+        return res.status(400).json({ message: "User not found", code: "USER_NOT_FOUND" });
+      }
+      
       // Check limits for free users
       const profile = await storage.getProfile(userId);
       if (!profile?.isPremium) {
@@ -348,10 +355,9 @@ export async function registerRoutes(
         
         // For demo profiles (seeded or mock), auto-create reverse swipe to enable matching
         if (!isMatch) {
-          const swipedProfile = await storage.getProfile(input.swipedId);
           // Auto-match with demo profiles (mock_user_ prefix or seeded @surf.com emails)
           const isDemo = input.swipedId.startsWith('mock_user_') || 
-                         (swipedProfile && !swipedProfile.bio?.includes('Real user'));
+                         (targetProfile && !targetProfile.bio?.includes('Real user'));
           
           if (isDemo) {
             // Create reverse swipe from demo profile to user
@@ -370,7 +376,9 @@ export async function registerRoutes(
       if (err instanceof z.ZodError) {
         return res.status(400).json({ message: err.errors });
       }
-      throw err;
+      // Log database errors for debugging
+      console.error(`[SWIPE] Error creating swipe:`, err);
+      return res.status(500).json({ message: "Failed to add buddy. Please try again." });
     }
   });
 

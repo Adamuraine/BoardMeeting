@@ -852,25 +852,50 @@ export async function registerRoutes(
     }
   });
 
-  // Debug endpoint - list all profiles in database (supports ?name=partial search)
+  // Debug endpoint - search profiles by displayName, user name, or email
   app.get("/api/debug/profiles", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     try {
-      const allProfiles = await storage.getAllProfiles();
-      const searchName = (req.query.name as string || "").toLowerCase();
+      const searchTerm = (req.query.name as string || "").toLowerCase();
       
-      // Filter by partial name if search provided
-      const filtered = searchName 
-        ? allProfiles.filter(p => p.displayName?.toLowerCase().includes(searchName))
-        : allProfiles;
+      // Join profiles with users to search across all fields
+      const allData = await db
+        .select({
+          profileId: profiles.id,
+          userId: profiles.userId,
+          displayName: profiles.displayName,
+          skillLevel: profiles.skillLevel,
+          location: profiles.location,
+          isIncompleteProfile: profiles.isIncompleteProfile,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName
+        })
+        .from(profiles)
+        .leftJoin(users, eq(profiles.userId, users.id));
+      
+      // Filter by search term across displayName, firstName, lastName, and email
+      const filtered = searchTerm 
+        ? allData.filter(p => {
+            const displayMatch = p.displayName?.toLowerCase().includes(searchTerm);
+            const firstNameMatch = p.firstName?.toLowerCase().includes(searchTerm);
+            const lastNameMatch = p.lastName?.toLowerCase().includes(searchTerm);
+            const emailMatch = p.email?.toLowerCase().includes(searchTerm);
+            const fullNameMatch = `${p.firstName || ''} ${p.lastName || ''}`.toLowerCase().includes(searchTerm);
+            return displayMatch || firstNameMatch || lastNameMatch || emailMatch || fullNameMatch;
+          })
+        : allData;
       
       res.json({
-        searchTerm: searchName || null,
+        searchTerm: searchTerm || null,
         totalProfiles: filtered.length,
         profiles: filtered.map(p => ({
-          id: p.id,
+          id: p.profileId,
           userId: p.userId,
           displayName: p.displayName,
+          firstName: p.firstName,
+          lastName: p.lastName,
+          email: p.email,
           skillLevel: p.skillLevel,
           location: p.location,
           isIncompleteProfile: p.isIncompleteProfile

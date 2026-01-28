@@ -411,7 +411,7 @@ export default function Marketplace() {
           <SelectTrigger className="w-[130px]" data-testid="select-category-filter">
             <SelectValue placeholder="Category" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" className="z-[9999]">
             <SelectItem value="all">All Categories</SelectItem>
             {CATEGORIES.map(cat => (
               <SelectItem key={cat.value} value={cat.value}>{cat.label}</SelectItem>
@@ -423,7 +423,7 @@ export default function Marketplace() {
           <SelectTrigger className="w-[130px]" data-testid="select-type-filter">
             <SelectValue placeholder="Type" />
           </SelectTrigger>
-          <SelectContent>
+          <SelectContent position="popper" className="z-[9999]">
             <SelectItem value="all">All Types</SelectItem>
             {LISTING_TYPES.map(lt => (
               <SelectItem key={lt.value} value={lt.value}>{lt.label}</SelectItem>

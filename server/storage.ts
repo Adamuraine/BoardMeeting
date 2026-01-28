@@ -512,10 +512,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getConversations(userId: string): Promise<{ buddy: Profile; lastMessage: Message; unreadCount: number }[]> {
+    console.log(`[MESSAGES] Getting conversations for user ${userId}`);
+    
     const allMessages = await db.select()
       .from(messages)
       .where(or(eq(messages.senderId, userId), eq(messages.receiverId, userId)))
       .orderBy(desc(messages.createdAt));
+    
+    console.log(`[MESSAGES] Found ${allMessages.length} messages for user ${userId}`);
     
     const buddyMap = new Map<string, { lastMessage: Message; unreadCount: number }>();
     
@@ -526,6 +530,7 @@ export class DatabaseStorage implements IStorage {
           m.senderId === buddyId && m.receiverId === userId && !m.read
         ).length;
         buddyMap.set(buddyId, { lastMessage: msg, unreadCount });
+        console.log(`[MESSAGES] Added conversation with buddy ${buddyId}, unread: ${unreadCount}`);
       }
     }
     
@@ -536,6 +541,45 @@ export class DatabaseStorage implements IStorage {
       const buddy = await this.getProfile(buddyId);
       if (buddy) {
         result.push({ buddy, ...data });
+      } else {
+        // Buddy profile not found - try to get user info and create placeholder
+        console.log(`[MESSAGES] Profile not found for buddy ${buddyId}, checking if user exists`);
+        const [user] = await db.select().from(users).where(eq(users.id, buddyId));
+        if (user) {
+          // Create a placeholder profile for display purposes
+          const placeholderProfile: Profile = {
+            id: 0,
+            userId: buddyId,
+            displayName: user.firstName || 'Unknown User',
+            bio: '',
+            gender: null,
+            age: null,
+            skillLevel: null,
+            location: null,
+            imageUrls: [],
+            tricks: null,
+            trophies: null,
+            fastestSpeed: 0,
+            longestWave: 0,
+            biggestWave: 0,
+            isPremium: false,
+            topBuddyIds: null,
+            buddiesPublic: true,
+            endurance: null,
+            tripExpectations: null,
+            stripeCustomerId: null,
+            stripeSubscriptionId: null,
+            openToGuiding: false,
+            isIncompleteProfile: true,
+            trialStartedAt: null,
+            scheduleType: null,
+            availability: null,
+          };
+          result.push({ buddy: placeholderProfile, ...data });
+          console.log(`[MESSAGES] Created placeholder profile for user ${buddyId} (${user.firstName})`);
+        } else {
+          console.log(`[MESSAGES] User ${buddyId} not found in users table, skipping conversation`);
+        }
       }
     }
     

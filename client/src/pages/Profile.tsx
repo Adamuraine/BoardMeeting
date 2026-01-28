@@ -41,6 +41,11 @@ export default function Profile() {
   const [bioText, setBioText] = useState("");
   const [editingAvailability, setEditingAvailability] = useState(false);
   const [scheduleType, setScheduleType] = useState<string>("");
+  const [editingName, setEditingName] = useState(false);
+  const [nameText, setNameText] = useState("");
+  const [editingDetails, setEditingDetails] = useState(false);
+  const [detailsLocation, setDetailsLocation] = useState("");
+  const [detailsSkillLevel, setDetailsSkillLevel] = useState("");
   const [availabilitySlots, setAvailabilitySlots] = useState<Array<{day: string, startTime: string, endTime: string}>>([]);
   const { toast } = useToast();
   const manageSubscription = useManageSubscription();
@@ -332,20 +337,17 @@ export default function Profile() {
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
       {profile?.isIncompleteProfile && (
-        <Link href="/onboarding">
-          <div className="bg-gradient-to-r from-primary to-cyan-500 text-primary-foreground p-3 mb-4 rounded-xl flex items-center justify-between cursor-pointer hover-elevate" data-testid="banner-complete-profile">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-                <Pencil className="w-4 h-4" />
-              </div>
-              <div>
-                <p className="font-medium text-sm">Complete your profile</p>
-                <p className="text-xs opacity-80">Add photos and details to connect with surfers</p>
-              </div>
+        <div className="bg-gradient-to-r from-primary to-cyan-500 text-primary-foreground p-3 mb-4 rounded-xl flex items-center justify-between" data-testid="banner-complete-profile">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+              <Pencil className="w-4 h-4" />
             </div>
-            <Button size="sm" variant="secondary" className="shrink-0">Set Up</Button>
+            <div>
+              <p className="font-medium text-sm">Add your details below</p>
+              <p className="text-xs opacity-80">Tap the edit icons to update your profile</p>
+            </div>
           </div>
-        </Link>
+        </div>
       )}
       
       <Dialog open={!!selectedTrip} onOpenChange={(open) => !open && setSelectedTrip(null)}>
@@ -694,11 +696,109 @@ export default function Profile() {
           </div>
 
           <div className="mb-8">
-            <h1 className="text-3xl font-display font-bold text-foreground flex items-center gap-2">
-              {profile.displayName}
-              {profile.isPremium && <Crown className="w-5 h-5 text-accent fill-current" />}
-            </h1>
-            <p className="text-muted-foreground">{profile.location} - {profile.skillLevel} Surfer</p>
+            {editingName ? (
+              <div className="space-y-2 mb-2">
+                <input
+                  type="text"
+                  value={nameText}
+                  onChange={(e) => setNameText(e.target.value)}
+                  className="text-2xl font-display font-bold text-foreground bg-transparent border-b-2 border-primary focus:outline-none w-full"
+                  placeholder="Your display name"
+                  data-testid="input-display-name"
+                  autoFocus
+                />
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    onClick={() => {
+                      updateProfileMutation.mutate({ displayName: nameText });
+                      setEditingName(false);
+                    }}
+                    data-testid="button-save-name"
+                  >
+                    <Check className="h-4 w-4 mr-1" /> Save
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingName(false)}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <h1 
+                className="text-3xl font-display font-bold text-foreground flex items-center gap-2 cursor-pointer group"
+                onClick={() => { setNameText(profile.displayName || ""); setEditingName(true); }}
+                data-testid="display-name"
+              >
+                {profile.displayName || "Tap to add name"}
+                {profile.isPremium && <Crown className="w-5 h-5 text-accent fill-current" />}
+                <Pencil className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+              </h1>
+            )}
+            
+            {editingDetails ? (
+              <div className="space-y-3 mt-2 p-3 bg-secondary/30 rounded-lg">
+                <div>
+                  <label className="text-xs text-muted-foreground">Location</label>
+                  <input
+                    type="text"
+                    value={detailsLocation}
+                    onChange={(e) => setDetailsLocation(e.target.value)}
+                    className="w-full bg-transparent border-b border-muted-foreground/30 focus:border-primary focus:outline-none py-1"
+                    placeholder="e.g. San Diego, CA"
+                    list="location-suggestions"
+                    data-testid="input-location"
+                  />
+                  <datalist id="location-suggestions">
+                    {["San Diego, CA", "Los Angeles, CA", "Orange County, CA", "Santa Cruz, CA", "San Francisco, CA", "Hawaii", "Florida", "East Coast", "Other"].map(loc => (
+                      <option key={loc} value={loc} />
+                    ))}
+                  </datalist>
+                </div>
+                <div>
+                  <label className="text-xs text-muted-foreground">Skill Level</label>
+                  <select
+                    value={detailsSkillLevel}
+                    onChange={(e) => setDetailsSkillLevel(e.target.value)}
+                    className="w-full bg-transparent border-b border-muted-foreground/30 focus:border-primary focus:outline-none py-1"
+                    data-testid="select-skill-level"
+                  >
+                    <option value="beginner">Beginner</option>
+                    <option value="intermediate">Intermediate</option>
+                    <option value="advanced">Advanced</option>
+                    <option value="pro">Pro</option>
+                  </select>
+                </div>
+                <div className="flex gap-2">
+                  <Button 
+                    size="sm" 
+                    onClick={() => {
+                      updateProfileMutation.mutate({ 
+                        location: detailsLocation, 
+                        skillLevel: detailsSkillLevel,
+                        isIncompleteProfile: false 
+                      });
+                      setEditingDetails(false);
+                    }}
+                    data-testid="button-save-details"
+                  >
+                    <Check className="h-4 w-4 mr-1" /> Save
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setEditingDetails(false)}>Cancel</Button>
+                </div>
+              </div>
+            ) : (
+              <p 
+                className="text-muted-foreground cursor-pointer group flex items-center gap-1"
+                onClick={() => { 
+                  setDetailsLocation(profile.location || ""); 
+                  setDetailsSkillLevel(profile.skillLevel || "intermediate"); 
+                  setEditingDetails(true); 
+                }}
+                data-testid="profile-details"
+              >
+                {profile.location || "Add location"} - {profile.skillLevel || "intermediate"} Surfer
+                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+              </p>
+            )}
+            
             {profile.openToGuiding && (
               <Badge 
                 className="mt-2 bg-green-500 text-white border-green-600"

@@ -39,8 +39,8 @@ export default function BottomNav() {
                 "flex flex-col items-center gap-0.5 p-1 rounded-md transition-colors cursor-pointer",
                 isActive ? "text-primary" : "text-muted-foreground hover:text-primary/70"
               )}>
-                <Icon className={cn("h-4 w-4", isActive && "fill-current/20")} />
-                <span className="text-[8px] font-medium">{label}</span>
+                <Icon className={cn("h-5 w-5", isActive && "fill-current/20")} />
+                <span className="text-[10px] font-medium">{label}</span>
               </div>
             </Link>
           );

@@ -620,14 +620,47 @@ function WaveIcon({ height, rating }: { height: number; rating: string }) {
   );
 }
 
-// Fetch surf data from backend API (using Stormglass data)
-async function fetchSurfData(lat: number, lng: number) {
+// Check if coordinates are in California (roughly)
+function isCaliforniaCoords(lat: number, lng: number): boolean {
+  return lat >= 32.5 && lat <= 42 && lng >= -124.5 && lng <= -114;
+}
+
+// Fetch surf data from backend API (priority: Spitcast for CA, then Stormglass, then Open-Meteo)
+async function fetchSurfData(lat: number, lng: number, spotName?: string) {
   try {
-    // First, try to find a matching location from the backend
+    // For California spots, try Spitcast first (most accurate for CA)
+    if (isCaliforniaCoords(lat, lng)) {
+      try {
+        const spitcastUrl = spotName 
+          ? `/api/surf/spitcast/forecast?name=${encodeURIComponent(spotName)}&lat=${lat}&lng=${lng}`
+          : `/api/surf/spitcast/forecast?lat=${lat}&lng=${lng}`;
+        
+        const spitcastResponse = await fetch(spitcastUrl);
+        
+        if (spitcastResponse.ok) {
+          const spitcastData = await spitcastResponse.json();
+          if (spitcastData && spitcastData.length > 0) {
+            return spitcastData.map((report: any) => ({
+              date: report.date,
+              waveHeightMin: report.waveHeightMin || 1,
+              waveHeightMax: report.waveHeightMax || 2,
+              rating: report.rating || 'fair',
+              windDirection: 'SW',
+              period: 10,
+              source: 'spitcast',
+              spotName: report.spotName,
+            }));
+          }
+        }
+      } catch (spitcastError) {
+        console.log('Spitcast not available, trying other sources');
+      }
+    }
+
+    // Try to find a matching location from the backend (Stormglass data)
     const response = await fetch('/api/locations');
     const locations = await response.json();
     
-    // Find the closest location to the given coordinates (within ~0.5 degree)
     const matchingLocation = locations.find((loc: any) => {
       const latDiff = Math.abs(parseFloat(loc.latitude) - lat);
       const lngDiff = Math.abs(parseFloat(loc.longitude) - lng);
@@ -635,7 +668,6 @@ async function fetchSurfData(lat: number, lng: number) {
     });
     
     if (matchingLocation && matchingLocation.reports && matchingLocation.reports.length > 0) {
-      // Use backend Stormglass data
       return matchingLocation.reports.map((report: any) => ({
         date: report.date,
         waveHeightMin: report.waveHeightMin || 1,
@@ -643,6 +675,7 @@ async function fetchSurfData(lat: number, lng: number) {
         rating: report.rating || 'fair',
         windDirection: report.windDirection || 'SW',
         period: report.swellPeriodSec || 10,
+        source: 'stormglass',
       }));
     }
     
@@ -675,6 +708,7 @@ async function fetchSurfData(lat: number, lng: number) {
         rating,
         windDirection,
         period,
+        source: 'open-meteo',
       };
     });
   } catch (error) {
@@ -693,8 +727,8 @@ function SpotCard({ spot, onRemove, onAddSpot, allSpots }: {
   const today = new Date();
   
   const { data: reports, isLoading } = useQuery({
-    queryKey: ['surf-data', selectedSpot.lat, selectedSpot.lng],
-    queryFn: () => fetchSurfData(selectedSpot.lat, selectedSpot.lng),
+    queryKey: ['surf-data', selectedSpot.name, selectedSpot.lat, selectedSpot.lng],
+    queryFn: () => fetchSurfData(selectedSpot.lat, selectedSpot.lng, selectedSpot.name),
     staleTime: 1000 * 60 * 30, // 30 minutes
   });
   

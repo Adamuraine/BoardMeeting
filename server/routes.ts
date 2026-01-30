@@ -12,6 +12,7 @@ import { users } from "@shared/models/auth";
 import { eq, or, desc } from "drizzle-orm";
 import { messages } from "@shared/schema";
 import { fetchStormglassForecast } from "./stormglassService";
+import { getSpitcastForecastByCoords, getSpitcastForecastByName, getSpitcastSpots } from "./spitcastService";
 
 // Track API usage to stay within 50 requests/day limit
 let dailyRequestCount = 0;
@@ -480,6 +481,46 @@ export async function registerRoutes(
     const location = await storage.getLocation(Number(req.params.id));
     if (!location) return res.sendStatus(404);
     res.json(location);
+  });
+
+  // === SPITCAST SURF DATA (California spots) ===
+  app.get("/api/surf/spitcast/spots", async (req, res) => {
+    try {
+      const spots = await getSpitcastSpots();
+      res.json(spots);
+    } catch (error) {
+      res.status(500).json({ error: "Failed to fetch Spitcast spots" });
+    }
+  });
+
+  app.get("/api/surf/spitcast/forecast", async (req, res) => {
+    try {
+      const { lat, lng, name } = req.query;
+      
+      let forecast = null;
+      
+      if (name && typeof name === 'string') {
+        forecast = await getSpitcastForecastByName(name);
+      } else if (lat && lng) {
+        const latitude = parseFloat(lat as string);
+        const longitude = parseFloat(lng as string);
+        if (!isNaN(latitude) && !isNaN(longitude)) {
+          forecast = await getSpitcastForecastByCoords(latitude, longitude);
+        }
+      }
+      
+      if (!forecast) {
+        return res.status(404).json({ 
+          error: "No Spitcast data available for this location",
+          message: "Spitcast only covers California surf spots"
+        });
+      }
+      
+      res.json(forecast);
+    } catch (error) {
+      console.error("Spitcast forecast error:", error);
+      res.status(500).json({ error: "Failed to fetch Spitcast forecast" });
+    }
   });
 
   // === TRIPS ===

@@ -8,6 +8,14 @@ Board Meeting is a social mobile-first web application for surfers to connect wi
 
 Preferred communication style: Simple, everyday language.
 
+## Recent Updates (January 2026)
+- Massively expanded surf spot database from ~382 to 600+ worldwide locations
+- Added 40+ Hawaii spots across all islands (North Shore, South Shore, Maui, Kauai, Big Island)
+- Added 50+ East Coast USA spots (New Jersey, New York, North Carolina, South Carolina, Florida, Massachusetts, Rhode Island, Virginia, Maryland)
+- Added extensive international coverage: Europe (30+ spots), Indonesia (30+ spots), Australia (25+ spots), plus more in Asia, Africa, Oceania, and Caribbean
+- Verified Southern California already had comprehensive coverage matching Surfline.com
+- Texas Gulf, Pacific Northwest, and global surf destinations now fully represented
+
 ## System Architecture
 
 ### Frontend Architecture

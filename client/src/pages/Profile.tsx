@@ -2,10 +2,10 @@ import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Sparkles } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import { PremiumModal } from "@/components/PremiumModal";
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
 import { Badge } from "@/components/ui/badge";
@@ -108,6 +108,34 @@ export default function Profile() {
       queryClient.invalidateQueries({ queryKey: ["/api/profiles/me"] });
     },
   });
+
+  // Auto-save helper with debounce
+  const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const autoSave = useCallback((updates: Partial<ProfileType>) => {
+    if (autoSaveTimeoutRef.current) {
+      clearTimeout(autoSaveTimeoutRef.current);
+    }
+    autoSaveTimeoutRef.current = setTimeout(() => {
+      updateProfileMutation.mutate(updates);
+    }, 1000);
+  }, [updateProfileMutation]);
+
+  // Clear auto-save timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (autoSaveTimeoutRef.current) {
+        clearTimeout(autoSaveTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Check what fields are missing for profile completion
+  const missingFields = {
+    name: !profile?.displayName || profile.displayName.trim() === "",
+    photo: !profile?.imageUrls || profile.imageUrls.length === 0,
+    bio: !profile?.bio || profile.bio.trim() === "",
+  };
+  const isNewUser = profile?.isIncompleteProfile || (missingFields.name && missingFields.photo && missingFields.bio);
 
   const pendingPathsRef = useRef(new Map<string, string>());
 
@@ -336,16 +364,33 @@ export default function Profile() {
     <Layout>
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
       
-      {profile?.isIncompleteProfile && (
-        <div className="bg-gradient-to-r from-primary to-cyan-500 text-primary-foreground p-3 mb-4 rounded-xl flex items-center justify-between" data-testid="banner-complete-profile">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
-              <Pencil className="w-4 h-4" />
+      {isNewUser && (
+        <div className="bg-gradient-to-r from-primary to-cyan-500 text-primary-foreground p-4 mb-4 rounded-xl" data-testid="banner-complete-profile">
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+              <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-medium text-sm">Add your details below</p>
-              <p className="text-xs opacity-80">Tap the edit icons to update your profile</p>
+              <p className="font-bold text-base">Welcome to Board Meeting!</p>
+              <p className="text-sm opacity-90">Complete your profile to start matching with surf buddies</p>
             </div>
+          </div>
+          <div className="flex flex-wrap gap-2 mt-2">
+            {missingFields.photo && (
+              <Badge className="bg-white/20 text-white border-0 gap-1.5" data-testid="badge-missing-photo">
+                <Camera className="w-3 h-3" /> Add Photo
+              </Badge>
+            )}
+            {missingFields.name && (
+              <Badge className="bg-white/20 text-white border-0 gap-1.5" data-testid="badge-missing-name">
+                <Pencil className="w-3 h-3" /> Add Name
+              </Badge>
+            )}
+            {missingFields.bio && (
+              <Badge className="bg-white/20 text-white border-0 gap-1.5" data-testid="badge-missing-bio">
+                <MessageSquare className="w-3 h-3" /> Add About
+              </Badge>
+            )}
           </div>
         </div>
       )}
@@ -674,20 +719,35 @@ export default function Profile() {
         <div className="px-6 -mt-10">
           <div className="flex justify-between items-end mb-6">
             <div className="relative">
-              <div className="w-32 h-32 rounded-full border-4 border-background bg-secondary overflow-hidden shadow-xl">
-                 <SafeImage 
-                   src={profile.imageUrls?.[0]} 
-                   alt={profile.displayName} 
-                   className="w-full h-full object-cover"
-                   showNoPhotoText={false}
-                 />
+              <div className={`w-32 h-32 rounded-full border-4 bg-secondary overflow-hidden shadow-xl ${
+                missingFields.photo && isNewUser 
+                  ? 'border-primary ring-4 ring-primary/30 animate-pulse' 
+                  : 'border-background'
+              }`}>
+                 {missingFields.photo ? (
+                   <div className="w-full h-full flex flex-col items-center justify-center bg-primary/10">
+                     <Camera className="w-10 h-10 text-primary mb-1" />
+                     <span className="text-xs text-primary font-medium">Add Photo</span>
+                   </div>
+                 ) : (
+                   <SafeImage 
+                     src={profile.imageUrls?.[0]} 
+                     alt={profile.displayName} 
+                     className="w-full h-full object-cover"
+                     showNoPhotoText={false}
+                   />
+                 )}
               </div>
               <ObjectUploader
                 maxNumberOfFiles={1}
                 maxFileSize={10485760}
                 onGetUploadParameters={getUploadParams}
                 onComplete={handleProfilePhotoComplete}
-                buttonClassName="absolute bottom-0 right-0 w-8 h-8 bg-foreground text-background rounded-full flex items-center justify-center border-2 border-background p-0 hover:bg-foreground/90"
+                buttonClassName={`absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center border-2 border-background p-0 ${
+                  missingFields.photo && isNewUser
+                    ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                    : 'bg-foreground text-background hover:bg-foreground/90'
+                }`}
               >
                 <Camera className="w-4 h-4" />
               </ObjectUploader>
@@ -701,36 +761,49 @@ export default function Profile() {
                 <input
                   type="text"
                   value={nameText}
-                  onChange={(e) => setNameText(e.target.value)}
+                  onChange={(e) => {
+                    setNameText(e.target.value);
+                    autoSave({ displayName: e.target.value });
+                  }}
                   className="text-2xl font-display font-bold text-foreground bg-transparent border-b-2 border-primary focus:outline-none w-full"
                   placeholder="Your display name"
                   data-testid="input-display-name"
                   autoFocus
-                />
-                <div className="flex gap-2">
-                  <Button 
-                    size="sm" 
-                    onClick={() => {
+                  onBlur={() => {
+                    if (nameText.trim()) {
                       updateProfileMutation.mutate({ displayName: nameText });
-                      setEditingName(false);
-                    }}
-                    data-testid="button-save-name"
-                  >
-                    <Check className="h-4 w-4 mr-1" /> Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingName(false)}>Cancel</Button>
-                </div>
+                    }
+                    setEditingName(false);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">Changes save automatically</p>
               </div>
             ) : (
-              <h1 
-                className="text-3xl font-display font-bold text-foreground flex items-center gap-2 cursor-pointer group"
+              <div 
+                className={`cursor-pointer group ${
+                  missingFields.name && isNewUser 
+                    ? 'p-3 -m-3 rounded-lg border-2 border-dashed border-primary bg-primary/5' 
+                    : ''
+                }`}
                 onClick={() => { setNameText(profile.displayName || ""); setEditingName(true); }}
                 data-testid="display-name"
               >
-                {profile.displayName || "Tap to add name"}
-                {profile.isPremium && <Crown className="w-5 h-5 text-accent fill-current" />}
-                <Pencil className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
-              </h1>
+                <h1 className={`text-3xl font-display font-bold flex items-center gap-2 ${
+                  missingFields.name ? 'text-primary' : 'text-foreground'
+                }`}>
+                  {missingFields.name ? (
+                    <>
+                      <Pencil className="w-5 h-5" /> Tap to add your name
+                    </>
+                  ) : (
+                    <>
+                      {profile.displayName}
+                      {profile.isPremium && <Crown className="w-5 h-5 text-accent fill-current" />}
+                      <Pencil className="w-4 h-4 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    </>
+                  )}
+                </h1>
+              </div>
             )}
             
             {editingDetails ? (
@@ -740,7 +813,10 @@ export default function Profile() {
                   <input
                     type="text"
                     value={detailsLocation}
-                    onChange={(e) => setDetailsLocation(e.target.value)}
+                    onChange={(e) => {
+                      setDetailsLocation(e.target.value);
+                      autoSave({ location: e.target.value });
+                    }}
                     className="w-full bg-transparent border-b border-muted-foreground/30 focus:border-primary focus:outline-none py-1"
                     placeholder="e.g. San Diego, CA"
                     list="location-suggestions"
@@ -756,7 +832,10 @@ export default function Profile() {
                   <label className="text-xs text-muted-foreground">Skill Level</label>
                   <select
                     value={detailsSkillLevel}
-                    onChange={(e) => setDetailsSkillLevel(e.target.value)}
+                    onChange={(e) => {
+                      setDetailsSkillLevel(e.target.value);
+                      autoSave({ skillLevel: e.target.value });
+                    }}
                     className="w-full bg-transparent border-b border-muted-foreground/30 focus:border-primary focus:outline-none py-1"
                     data-testid="select-skill-level"
                   >
@@ -767,9 +846,11 @@ export default function Profile() {
                     <option value="pro">Pro</option>
                   </select>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-xs text-muted-foreground">Changes save automatically</p>
                   <Button 
                     size="sm" 
+                    variant="ghost"
                     onClick={() => {
                       updateProfileMutation.mutate({ 
                         location: detailsLocation, 
@@ -778,11 +859,10 @@ export default function Profile() {
                       });
                       setEditingDetails(false);
                     }}
-                    data-testid="button-save-details"
+                    data-testid="button-done-details"
                   >
-                    <Check className="h-4 w-4 mr-1" /> Save
+                    <Check className="h-4 w-4 mr-1" /> Done
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditingDetails(false)}>Cancel</Button>
                 </div>
               </div>
             ) : (
@@ -812,13 +892,22 @@ export default function Profile() {
           </div>
 
           <div className="space-y-8">
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
-                <span>About</span>
+            <div className={`${
+              missingFields.bio && isNewUser 
+                ? 'p-4 -mx-4 rounded-lg border-2 border-dashed border-primary bg-primary/5' 
+                : ''
+            }`}>
+              <h3 className={`text-sm font-bold uppercase tracking-wider mb-3 flex items-center justify-between ${
+                missingFields.bio && isNewUser ? 'text-primary' : 'text-muted-foreground'
+              }`}>
+                <span className="flex items-center gap-2">
+                  {missingFields.bio && isNewUser && <MessageSquare className="h-4 w-4" />}
+                  About
+                </span>
                 {!editingBio && (
                   <Button 
                     size="icon" 
-                    variant="ghost" 
+                    variant={missingFields.bio && isNewUser ? "default" : "ghost"}
                     onClick={handleEditBio}
                     data-testid="button-edit-bio"
                   >
@@ -830,35 +919,47 @@ export default function Profile() {
                 <div className="space-y-2">
                   <Textarea
                     value={bioText}
-                    onChange={(e) => setBioText(e.target.value)}
-                    placeholder="Write something about yourself..."
+                    onChange={(e) => {
+                      setBioText(e.target.value);
+                      autoSave({ bio: e.target.value });
+                    }}
+                    placeholder="Write something about yourself... What kind of waves do you like? How long have you been surfing?"
                     className="min-h-[100px] resize-none"
                     data-testid="input-bio"
+                    onBlur={() => {
+                      if (bioText.trim()) {
+                        updateProfileMutation.mutate({ bio: bioText });
+                      }
+                    }}
                   />
-                  <div className="flex gap-2 justify-end">
+                  <div className="flex items-center justify-between">
+                    <p className="text-xs text-muted-foreground">Changes save automatically</p>
                     <Button 
                       size="sm" 
                       variant="ghost" 
                       onClick={() => setEditingBio(false)}
-                      data-testid="button-cancel-bio"
-                    >
-                      Cancel
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      onClick={handleSaveBio}
-                      disabled={updateProfileMutation.isPending}
-                      data-testid="button-save-bio"
+                      data-testid="button-done-bio"
                     >
                       <Check className="h-4 w-4 mr-1" />
-                      Save
+                      Done
                     </Button>
                   </div>
                 </div>
               ) : (
-                <p className="text-foreground/80 leading-relaxed">
-                  {profile.bio || "No bio yet. Tap the pencil to add one!"}
-                </p>
+                <div 
+                  className="cursor-pointer" 
+                  onClick={handleEditBio}
+                >
+                  {missingFields.bio ? (
+                    <p className="text-primary font-medium flex items-center gap-2">
+                      <Pencil className="w-4 h-4" /> Tap to add an introduction
+                    </p>
+                  ) : (
+                    <p className="text-foreground/80 leading-relaxed">
+                      {profile.bio}
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 

@@ -53,6 +53,9 @@ Preferred communication style: Simple, everyday language.
 ### New User Flow
 - **Auto-profile creation**: When users sign in, a profile is auto-created with their full name (firstName + lastName) and profile picture from Replit
 - **No separate onboarding**: New users go directly to /profile with `isIncompleteProfile: true`
+- **Visual field highlighting**: Missing required fields (Name, Photo, About) are highlighted with dashed borders and primary color
+- **Welcome banner**: New users see a "Welcome to Board Meeting!" banner showing which fields they need to complete
+- **Auto-save**: All profile fields save automatically with 1-second debounce - no need to click Save buttons
 - **Inline editing**: Users can tap on their name, location, or skill level to edit them directly on the profile page
 - **Search visibility**: Incomplete profiles ARE visible in searches (no filtering out new users)
 - **Search fields**: displayName, firstName, lastName, email, and full name combinations

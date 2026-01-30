@@ -46,6 +46,10 @@ export default function Profile() {
   const [editingDetails, setEditingDetails] = useState(false);
   const [detailsLocation, setDetailsLocation] = useState("");
   const [detailsSkillLevel, setDetailsSkillLevel] = useState("");
+  const [editingStats, setEditingStats] = useState(false);
+  const [statsFastestSpeed, setStatsFastestSpeed] = useState(0);
+  const [statsBiggestWave, setStatsBiggestWave] = useState(0);
+  const [statsLongestWave, setStatsLongestWave] = useState(0);
   const [availabilitySlots, setAvailabilitySlots] = useState<Array<{day: string, startTime: string, endTime: string}>>([]);
   const { toast } = useToast();
   const manageSubscription = useManageSubscription();
@@ -1348,25 +1352,133 @@ export default function Profile() {
             </div>
 
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">Stats</h3>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary">{profile.fastestSpeed || 0}</div>
-                  <div className="text-xs text-muted-foreground">Top Speed (mph)</div>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Stats
+                </span>
+                {!editingStats && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost"
+                    onClick={() => {
+                      setStatsFastestSpeed(profile.fastestSpeed || 0);
+                      setStatsBiggestWave(profile.biggestWave || 0);
+                      setStatsLongestWave(profile.longestWave || 0);
+                      setEditingStats(true);
+                    }}
+                    data-testid="button-edit-stats"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </h3>
+              
+              {editingStats ? (
+                <div className="space-y-4 p-4 bg-secondary/30 rounded-xl border border-border/50">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Top Speed (mph)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={statsFastestSpeed}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setStatsFastestSpeed(val);
+                          autoSave({ fastestSpeed: val });
+                        }}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xl font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        data-testid="input-fastest-speed"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Biggest Wave (ft)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="100"
+                        value={statsBiggestWave}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setStatsBiggestWave(val);
+                          autoSave({ biggestWave: val });
+                        }}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xl font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        data-testid="input-biggest-wave"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-xs text-muted-foreground block mb-1">Longest Ride (yds)</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max="1000"
+                        value={statsLongestWave}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value) || 0;
+                          setStatsLongestWave(val);
+                          autoSave({ longestWave: val });
+                        }}
+                        className="w-full bg-background border border-border rounded-lg px-3 py-2 text-xl font-bold text-primary focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        data-testid="input-longest-wave"
+                      />
+                    </div>
+                    <div className="flex flex-col justify-center">
+                      <div className="text-xs text-muted-foreground mb-1">Skill Level</div>
+                      <div className="text-xl font-bold text-primary capitalize">{profile.skillLevel}</div>
+                      <div className="text-xs text-muted-foreground">(Edit above)</div>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground">Changes save automatically</p>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => {
+                        updateProfileMutation.mutate({
+                          fastestSpeed: statsFastestSpeed,
+                          biggestWave: statsBiggestWave,
+                          longestWave: statsLongestWave,
+                        });
+                        setEditingStats(false);
+                      }}
+                      data-testid="button-done-stats"
+                    >
+                      <Check className="h-4 w-4 mr-1" /> Done
+                    </Button>
+                  </div>
                 </div>
-                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary">{profile.biggestWave || 0}</div>
-                  <div className="text-xs text-muted-foreground">Biggest Wave (ft)</div>
+              ) : (
+                <div 
+                  className="grid grid-cols-2 gap-4 cursor-pointer"
+                  onClick={() => {
+                    setStatsFastestSpeed(profile.fastestSpeed || 0);
+                    setStatsBiggestWave(profile.biggestWave || 0);
+                    setStatsLongestWave(profile.longestWave || 0);
+                    setEditingStats(true);
+                  }}
+                >
+                  <div className="bg-secondary/30 p-4 rounded-xl border border-border/50 hover:border-primary/30 transition-colors">
+                    <div className="text-2xl font-bold font-display text-primary">{profile.fastestSpeed || 0}</div>
+                    <div className="text-xs text-muted-foreground">Top Speed (mph)</div>
+                  </div>
+                  <div className="bg-secondary/30 p-4 rounded-xl border border-border/50 hover:border-primary/30 transition-colors">
+                    <div className="text-2xl font-bold font-display text-primary">{profile.biggestWave || 0}</div>
+                    <div className="text-xs text-muted-foreground">Biggest Wave (ft)</div>
+                  </div>
+                  <div className="bg-secondary/30 p-4 rounded-xl border border-border/50 hover:border-primary/30 transition-colors">
+                    <div className="text-2xl font-bold font-display text-primary">{profile.longestWave || 0}</div>
+                    <div className="text-xs text-muted-foreground">Longest Ride (yds)</div>
+                  </div>
+                  <div className="bg-secondary/30 p-4 rounded-xl border border-border/50 hover:border-primary/30 transition-colors">
+                    <div className="text-2xl font-bold font-display text-primary capitalize">{profile.skillLevel}</div>
+                    <div className="text-xs text-muted-foreground">Skill Level</div>
+                  </div>
                 </div>
-                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary">{profile.longestWave || 0}</div>
-                  <div className="text-xs text-muted-foreground">Longest Ride (yds)</div>
-                </div>
-                <div className="bg-secondary/30 p-4 rounded-xl border border-border/50">
-                  <div className="text-2xl font-bold font-display text-primary capitalize">{profile.skillLevel}</div>
-                  <div className="text-xs text-muted-foreground">Skill Level</div>
-                </div>
-              </div>
+              )}
+              <p className="text-xs text-muted-foreground mt-2">Tap to edit your personal records</p>
             </div>
 
             <div>
@@ -1420,7 +1532,10 @@ export default function Profile() {
             </div>
           )}
 
-          <div className="mb-8">
+          <div className="mt-16 pt-8 border-t border-border/50">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-4 text-center">
+              Get the App
+            </h3>
             <InstallAppButton />
           </div>
         </div>

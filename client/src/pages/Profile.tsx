@@ -21,8 +21,10 @@ import { format } from "date-fns";
 import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { InstallAppButton } from "@/components/InstallAppButton";
 
@@ -50,7 +52,27 @@ export default function Profile() {
   const [statsFastestSpeed, setStatsFastestSpeed] = useState(0);
   const [statsBiggestWave, setStatsBiggestWave] = useState(0);
   const [statsLongestWave, setStatsLongestWave] = useState(0);
+  const [editingTricks, setEditingTricks] = useState(false);
+  const [tricksList, setTricksList] = useState<string[]>([]);
+  const [customTrick, setCustomTrick] = useState("");
   const [availabilitySlots, setAvailabilitySlots] = useState<Array<{day: string, startTime: string, endTime: string}>>([]);
+
+  // Predefined surf tricks for dropdown
+  const PREDEFINED_TRICKS = [
+    // Beginner
+    "Pop Up", "Turtle Roll", "Duck Dive", "Trimming", "Bottom Turn",
+    // Intermediate
+    "Cutback", "Floater", "Top Turn", "Roundhouse Cutback", "Off the Lip",
+    "Re-entry", "Snap", "Foam Climb", "Carving", "Frontside Turn",
+    // Advanced
+    "Tube Ride", "Barrel", "Aerial", "360", "Air Reverse",
+    "Alley Oop", "Rodeo Flip", "Superman", "Kerrupt Flip", "Full Rotation",
+    // Pro
+    "Backflip", "Frontflip", "Double Rotation", "Cork", "Inverted Aerial",
+    // Longboard
+    "Cross Step", "Hang Five", "Hang Ten", "Nose Ride", "Drop Knee Turn",
+    "Soul Arch", "Cheater Five", "Walking the Board",
+  ];
   const { toast } = useToast();
   const manageSubscription = useManageSubscription();
 
@@ -1482,35 +1504,175 @@ export default function Profile() {
             </div>
 
             <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-                <TrendingUp className="h-4 w-4" />
-                Tricks Mastered ({profile.tricks?.length || 0})
-              </h3>
-              <div className="flex flex-wrap gap-2">
-                {profile.tricks?.length ? (
-                  profile.tricks.map((trick: string) => (
-                    <a
-                      key={trick}
-                      href={`https://www.youtube.com/results?search_query=surfing+${encodeURIComponent(trick)}+tutorial`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group"
-                    >
-                      <Badge 
-                        variant="secondary"
-                        className="cursor-pointer hover-elevate flex items-center gap-1.5"
-                        data-testid={`profile-badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
-                      >
-                        {trick}
-                        <SiYoutube className="w-3 h-3 text-red-500 opacity-70 group-hover:opacity-100" />
-                      </Badge>
-                    </a>
-                  ))
-                ) : (
-                  <p className="text-sm text-muted-foreground italic">No tricks logged yet. Add tricks from the Stats page!</p>
+              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Tricks Mastered ({profile.tricks?.length || 0})
+                </span>
+                {!editingTricks && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost"
+                    onClick={() => {
+                      setTricksList(profile.tricks || []);
+                      setCustomTrick("");
+                      setEditingTricks(true);
+                    }}
+                    data-testid="button-edit-tricks"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
                 )}
-              </div>
-              {profile.tricks?.length ? (
+              </h3>
+              
+              {editingTricks ? (
+                <div className="space-y-4 p-4 bg-secondary/30 rounded-xl border border-border/50">
+                  {/* Current tricks with remove buttons */}
+                  <div className="flex flex-wrap gap-2">
+                    {tricksList.map((trick: string, index: number) => (
+                      <div key={`${trick}-${index}`} className="flex items-center gap-1">
+                        <Badge 
+                          variant="secondary"
+                          data-testid={`badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          {trick}
+                        </Badge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            const newTricks = tricksList.filter((_, i) => i !== index);
+                            setTricksList(newTricks);
+                            autoSave({ tricks: newTricks });
+                          }}
+                          data-testid={`button-remove-trick-${index}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {tricksList.length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No tricks yet. Add some below!</p>
+                    )}
+                  </div>
+                  
+                  {/* Dropdown to select from predefined tricks */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1">Select a trick</Label>
+                    <Select
+                      value=""
+                      onValueChange={(value) => {
+                        if (value && !tricksList.includes(value)) {
+                          const newTricks = [...tricksList, value];
+                          setTricksList(newTricks);
+                          autoSave({ tricks: newTricks });
+                        }
+                      }}
+                    >
+                      <SelectTrigger data-testid="select-trick">
+                        <SelectValue placeholder="Choose a trick to add..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREDEFINED_TRICKS.filter(t => !tricksList.includes(t)).map(trick => (
+                          <SelectItem key={trick} value={trick}>{trick}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  {/* Custom trick input */}
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1">Or type a custom trick</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        value={customTrick}
+                        onChange={(e) => setCustomTrick(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && customTrick.trim() && !tricksList.includes(customTrick.trim())) {
+                            const newTricks = [...tricksList, customTrick.trim()];
+                            setTricksList(newTricks);
+                            autoSave({ tricks: newTricks });
+                            setCustomTrick("");
+                          }
+                        }}
+                        placeholder="Type a trick name..."
+                        className="flex-1"
+                        data-testid="input-custom-trick"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!customTrick.trim() || tricksList.includes(customTrick.trim())}
+                        onClick={() => {
+                          if (customTrick.trim() && !tricksList.includes(customTrick.trim())) {
+                            const newTricks = [...tricksList, customTrick.trim()];
+                            setTricksList(newTricks);
+                            autoSave({ tricks: newTricks });
+                            setCustomTrick("");
+                          }
+                        }}
+                        data-testid="button-add-custom-trick"
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground">Changes save automatically</p>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => {
+                        updateProfileMutation.mutate({ tricks: tricksList });
+                        setEditingTricks(false);
+                      }}
+                      data-testid="button-done-tricks"
+                    >
+                      <Check className="h-4 w-4 mr-1" /> Done
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {profile.tricks?.length ? (
+                    profile.tricks.map((trick: string) => (
+                      <a
+                        key={trick}
+                        href={`https://www.youtube.com/results?search_query=surfing+${encodeURIComponent(trick)}+tutorial`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group"
+                      >
+                        <Badge 
+                          variant="secondary"
+                          className="cursor-pointer hover-elevate flex items-center gap-1.5"
+                          data-testid={`profile-badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          {trick}
+                          <SiYoutube className="w-3 h-3 text-red-500 opacity-70 group-hover:opacity-100" />
+                        </Badge>
+                      </a>
+                    ))
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setTricksList([]);
+                        setCustomTrick("");
+                        setEditingTricks(true);
+                      }}
+                      data-testid="button-add-first-trick"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      No tricks logged yet. Tap to add some!
+                    </Button>
+                  )}
+                </div>
+              )}
+              {!editingTricks && profile.tricks?.length ? (
                 <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
                   <SiYoutube className="w-3 h-3 text-red-500" />
                   Tap any trick for tutorial videos

@@ -11,9 +11,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
+import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useLocation } from "wouter";
-import { Plus, MessageCircle, MapPin, Tag, X, Grid3X3, Map, Search, Loader2 } from "lucide-react";
+import { Plus, MessageCircle, MapPin, Tag, X, Grid3X3, Map, Search, Loader2, Bell } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -148,6 +150,8 @@ async function geocodeZipCode(zip: string): Promise<{ lat: number; lng: number }
 
 export default function Marketplace() {
   const { user } = useAuth();
+  const { data: profile } = useMyProfile();
+  const updateProfileMutation = useUpdateProfile();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
@@ -330,8 +334,23 @@ export default function Marketplace() {
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 to-black/70" />
         <div className="absolute inset-0 flex flex-col justify-end p-4">
-          <h1 className="text-2xl font-bold text-white">Surf Gear Market</h1>
-          <p className="text-sm text-white/80">Buy, sell, or trade your gear</p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-white">Surf Gear Market</h1>
+              <p className="text-sm text-white/80">Buy, sell, or trade your gear</p>
+            </div>
+            <div className="flex items-center gap-2 bg-black/30 backdrop-blur-sm rounded-lg px-3 py-2">
+              <Bell className="h-4 w-4 text-white/80" />
+              <Switch
+                id="marketplace-notifications"
+                checked={profile?.marketplaceNotifications ?? false}
+                onCheckedChange={(checked) => {
+                  updateProfileMutation.mutate({ marketplaceNotifications: checked });
+                }}
+                data-testid="switch-marketplace-notifications"
+              />
+            </div>
+          </div>
         </div>
       </div>
 

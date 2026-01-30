@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { Layout } from "@/components/Layout";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { apiRequest, queryClient } from "@/lib/queryClient";
-import { useMyProfile } from "@/hooks/use-profiles";
+import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowLeft, Send, MessageCircle, Bug } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
+import { ArrowLeft, Send, MessageCircle, Bug, Bell } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
@@ -22,6 +23,7 @@ type Conversation = {
 
 export default function Messages() {
   const { data: profile } = useMyProfile();
+  const updateProfileMutation = useUpdateProfile();
   const [selectedBuddy, setSelectedBuddy] = useState<Profile | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -237,15 +239,28 @@ export default function Messages() {
       <div className="p-4">
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-display font-bold text-foreground">Messages</h1>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={fetchDebugInfo}
-            disabled={debugLoading}
-            data-testid="button-debug"
-          >
-            <Bug className="h-5 w-5" />
-          </Button>
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-muted-foreground" />
+              <Switch
+                id="messages-notifications"
+                checked={profile?.messagesNotifications ?? false}
+                onCheckedChange={(checked) => {
+                  updateProfileMutation.mutate({ messagesNotifications: checked });
+                }}
+                data-testid="switch-messages-notifications"
+              />
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={fetchDebugInfo}
+              disabled={debugLoading}
+              data-testid="button-debug"
+            >
+              <Bug className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
 
         <Dialog open={showDebug} onOpenChange={setShowDebug}>

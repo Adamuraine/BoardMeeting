@@ -33,6 +33,9 @@ export const profiles = pgTable("profiles", {
   trialStartedAt: timestamp("trial_started_at"), // When trial period started for incomplete profiles
   scheduleType: text("schedule_type"), // "work", "school", "none" (I don't work/study)
   availability: text("availability").array(), // JSON strings: {day: "monday"|"tuesday"|..., startTime: "06:00", endTime: "09:00"}
+  messagesNotifications: boolean("messages_notifications").default(false), // Enable notifications for messages
+  marketplaceNotifications: boolean("marketplace_notifications").default(false), // Enable notifications for marketplace
+  tripsNotifications: boolean("trips_notifications").default(false), // Enable notifications for trips
 });
 
 // === SWIPES ===

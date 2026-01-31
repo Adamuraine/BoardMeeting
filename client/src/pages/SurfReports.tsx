@@ -716,11 +716,13 @@ async function fetchSurfData(lat: number, lng: number, spotName?: string) {
   }
 }
 
-function SpotCard({ spot, onRemove, onAddSpot, allSpots }: { 
+function SpotCard({ spot, onRemove, onAddSpot, allSpots, isPremium, onShowPremium }: { 
   spot: SurfSpot; 
   onRemove: () => void;
   onAddSpot: (spotName: string) => void;
   allSpots: SurfSpot[];
+  isPremium?: boolean;
+  onShowPremium: () => void;
 }) {
   const [selectedSpot, setSelectedSpot] = useState<SurfSpot>(spot);
   const [showSpotSelector, setShowSpotSelector] = useState(false);
@@ -733,7 +735,9 @@ function SpotCard({ spot, onRemove, onAddSpot, allSpots }: {
   });
   
   const todayReport = reports?.[0];
-  const nextDays = reports?.slice(1, 5) || [];
+  // Show 3 days for free users, 7 days for premium
+  const forecastDays = isPremium ? 7 : 3;
+  const nextDays = reports?.slice(1, forecastDays + 1) || [];
   
   if (isLoading) {
     return (
@@ -855,19 +859,36 @@ function SpotCard({ spot, onRemove, onAddSpot, allSpots }: {
         </div>
       </div>
       
-      {/* 4-day mini forecast strip */}
-      <div className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3 flex justify-between gap-2">
-        {nextDays.map((report: { waveHeightMin: number; waveHeightMax: number; rating: string }, idx: number) => (
-          <div key={idx} className="flex-1 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase font-medium mb-1">
-              {format(addDays(today, idx + 1), 'EEE')}
-            </p>
-            <WaveIcon height={report.waveHeightMax || 2} rating={report.rating || 'fair'} />
-            <p className="text-xs font-bold text-foreground mt-1">
-              {report.waveHeightMin}-{report.waveHeightMax}
-            </p>
-          </div>
-        ))}
+      {/* Forecast strip - 3 days for free, 7 days for premium */}
+      <div className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3">
+        <div className="flex justify-between gap-2">
+          {nextDays.map((report: { waveHeightMin: number; waveHeightMax: number; rating: string }, idx: number) => (
+            <div key={idx} className="flex-1 text-center">
+              <p className="text-[10px] text-muted-foreground uppercase font-medium mb-1">
+                {format(addDays(today, idx + 1), 'EEE')}
+              </p>
+              <WaveIcon height={report.waveHeightMax || 2} rating={report.rating || 'fair'} />
+              <p className="text-xs font-bold text-foreground mt-1">
+                {report.waveHeightMin}-{report.waveHeightMax}
+              </p>
+            </div>
+          ))}
+        </div>
+        
+        {/* Premium upgrade prompt for free users */}
+        {!isPremium && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onShowPremium();
+            }}
+            className="w-full mt-3 pt-3 border-t border-border/50 flex items-center justify-center gap-2 text-xs text-primary hover:text-primary/80 transition-colors"
+            data-testid="button-upgrade-forecast"
+          >
+            <Lock className="h-3 w-3" />
+            <span className="font-medium">Upgrade for Full Week Forecast</span>
+          </button>
+        )}
       </div>
     </div>
   );
@@ -1158,6 +1179,9 @@ const STORAGE_KEY = 'boardmeeting_saved_spots';
 export default function SurfReports() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [showAddSpots, setShowAddSpots] = useState(false);
+  const [showPremiumModal, setShowPremiumModal] = useState(false);
+  const { data: profile } = useMyProfile();
+  const isPremium = profile?.isPremium;
   const [addedSpots, setAddedSpots] = useState<string[]>(() => {
     // Load saved spots from localStorage on initial render
     if (typeof window !== 'undefined') {
@@ -1195,6 +1219,7 @@ export default function SurfReports() {
   
   return (
     <Layout>
+      <PremiumModal open={showPremiumModal} onOpenChange={setShowPremiumModal} />
       <div className="flex flex-col h-full bg-gradient-to-b from-sky-50 via-cyan-50/30 to-background dark:from-slate-900 dark:via-slate-900 dark:to-background">
         <header className="px-4 pt-4 pb-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
@@ -1276,6 +1301,8 @@ export default function SurfReports() {
                   key={spot.name}
                   spot={spot}
                   allSpots={WORLDWIDE_SPOTS}
+                  isPremium={isPremium ?? false}
+                  onShowPremium={() => setShowPremiumModal(true)}
                   onRemove={() => setAddedSpots(prev => prev.filter(s => s !== spot.name))}
                   onAddSpot={(spotName) => {
                     if (!addedSpots.includes(spotName)) {

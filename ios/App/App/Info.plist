@@ -45,5 +45,15 @@
         </array>
         <key>UIViewControllerBasedStatusBarAppearance</key>
         <true/>
+        <key>NSLocationWhenInUseUsageDescription</key>
+        <string>Board Meeting needs your location to show nearby surf spots and marketplace listings in your area.</string>
+        <key>NSCameraUsageDescription</key>
+        <string>Board Meeting needs camera access to take photos for your profile and marketplace listings.</string>
+        <key>NSPhotoLibraryUsageDescription</key>
+        <string>Board Meeting needs photo library access to select images for your profile and marketplace listings.</string>
+        <key>NSPhotoLibraryAddUsageDescription</key>
+        <string>Board Meeting needs permission to save photos to your library.</string>
+        <key>ITSAppUsesNonExemptEncryption</key>
+        <false/>
 </dict>
 </plist>

@@ -1120,8 +1120,14 @@ function VisitingCard({ trip, currentUserId }: { trip: any, currentUserId?: stri
 
 function EditTripDialog({ trip, open, onOpenChange }: { trip: any, open: boolean, onOpenChange: (o: boolean) => void }) {
   const { toast } = useToast();
+  const [name, setName] = useState(trip.name || "");
   const [destination, setDestination] = useState(trip.destination || "");
   const [startingLocation, setStartingLocation] = useState(trip.startingLocation || "");
+  const [description, setDescription] = useState(trip.description || "");
+  const [cost, setCost] = useState<number | "">(trip.cost ?? "");
+  const [tripType, setTripType] = useState(trip.tripType || "carpool");
+  const [isVisiting, setIsVisiting] = useState(trip.isVisiting || false);
+  const [showCalendar, setShowCalendar] = useState(false);
   const [editDateRange, setEditDateRange] = useState<DateRange | undefined>({
     from: new Date(trip.startDate),
     to: new Date(trip.endDate),
@@ -1129,14 +1135,20 @@ function EditTripDialog({ trip, open, onOpenChange }: { trip: any, open: boolean
 
   useEffect(() => {
     if (open) {
+      setName(trip.name || "");
       setDestination(trip.destination || "");
       setStartingLocation(trip.startingLocation || "");
+      setDescription(trip.description || "");
+      setCost(trip.cost ?? "");
+      setTripType(trip.tripType || "carpool");
+      setIsVisiting(trip.isVisiting || false);
+      setShowCalendar(false);
       setEditDateRange({
         from: new Date(trip.startDate),
         to: new Date(trip.endDate),
       });
     }
-  }, [open, trip.destination, trip.startingLocation, trip.startDate, trip.endDate]);
+  }, [open, trip]);
 
   const updateMutation = useMutation({
     mutationFn: async (updates: Record<string, any>) => {
@@ -1147,18 +1159,20 @@ function EditTripDialog({ trip, open, onOpenChange }: { trip: any, open: boolean
       queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
       queryClient.invalidateQueries({ queryKey: ["/api/trips", String(trip.id)] });
       onOpenChange(false);
-      toast({ title: "Trip updated", description: "Dates and location have been saved." });
+      toast({ title: "Trip updated" });
     },
   });
 
   const handleSave = () => {
     const updates: Record<string, any> = {};
-    if (destination && destination !== trip.destination) {
-      updates.destination = destination;
-    }
-    if (startingLocation !== (trip.startingLocation || "")) {
-      updates.startingLocation = startingLocation || null;
-    }
+    if (name !== (trip.name || "")) updates.name = name || null;
+    if (destination && destination !== trip.destination) updates.destination = destination;
+    if (startingLocation !== (trip.startingLocation || "")) updates.startingLocation = startingLocation || null;
+    if (description !== (trip.description || "")) updates.description = description || null;
+    const costNum = cost === "" ? null : Number(cost);
+    if (costNum !== (trip.cost ?? null)) updates.cost = costNum;
+    if (tripType !== (trip.tripType || "carpool")) updates.tripType = tripType;
+    if (isVisiting !== (trip.isVisiting || false)) updates.isVisiting = isVisiting;
     if (editDateRange?.from && editDateRange?.to) {
       const newStart = format(editDateRange.from, "yyyy-MM-dd");
       const newEnd = format(editDateRange.to, "yyyy-MM-dd");
@@ -1174,7 +1188,7 @@ function EditTripDialog({ trip, open, onOpenChange }: { trip: any, open: boolean
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-sm" data-testid="dialog-edit-trip">
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto" data-testid="dialog-edit-trip">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Pencil className="w-4 h-4" />
@@ -1182,6 +1196,16 @@ function EditTripDialog({ trip, open, onOpenChange }: { trip: any, open: boolean
           </DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Trip Name</Label>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="e.g. Baja Boys Trip, Indo Mission..."
+              data-testid="input-edit-name"
+            />
+          </div>
+
           <div className="space-y-2">
             <Label>Destination</Label>
             <Input
@@ -1198,58 +1222,108 @@ function EditTripDialog({ trip, open, onOpenChange }: { trip: any, open: boolean
             </datalist>
           </div>
 
-          <div className="space-y-2">
-            <Label>Starting Location</Label>
-            <Input
-              value={startingLocation}
-              onChange={(e) => setStartingLocation(e.target.value)}
-              list="edit-starting-locations"
-              placeholder="Type or select starting location"
-              data-testid="input-edit-starting-location"
-            />
-            <datalist id="edit-starting-locations">
-              {LOCATIONS.map(loc => (
-                <option key={loc} value={loc} />
-              ))}
-            </datalist>
-          </div>
+          {!isVisiting && (
+            <div className="space-y-2">
+              <Label>Starting Location</Label>
+              <Input
+                value={startingLocation}
+                onChange={(e) => setStartingLocation(e.target.value)}
+                list="edit-starting-locations"
+                placeholder="Type or select starting location"
+                data-testid="input-edit-starting-location"
+              />
+              <datalist id="edit-starting-locations">
+                {LOCATIONS.map(loc => (
+                  <option key={loc} value={loc} />
+                ))}
+              </datalist>
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label>Dates</Label>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  className={cn(
-                    "w-full justify-start text-left font-normal",
-                    !editDateRange?.from && "text-muted-foreground"
-                  )}
-                  data-testid="button-edit-dates"
-                >
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {editDateRange?.from ? (
-                    editDateRange.to ? (
-                      <>
-                        {format(editDateRange.from, "MMM d, yyyy")} - {format(editDateRange.to, "MMM d, yyyy")}
-                      </>
-                    ) : (
-                      format(editDateRange.from, "MMM d, yyyy")
-                    )
-                  ) : (
-                    "Pick dates"
-                  )}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0 z-50" align="start">
+            <Button
+              variant="outline"
+              type="button"
+              className={cn(
+                "w-full justify-start text-left font-normal",
+                !editDateRange?.from && "text-muted-foreground"
+              )}
+              onClick={() => setShowCalendar(!showCalendar)}
+              data-testid="button-edit-dates"
+            >
+              <CalendarIcon className="mr-2 h-4 w-4" />
+              {editDateRange?.from ? (
+                editDateRange.to ? (
+                  <>
+                    {format(editDateRange.from, "MMM d, yyyy")} - {format(editDateRange.to, "MMM d, yyyy")}
+                  </>
+                ) : (
+                  format(editDateRange.from, "MMM d, yyyy")
+                )
+              ) : (
+                "Pick dates"
+              )}
+            </Button>
+            {showCalendar && (
+              <div className="border rounded-md p-2 flex justify-center">
                 <Calendar
                   mode="range"
                   defaultMonth={editDateRange?.from}
                   selected={editDateRange}
                   onSelect={setEditDateRange}
-                  numberOfMonths={2}
+                  numberOfMonths={1}
+                  data-testid="calendar-edit-dates"
                 />
-              </PopoverContent>
-            </Popover>
+              </div>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-secondary/30 rounded-lg">
+            <div>
+              <Label className="font-medium">Solo traveler (visiting)</Label>
+              <p className="text-xs text-muted-foreground">Looking to meet locals at destination</p>
+            </div>
+            <Switch checked={isVisiting} onCheckedChange={setIsVisiting} data-testid="switch-edit-visiting" />
+          </div>
+
+          {!isVisiting && (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Est. Cost ($)</Label>
+                <Input
+                  type="number"
+                  value={cost}
+                  onChange={(e) => setCost(e.target.value === "" ? "" : Number(e.target.value))}
+                  placeholder="0"
+                  data-testid="input-edit-cost"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Type</Label>
+                <Select value={tripType} onValueChange={setTripType}>
+                  <SelectTrigger data-testid="select-edit-type">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="carpool">Carpool (road trip)</SelectItem>
+                    <SelectItem value="beach_carpool">Ride to Beach</SelectItem>
+                    <SelectItem value="boat">Boat Trip</SelectItem>
+                    <SelectItem value="resort">Resort Stay</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          )}
+
+          <div className="space-y-2">
+            <Label>Details</Label>
+            <Textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder={isVisiting ? "Tell locals about yourself and what you're looking for..." : "Looking for 2 people to split gas..."}
+              data-testid="input-edit-description"
+            />
           </div>
 
           <Button

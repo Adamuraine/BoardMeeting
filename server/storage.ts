@@ -75,7 +75,7 @@ export interface IStorage {
   
   // Trip Activities
   updateTripActivities(tripId: number, userId: string, activities: string[]): Promise<Trip>;
-  updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; destination?: string; startingLocation?: string; startDate?: string; endDate?: string; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
+  updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; destination?: string; startingLocation?: string; startDate?: string; endDate?: string; description?: string; cost?: number; tripType?: string; isVisiting?: boolean; isGuide?: boolean; approximateDates?: boolean; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip>;
   updateTripDetails(tripId: number, userId: string, details: { activities?: string[]; houseRental?: number; taxiRides?: number; boatTrips?: number; cookingMeals?: number; boardRental?: number; airfare?: number; photographer?: number }): Promise<Trip>;
   
   // Surf Reports
@@ -446,11 +446,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async cleanupExpiredTrips(): Promise<number> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const oneWeekAgo = new Date();
+    oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+    oneWeekAgo.setHours(0, 0, 0, 0);
     
     const result = await db.delete(trips)
-      .where(sql`${trips.endDate} < ${today}`)
+      .where(sql`${trips.endDate} < ${oneWeekAgo}`)
       .returning();
     
     return result.length;
@@ -894,7 +895,7 @@ export class DatabaseStorage implements IStorage {
     return updated;
   }
 
-  async updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; destination?: string; startingLocation?: string; startDate?: string; endDate?: string; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip> {
+  async updateTrip(tripId: number, userId: string, updates: { name?: string | null; photos?: string[] | null; destination?: string; startingLocation?: string; startDate?: string; endDate?: string; description?: string; cost?: number; tripType?: string; isVisiting?: boolean; isGuide?: boolean; approximateDates?: boolean; expectations?: string; activities?: string[]; waveType?: string[]; rideStyle?: string[]; locationPreference?: string[]; vibe?: string[]; extraActivities?: string[]; broadcastEnabled?: boolean }): Promise<Trip> {
     const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
     if (!trip) throw new Error("Trip not found");
     if (trip.organizerId !== userId) throw new Error("Not authorized to update this trip");
@@ -906,6 +907,12 @@ export class DatabaseStorage implements IStorage {
     if (updates.startingLocation !== undefined) updateData.startingLocation = updates.startingLocation;
     if (updates.startDate !== undefined) updateData.startDate = updates.startDate;
     if (updates.endDate !== undefined) updateData.endDate = updates.endDate;
+    if (updates.description !== undefined) updateData.description = updates.description;
+    if (updates.cost !== undefined) updateData.cost = updates.cost;
+    if (updates.tripType !== undefined) updateData.tripType = updates.tripType;
+    if (updates.isVisiting !== undefined) updateData.isVisiting = updates.isVisiting;
+    if (updates.isGuide !== undefined) updateData.isGuide = updates.isGuide;
+    if (updates.approximateDates !== undefined) updateData.approximateDates = updates.approximateDates;
     if (updates.expectations !== undefined) updateData.expectations = updates.expectations;
     if (updates.activities !== undefined) updateData.activities = updates.activities;
     if (updates.waveType !== undefined) updateData.waveType = updates.waveType;

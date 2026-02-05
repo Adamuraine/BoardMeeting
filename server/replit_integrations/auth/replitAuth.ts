@@ -89,6 +89,14 @@ export async function setupAuth(app: Express) {
 
   const config = await getOidcConfig();
 
+  const getCanonicalDomain = () => {
+    const replitDomains = process.env.REPLIT_DOMAINS;
+    if (replitDomains) {
+      return replitDomains.split(',')[0];
+    }
+    return null;
+  };
+
   const verify: VerifyFunction = async (
     tokens: client.TokenEndpointResponse & client.TokenEndpointResponseHelpers,
     verified: passport.AuthenticateCallback
@@ -96,8 +104,8 @@ export async function setupAuth(app: Express) {
     try {
       const claims = tokens.claims();
       authLog('Auth verification started', { 
-        userId: claims["sub"], 
-        email: claims["email"] 
+        userId: claims?.["sub"], 
+        email: claims?.["email"] 
       });
       
       const user = {};
@@ -105,8 +113,8 @@ export async function setupAuth(app: Express) {
       await upsertUser(claims);
       
       authLog('Auth verification successful - user logged in', { 
-        userId: claims["sub"], 
-        email: claims["email"] 
+        userId: claims?.["sub"], 
+        email: claims?.["email"] 
       });
       verified(null, user);
     } catch (error) {
@@ -117,10 +125,8 @@ export async function setupAuth(app: Express) {
     }
   };
 
-  // Keep track of registered strategies
   const registeredStrategies = new Set<string>();
 
-  // Helper function to ensure strategy exists for a domain
   const ensureStrategy = (domain: string) => {
     const strategyName = `replitauth:${domain}`;
     if (!registeredStrategies.has(strategyName)) {
@@ -142,21 +148,39 @@ export async function setupAuth(app: Express) {
   passport.deserializeUser((user: Express.User, cb) => cb(null, user));
 
   app.get("/api/login", (req, res, next) => {
+    const canonicalDomain = getCanonicalDomain();
+    const currentDomain = req.hostname;
+
     authLog('Login attempt started', { 
-      hostname: req.hostname, 
+      hostname: currentDomain,
+      canonicalDomain,
       userAgent: req.headers['user-agent'],
       ip: req.ip 
     });
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, {
+
+    if (canonicalDomain && currentDomain !== canonicalDomain) {
+      authLog('Redirecting to canonical domain for login', {
+        from: currentDomain,
+        to: canonicalDomain
+      });
+      return res.redirect(`https://${canonicalDomain}/api/login`);
+    }
+
+    const domain = canonicalDomain || currentDomain;
+    ensureStrategy(domain);
+    passport.authenticate(`replitauth:${domain}`, {
       prompt: "login consent",
       scope: ["openid", "email", "profile", "offline_access"],
     })(req, res, next);
   });
 
   app.get("/api/callback", (req, res, next) => {
+    const canonicalDomain = getCanonicalDomain();
+    const domain = canonicalDomain || req.hostname;
+
     authLog('Auth callback received', { 
       hostname: req.hostname,
+      canonicalDomain: domain,
       hasError: !!req.query.error,
       error: req.query.error,
       errorDescription: req.query.error_description,
@@ -170,8 +194,8 @@ export async function setupAuth(app: Express) {
       });
     }
     
-    ensureStrategy(req.hostname);
-    passport.authenticate(`replitauth:${req.hostname}`, (err: any, user: any, info: any) => {
+    ensureStrategy(domain);
+    passport.authenticate(`replitauth:${domain}`, (err: any, user: any, info: any) => {
       authLog('Passport authenticate result', { 
         hasError: !!err, 
         hasUser: !!user,
@@ -210,10 +234,12 @@ export async function setupAuth(app: Express) {
 
   app.get("/api/logout", (req, res) => {
     req.logout(() => {
+      const canonicalDomain = getCanonicalDomain();
+      const domain = canonicalDomain || req.hostname;
       res.redirect(
         client.buildEndSessionUrl(config, {
           client_id: process.env.REPL_ID!,
-          post_logout_redirect_uri: `${req.protocol}://${req.hostname}`,
+          post_logout_redirect_uri: `https://${domain}`,
         }).href
       );
     });

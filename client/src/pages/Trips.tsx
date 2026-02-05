@@ -2,7 +2,7 @@ import { useTrips, useCreateTrip, useUpdateTripActivities } from "@/hooks/use-tr
 import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download, Camera, Bell } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download, Camera, Bell, Pencil } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -14,8 +14,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { insertTripSchema, type CreateTripRequest } from "@shared/routes";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
+import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { useMutation } from "@tanstack/react-query";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -713,7 +716,7 @@ export default function Trips() {
             ) : (
               <div className="space-y-4">
                 {filteredTrips.map((trip) => (
-                  <TripCard key={trip.id} trip={trip} />
+                  <TripCard key={trip.id} trip={trip} currentUserId={user?.id} />
                 ))}
                 {filteredTrips.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
@@ -778,7 +781,7 @@ export default function Trips() {
             ) : (
               <div className="space-y-4">
                 {carpoolTrips.map((trip) => (
-                  <CarpoolCard key={trip.id} trip={trip} />
+                  <CarpoolCard key={trip.id} trip={trip} currentUserId={user?.id} />
                 ))}
                 {carpoolTrips.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
@@ -833,7 +836,7 @@ export default function Trips() {
             ) : (
               <div className="space-y-4">
                 {visitingTrips.map((trip) => (
-                  <VisitingCard key={trip.id} trip={trip} />
+                  <VisitingCard key={trip.id} trip={trip} currentUserId={user?.id} />
                 ))}
                 {visitingTrips.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
@@ -852,8 +855,10 @@ export default function Trips() {
   );
 }
 
-function TripCard({ trip }: { trip: any }) {
+function TripCard({ trip, currentUserId }: { trip: any, currentUserId?: string }) {
   const [, setLocation] = useLocation();
+  const [editOpen, setEditOpen] = useState(false);
+  const isOrganizer = currentUserId && trip.organizerId === currentUserId;
   
   const getBudgetDisplay = () => {
     if (trip.priceRangeMin != null || trip.priceRangeMax != null) {
@@ -983,16 +988,33 @@ function TripCard({ trip }: { trip: any }) {
           </div>
         </div>
 
-        <div className="flex items-center text-xs font-medium bg-secondary/50 px-2 py-1 rounded-lg shrink-0">
-          <CalendarIcon className="w-3 h-3 mr-1 opacity-70" />
-          {format(new Date(trip.startDate), 'MMM d')}
+        <div className="flex items-center gap-2 shrink-0">
+          {isOrganizer && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => { e.stopPropagation(); setEditOpen(true); }}
+              data-testid={`button-edit-trip-${trip.id}`}
+            >
+              <Pencil className="w-3.5 h-3.5" />
+            </Button>
+          )}
+          <div className="flex items-center text-xs font-medium bg-secondary/50 px-2 py-1 rounded-lg">
+            <CalendarIcon className="w-3 h-3 mr-1 opacity-70" />
+            {format(new Date(trip.startDate), 'MMM d')}
+          </div>
         </div>
       </div>
+      {isOrganizer && (
+        <EditTripDialog trip={trip} open={editOpen} onOpenChange={setEditOpen} />
+      )}
     </div>
   );
 }
 
-function CarpoolCard({ trip }: { trip: any }) {
+function CarpoolCard({ trip, currentUserId }: { trip: any, currentUserId?: string }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const isOrganizer = currentUserId && trip.organizerId === currentUserId;
   return (
     <div className="bg-card rounded-2xl p-4 border border-border shadow-sm hover-elevate" data-testid={`card-carpool-${trip.id}`}>
       <div className="flex items-start gap-3">
@@ -1022,14 +1044,31 @@ function CarpoolCard({ trip }: { trip: any }) {
           )}
         </div>
       </div>
-      <Button variant="outline" size="sm" className="w-full mt-3">
-        Message
-      </Button>
+      <div className="flex gap-2 mt-3">
+        {isOrganizer && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setEditOpen(true)}
+            data-testid={`button-edit-carpool-${trip.id}`}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+        )}
+        <Button variant="outline" size="sm" className="flex-1">
+          Message
+        </Button>
+      </div>
+      {isOrganizer && (
+        <EditTripDialog trip={trip} open={editOpen} onOpenChange={setEditOpen} />
+      )}
     </div>
   );
 }
 
-function VisitingCard({ trip }: { trip: any }) {
+function VisitingCard({ trip, currentUserId }: { trip: any, currentUserId?: string }) {
+  const [editOpen, setEditOpen] = useState(false);
+  const isOrganizer = currentUserId && trip.organizerId === currentUserId;
   return (
     <div className="bg-card rounded-2xl p-4 border border-border shadow-sm hover-elevate" data-testid={`card-visiting-${trip.id}`}>
       <div className="flex items-start gap-3">
@@ -1057,10 +1096,173 @@ function VisitingCard({ trip }: { trip: any }) {
           )}
         </div>
       </div>
-      <Button variant="outline" size="sm" className="w-full mt-3">
-        Connect
-      </Button>
+      <div className="flex gap-2 mt-3">
+        {isOrganizer && (
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setEditOpen(true)}
+            data-testid={`button-edit-visiting-${trip.id}`}
+          >
+            <Pencil className="w-3.5 h-3.5" />
+          </Button>
+        )}
+        <Button variant="outline" size="sm" className="flex-1">
+          Connect
+        </Button>
+      </div>
+      {isOrganizer && (
+        <EditTripDialog trip={trip} open={editOpen} onOpenChange={setEditOpen} />
+      )}
     </div>
+  );
+}
+
+function EditTripDialog({ trip, open, onOpenChange }: { trip: any, open: boolean, onOpenChange: (o: boolean) => void }) {
+  const { toast } = useToast();
+  const [destination, setDestination] = useState(trip.destination || "");
+  const [startingLocation, setStartingLocation] = useState(trip.startingLocation || "");
+  const [editDateRange, setEditDateRange] = useState<DateRange | undefined>({
+    from: new Date(trip.startDate),
+    to: new Date(trip.endDate),
+  });
+
+  useEffect(() => {
+    if (open) {
+      setDestination(trip.destination || "");
+      setStartingLocation(trip.startingLocation || "");
+      setEditDateRange({
+        from: new Date(trip.startDate),
+        to: new Date(trip.endDate),
+      });
+    }
+  }, [open, trip.destination, trip.startingLocation, trip.startDate, trip.endDate]);
+
+  const updateMutation = useMutation({
+    mutationFn: async (updates: Record<string, any>) => {
+      const res = await apiRequest("PATCH", `/api/trips/${trip.id}`, updates);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", String(trip.id)] });
+      onOpenChange(false);
+      toast({ title: "Trip updated", description: "Dates and location have been saved." });
+    },
+  });
+
+  const handleSave = () => {
+    const updates: Record<string, any> = {};
+    if (destination && destination !== trip.destination) {
+      updates.destination = destination;
+    }
+    if (startingLocation !== (trip.startingLocation || "")) {
+      updates.startingLocation = startingLocation || null;
+    }
+    if (editDateRange?.from && editDateRange?.to) {
+      const newStart = format(editDateRange.from, "yyyy-MM-dd");
+      const newEnd = format(editDateRange.to, "yyyy-MM-dd");
+      if (newStart !== trip.startDate) updates.startDate = newStart;
+      if (newEnd !== trip.endDate) updates.endDate = newEnd;
+    }
+    if (Object.keys(updates).length > 0) {
+      updateMutation.mutate(updates);
+    } else {
+      onOpenChange(false);
+    }
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-sm" data-testid="dialog-edit-trip">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <Pencil className="w-4 h-4" />
+            Edit Trip
+          </DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4">
+          <div className="space-y-2">
+            <Label>Destination</Label>
+            <Input
+              value={destination}
+              onChange={(e) => setDestination(e.target.value)}
+              list="edit-destination-locations"
+              placeholder="Type or select destination"
+              data-testid="input-edit-destination"
+            />
+            <datalist id="edit-destination-locations">
+              {LOCATIONS.map(loc => (
+                <option key={loc} value={loc} />
+              ))}
+            </datalist>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Starting Location</Label>
+            <Input
+              value={startingLocation}
+              onChange={(e) => setStartingLocation(e.target.value)}
+              list="edit-starting-locations"
+              placeholder="Type or select starting location"
+              data-testid="input-edit-starting-location"
+            />
+            <datalist id="edit-starting-locations">
+              {LOCATIONS.map(loc => (
+                <option key={loc} value={loc} />
+              ))}
+            </datalist>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Dates</Label>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  className={cn(
+                    "w-full justify-start text-left font-normal",
+                    !editDateRange?.from && "text-muted-foreground"
+                  )}
+                  data-testid="button-edit-dates"
+                >
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {editDateRange?.from ? (
+                    editDateRange.to ? (
+                      <>
+                        {format(editDateRange.from, "MMM d, yyyy")} - {format(editDateRange.to, "MMM d, yyyy")}
+                      </>
+                    ) : (
+                      format(editDateRange.from, "MMM d, yyyy")
+                    )
+                  ) : (
+                    "Pick dates"
+                  )}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0 z-50" align="start">
+                <Calendar
+                  mode="range"
+                  defaultMonth={editDateRange?.from}
+                  selected={editDateRange}
+                  onSelect={setEditDateRange}
+                  numberOfMonths={2}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          <Button
+            onClick={handleSave}
+            disabled={updateMutation.isPending || !destination}
+            className="w-full"
+            data-testid="button-save-trip-edits"
+          >
+            {updateMutation.isPending ? "Saving..." : "Save Changes"}
+          </Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   );
 }
 

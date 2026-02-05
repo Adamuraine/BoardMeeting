@@ -161,6 +161,15 @@ export const messages = pgTable("messages", {
   read: boolean("read").default(false),
 });
 
+// === GROUP MESSAGES (Trip Group Chats) ===
+export const groupMessages = pgTable("group_messages", {
+  id: serial("id").primaryKey(),
+  tripId: integer("trip_id").notNull().references(() => trips.id, { onDelete: "cascade" }),
+  senderId: varchar("sender_id").notNull().references(() => users.id),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
 // === USER FEEDBACK ===
 export const feedback = pgTable("feedback", {
   id: serial("id").primaryKey(),
@@ -196,6 +205,7 @@ export const insertPostSchema = createInsertSchema(posts).omit({ id: true, creat
 export const insertFavoriteSpotSchema = createInsertSchema(favoriteSpots).omit({ id: true });
 export const insertPostLikeSchema = createInsertSchema(postLikes).omit({ id: true, createdAt: true });
 export const insertMessageSchema = createInsertSchema(messages).omit({ id: true, createdAt: true, read: true });
+export const insertGroupMessageSchema = createInsertSchema(groupMessages).omit({ id: true, createdAt: true });
 export const insertFeedbackSchema = createInsertSchema(feedback).omit({ id: true, createdAt: true });
 export const insertMarketplaceListingSchema = createInsertSchema(marketplaceListings).omit({ id: true, createdAt: true });
 
@@ -217,6 +227,8 @@ export type PostLike = typeof postLikes.$inferSelect;
 export type InsertPostLike = z.infer<typeof insertPostLikeSchema>;
 export type Message = typeof messages.$inferSelect;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type GroupMessage = typeof groupMessages.$inferSelect;
+export type InsertGroupMessage = z.infer<typeof insertGroupMessageSchema>;
 export type Feedback = typeof feedback.$inferSelect;
 export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type MarketplaceListing = typeof marketplaceListings.$inferSelect;

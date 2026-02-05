@@ -790,6 +790,50 @@ export async function registerRoutes(
     res.json({ success: true });
   });
 
+  // === GROUP MESSAGES (Trip Group Chats) ===
+  
+  app.get("/api/messages/group-conversations", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const conversations = await storage.getTripGroupConversations(userId);
+    res.json(conversations);
+  });
+
+  app.get("/api/trips/:id/messages", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
+    
+    const isMember = await storage.isUserInTrip(tripId, userId);
+    if (!isMember) return res.status(403).json({ message: "You are not a member of this trip" });
+    
+    const messages = await storage.getTripMessages(tripId);
+    res.json(messages);
+  });
+
+  app.post("/api/trips/:id/messages", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
+    
+    const isMember = await storage.isUserInTrip(tripId, userId);
+    if (!isMember) return res.status(403).json({ message: "You are not a member of this trip" });
+    
+    const { content } = req.body;
+    if (!content || typeof content !== "string" || !content.trim()) {
+      return res.status(400).json({ message: "Message content required" });
+    }
+    
+    const message = await storage.sendTripMessage({
+      tripId,
+      senderId: userId,
+      content: content.trim(),
+    });
+    res.status(201).json(message);
+  });
+
   // === SETTINGS & ACCOUNT MANAGEMENT ===
   
   // Clear all chat history for user

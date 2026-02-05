@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants, marketplaceListings,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants, marketplaceListings, groupMessages,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport, type InsertSurfReport,
@@ -9,6 +9,7 @@ import {
   type FavoriteSpot, type InsertFavoriteSpot,
   type PostLike,
   type Message, type InsertMessage,
+  type GroupMessage, type InsertGroupMessage,
   type Feedback,
   type TripParticipant, type InsertTripParticipant,
   type MarketplaceListing, type InsertMarketplaceListing,
@@ -99,6 +100,12 @@ export interface IStorage {
   updateParticipantStatus(tripId: number, participantUserId: string, status: string, organizerId: string): Promise<TripParticipant>;
   getUserTripStatus(tripId: number, userId: string): Promise<TripParticipant | undefined>;
   
+  // Group Messages (Trip Group Chats)
+  getTripGroupConversations(userId: string): Promise<{ trip: Trip; lastMessage: GroupMessage & { sender: Profile }; memberCount: number }[]>;
+  getTripMessages(tripId: number): Promise<(GroupMessage & { sender: Profile })[]>;
+  sendTripMessage(message: InsertGroupMessage): Promise<GroupMessage>;
+  isUserInTrip(tripId: number, userId: string): Promise<boolean>;
+
   // Marketplace
   getMarketplaceListings(): Promise<(MarketplaceListing & { seller: Profile })[]>;
   getMarketplaceListingById(id: number): Promise<(MarketplaceListing & { seller: Profile }) | undefined>;
@@ -1140,6 +1147,79 @@ export class DatabaseStorage implements IStorage {
     if (existing.sellerId !== userId) throw new Error("Not authorized to delete this listing");
     
     await db.delete(marketplaceListings).where(eq(marketplaceListings.id, id));
+  }
+
+  async isUserInTrip(tripId: number, userId: string): Promise<boolean> {
+    const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+    if (!trip) return false;
+    if (trip.organizerId === userId) return true;
+    const [participant] = await db.select().from(tripParticipants)
+      .where(and(eq(tripParticipants.tripId, tripId), eq(tripParticipants.userId, userId), eq(tripParticipants.status, "approved")));
+    return !!participant;
+  }
+
+  async getTripMessages(tripId: number): Promise<(GroupMessage & { sender: Profile })[]> {
+    const rows = await db.select({
+      message: groupMessages,
+      sender: profiles,
+    })
+      .from(groupMessages)
+      .innerJoin(profiles, eq(groupMessages.senderId, profiles.userId))
+      .where(eq(groupMessages.tripId, tripId))
+      .orderBy(groupMessages.createdAt);
+    return rows.map(r => ({ ...r.message, sender: r.sender }));
+  }
+
+  async sendTripMessage(message: InsertGroupMessage): Promise<GroupMessage> {
+    const [newMsg] = await db.insert(groupMessages).values(message).returning();
+    return newMsg;
+  }
+
+  async getTripGroupConversations(userId: string): Promise<{ trip: Trip; lastMessage: GroupMessage & { sender: Profile }; memberCount: number }[]> {
+    const ownedTrips = await db.select({ id: trips.id }).from(trips).where(eq(trips.organizerId, userId));
+    const participatingTrips = await db.select({ id: tripParticipants.tripId }).from(tripParticipants)
+      .where(and(eq(tripParticipants.userId, userId), eq(tripParticipants.status, "approved")));
+    
+    const tripIds = [...new Set([...ownedTrips.map(t => t.id), ...participatingTrips.map(t => t.id)])];
+    if (tripIds.length === 0) return [];
+
+    const results: { trip: Trip; lastMessage: GroupMessage & { sender: Profile }; memberCount: number }[] = [];
+    
+    for (const tripId of tripIds) {
+      const lastMsgRows = await db.select({
+        message: groupMessages,
+        sender: profiles,
+      })
+        .from(groupMessages)
+        .innerJoin(profiles, eq(groupMessages.senderId, profiles.userId))
+        .where(eq(groupMessages.tripId, tripId))
+        .orderBy(desc(groupMessages.createdAt))
+        .limit(1);
+      
+      if (lastMsgRows.length === 0) continue;
+      
+      const [trip] = await db.select().from(trips).where(eq(trips.id, tripId));
+      if (!trip) continue;
+
+      const approvedCount = await db.select({ count: sql<number>`count(*)` })
+        .from(tripParticipants)
+        .where(and(eq(tripParticipants.tripId, tripId), eq(tripParticipants.status, "approved")));
+      const memberCount = Number(approvedCount[0]?.count || 0) + 1;
+      
+      results.push({
+        trip,
+        lastMessage: { ...lastMsgRows[0].message, sender: lastMsgRows[0].sender },
+        memberCount,
+      });
+    }
+    
+    results.sort((a, b) => {
+      const aTime = a.lastMessage.createdAt ? new Date(a.lastMessage.createdAt).getTime() : 0;
+      const bTime = b.lastMessage.createdAt ? new Date(b.lastMessage.createdAt).getTime() : 0;
+      return bTime - aTime;
+    });
+    
+    return results;
   }
 }
 

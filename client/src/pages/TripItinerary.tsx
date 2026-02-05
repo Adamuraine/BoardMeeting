@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus, UserPlus, Check, XCircle, Clock } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus, UserPlus, Check, XCircle, Clock, MessageCircle } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -570,6 +570,18 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                     ))}
                   </div>
                 </div>
+              )}
+
+              {(isOrganizer || myJoinStatus?.status === "approved") && (
+                <Button
+                  variant="outline"
+                  className="w-full mt-3"
+                  onClick={() => setLocation(`/messages?trip=${tripId}`)}
+                  data-testid="button-group-chat"
+                >
+                  <MessageCircle className="w-4 h-4 mr-2" />
+                  Group Chat
+                </Button>
               )}
             </CardContent>
           </Card>

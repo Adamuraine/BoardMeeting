@@ -757,7 +757,7 @@ export default function Marketplace() {
           ))}
         </div>
       ) : viewMode === 'map' ? (
-        <div className="h-[calc(100vh-28rem)] rounded-lg overflow-hidden border relative" data-testid="map-container">
+        <div className="h-full rounded-lg overflow-hidden border relative" data-testid="map-container">
           {filteredListings.length === 0 && (
             <div className="absolute top-4 left-1/2 -translate-x-1/2 z-[1000] bg-background/90 backdrop-blur-sm rounded-lg px-4 py-2 shadow-lg" data-testid="text-no-listings-map">
               <p className="text-sm text-muted-foreground">No listings found in this area</p>

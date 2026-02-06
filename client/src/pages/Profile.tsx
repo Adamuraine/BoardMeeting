@@ -1913,6 +1913,7 @@ export default function Profile() {
                     { label: "Activities", items: ["Spearfishing", "Zip Line", "Restaurants", "Coffee"] },
                     { label: "Equipment", items: ["Needs Surf Lessons", "Needs Board", "Needs Dive Gear", "Has Dive Gear", "Has Surfboard", "Needs Surf Guide"] },
                     { label: "Food & Experience", items: ["Wants Local Experience", "Local Food", "Fancy Food", "Pizza", "Chicken Tenders"] },
+                    { label: "Language", items: ["Speaks the Language", "Knows a Few Words", "Relies on Hand Gestures & Grunting", "Has Interpreter App"] },
                   ].map(category => (
                     <div key={category.label}>
                       <Label className="text-xs text-muted-foreground mb-2 block">{category.label}</Label>

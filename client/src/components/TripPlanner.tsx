@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { Plane, Home, Car, Anchor, Building2, Users, BedDouble, Hotel, Tent, Castle, ExternalLink, Search, X, MessageCircle, UserPlus, MapPin, Calendar as CalendarIcon, Sparkles } from "lucide-react";
+import { Plane, Home, Car, Anchor, Building2, Users, BedDouble, Hotel, Tent, Castle, ExternalLink, Search, X, MessageCircle, UserPlus, MapPin, Calendar as CalendarIcon, Sparkles, ThumbsUp } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -453,6 +453,128 @@ export function TripMatchPopup({ destination, startDate, endDate, className }: T
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+interface RideMatchPopupProps {
+  destination: string;
+  date: string;
+  className?: string;
+}
+
+export function RideMatchPopup({ destination, date, className }: RideMatchPopupProps) {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+
+  const hasInfo = destination && date;
+
+  const queryUrl = hasInfo
+    ? `/api/rides/similar?${new URLSearchParams({ destination, date }).toString()}`
+    : '';
+
+  const { data: matches, isLoading } = useQuery<any[]>({
+    queryKey: [queryUrl],
+    enabled: !!user && !!hasInfo,
+    staleTime: 30000,
+  });
+
+  const visibleMatches = matches?.filter(m => !dismissed.has(m.id)) ?? [];
+
+  if (!hasInfo) return null;
+
+  if (isLoading) {
+    return (
+      <div className={cn("rounded-xl border border-emerald-400/30 bg-gradient-to-r from-emerald-500/5 to-teal-500/5 p-3", className)}>
+        <div className="flex items-center gap-2">
+          <Car className="w-4 h-4 text-emerald-400 animate-pulse" />
+          <span className="text-xs text-muted-foreground">Checking for ride matches...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (visibleMatches.length === 0) return null;
+
+  return (
+    <div className={cn("space-y-2", className)}>
+      {visibleMatches.map((match: any) => {
+        const isOffering = match.description?.startsWith("Offering");
+        return (
+          <div
+            key={match.id}
+            className="relative rounded-xl border border-emerald-400/50 bg-gradient-to-r from-emerald-500/10 to-teal-500/10 dark:from-emerald-500/20 dark:to-teal-500/20 p-3 space-y-2"
+            data-testid={`ride-match-popup-${match.id}`}
+          >
+            <button
+              onClick={() => setDismissed(prev => { const next = new Set(Array.from(prev)); next.add(match.id); return next; })}
+              className="absolute top-2 right-2 text-muted-foreground"
+              data-testid={`button-dismiss-ride-match-${match.id}`}
+            >
+              <X className="w-3.5 h-3.5" />
+            </button>
+
+            <div className="flex items-center gap-1.5">
+              <Car className="w-4 h-4 text-emerald-500" />
+              <span className="text-xs font-semibold text-emerald-700 dark:text-emerald-300">
+                {isOffering ? "Ride Available!" : "Someone needs a ride too!"}
+              </span>
+            </div>
+
+            <div className="flex items-center gap-2.5">
+              <Avatar className="w-9 h-9 border-2 border-emerald-400/50">
+                <AvatarImage src={match.organizer?.profilePhoto} alt={match.organizer?.displayName || "User"} />
+                <AvatarFallback className="text-xs bg-emerald-100 dark:bg-emerald-900 text-emerald-800 dark:text-emerald-200">
+                  {(match.organizer?.displayName || "?")[0]}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground truncate">
+                  {match.organizer?.displayName || "Surfer"}
+                </p>
+                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <MapPin className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{match.startingLocation ? `${match.startingLocation} → ` : ""}{match.destination}</span>
+                  <span className="shrink-0">·</span>
+                  <CalendarIcon className="w-3 h-3 shrink-0" />
+                  <span className="shrink-0">{match.startDate}</span>
+                </div>
+              </div>
+            </div>
+
+            <p className="text-xs text-foreground/80 leading-relaxed">
+              {isOffering
+                ? <>This surfer is <span className="font-semibold">offering a ride</span> to <span className="font-semibold">{match.destination}</span> around the same time! Hop in!</>
+                : <>This surfer also <span className="font-semibold">needs a ride</span> to <span className="font-semibold">{match.destination}</span>. Team up and share a ride!</>
+              }
+            </p>
+
+            <div className="flex gap-2">
+              <Button
+                size="sm"
+                variant="default"
+                className="flex-1 bg-emerald-500 text-white border-emerald-600"
+                onClick={() => navigate(`/messages?to=${match.organizerId}`)}
+                data-testid={`button-message-ride-match-${match.id}`}
+              >
+                <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                Message
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="flex-1"
+                onClick={() => navigate(`/trips?tab=carpool`)}
+                data-testid={`button-view-ride-match-${match.id}`}
+              >
+                <ThumbsUp className="w-3.5 h-3.5 mr-1" />
+                View Ride
+              </Button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

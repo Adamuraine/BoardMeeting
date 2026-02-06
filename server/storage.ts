@@ -96,6 +96,7 @@ export interface IStorage {
   
   // Trip Matching
   findSimilarTrips(destination: string, startDate: string, endDate: string, excludeUserId: string): Promise<(Trip & { organizer: Profile })[]>;
+  findSimilarRides(destination: string, date: string, excludeUserId: string): Promise<(Trip & { organizer: Profile })[]>;
   
   // Trip Participants
   requestToJoinTrip(tripId: number, userId: string): Promise<TripParticipant>;
@@ -529,6 +530,27 @@ export class DatabaseStorage implements IStorage {
     );
 
     return tripsData.map(({ trip, organizer }) => ({ ...trip, organizer }));
+  }
+
+  async findSimilarRides(destination: string, date: string, excludeUserId: string): Promise<(Trip & { organizer: Profile })[]> {
+    const destLower = destination.toLowerCase();
+    const ridesData = await db.select({
+      trip: trips,
+      organizer: profiles
+    })
+    .from(trips)
+    .innerJoin(profiles, eq(trips.organizerId, profiles.userId))
+    .where(
+      and(
+        sql`${trips.tripType} = 'beach_carpool'`,
+        sql`LOWER(${trips.destination}) LIKE ${'%' + destLower + '%'}`,
+        sql`${trips.organizerId} != ${excludeUserId}`,
+        sql`${trips.endDate} >= CURRENT_DATE`,
+        sql`ABS(${trips.startDate}::date - ${date}::date) <= 3`
+      )
+    );
+
+    return ridesData.map(({ trip, organizer }) => ({ ...trip, organizer }));
   }
 
   async setPremium(userId: string, status: boolean): Promise<void> {

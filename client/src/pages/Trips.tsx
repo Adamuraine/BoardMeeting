@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { type DateRange } from "react-day-picker";
 import treasureMapBg from "@assets/IMG_2639_1767484629952.jpeg";
-import { TripPlanner, TripMatchPopup } from "@/components/TripPlanner";
+import { TripPlanner, TripMatchPopup, RideMatchPopup } from "@/components/TripPlanner";
 
 const LOCATIONS = [
   // California - San Diego County
@@ -966,12 +966,19 @@ export default function Trips() {
                   <Button
                     onClick={handlePostRide}
                     disabled={createTrip.isPending || !rideDestination || !rideDate}
-                    className="w-full bg-emerald-400 hover:bg-emerald-500 text-emerald-950 font-semibold"
+                    className="w-full bg-emerald-400 text-emerald-950 font-semibold"
                     data-testid="button-post-ride"
                   >
                     {createTrip.isPending ? "Posting..." : "Offer Ride"}
                     <ThumbsUp className="w-4 h-4 ml-2" />
                   </Button>
+
+                  {rideDestination && rideDate && (
+                    <RideMatchPopup
+                      destination={rideDestination}
+                      date={rideDate}
+                    />
+                  )}
                 </div>
               </TabsContent>
 
@@ -1045,12 +1052,19 @@ export default function Trips() {
                   <Button
                     onClick={handlePostRide}
                     disabled={createTrip.isPending || !rideDestination || !rideDate}
-                    className="w-full bg-orange-400 hover:bg-orange-500 text-orange-950 font-semibold"
+                    className="w-full bg-orange-400 text-orange-950 font-semibold"
                     data-testid="button-request-ride"
                   >
                     {createTrip.isPending ? "Posting..." : "Request Ride"}
                     <Car className="w-4 h-4 ml-2" />
                   </Button>
+
+                  {rideDestination && rideDate && (
+                    <RideMatchPopup
+                      destination={rideDestination}
+                      date={rideDate}
+                    />
+                  )}
                 </div>
               </TabsContent>
             </Tabs>

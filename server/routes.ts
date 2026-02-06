@@ -610,6 +610,26 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/rides/similar", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const { destination, date } = req.query;
+    if (!destination || !date) {
+      return res.status(400).json({ message: "destination and date are required" });
+    }
+    try {
+      const similar = await storage.findSimilarRides(
+        destination as string,
+        date as string,
+        userId
+      );
+      res.json(similar);
+    } catch (err) {
+      console.error("Failed to find similar rides:", err);
+      res.status(500).json({ message: "Failed to find similar rides" });
+    }
+  });
+
   app.get("/api/trips/broadcast", async (req, res) => {
     const trips = await storage.getBroadcastTrips();
     res.json(trips);

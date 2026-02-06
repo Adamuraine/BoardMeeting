@@ -513,7 +513,7 @@ export default function Marketplace() {
               onClick={() => setViewMode('map')}
               data-testid="button-view-map"
             >
-              <img src={mapSearchIcon} alt="Map" className="w-6 h-6 rounded-sm object-cover" />
+              <img src={mapSearchIcon} alt="Map" className="w-12 h-12 rounded-sm object-cover" />
             </Button>
           </div>
         </div>

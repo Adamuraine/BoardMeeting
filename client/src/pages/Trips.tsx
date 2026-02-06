@@ -333,15 +333,15 @@ export default function Trips() {
 
         <Tabs defaultValue="trips" className="flex-1 flex flex-col">
           <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="trips" className="data-[state=active]:text-sky-600 dark:data-[state=active]:text-sky-400" data-testid="tab-trips">
+            <TabsTrigger value="trips" className="data-[state=active]:bg-amber-400/90 data-[state=active]:text-amber-950 dark:data-[state=active]:bg-amber-500/80 dark:data-[state=active]:text-amber-950" data-testid="tab-trips">
               <Plane className="w-4 h-4 mr-1" />
               Trips
             </TabsTrigger>
-            <TabsTrigger value="carpool" className="data-[state=active]:text-amber-600 dark:data-[state=active]:text-amber-400" data-testid="tab-carpool">
+            <TabsTrigger value="carpool" className="data-[state=active]:bg-purple-500/80 data-[state=active]:text-white dark:data-[state=active]:bg-purple-500/80 dark:data-[state=active]:text-white" data-testid="tab-carpool">
               <span className="flex items-center mr-1 gap-0.5"><ThumbsUp className="w-3.5 h-3.5" /><Car className="w-3.5 h-3.5" /></span>
               Rides
             </TabsTrigger>
-            <TabsTrigger value="visiting" className="data-[state=active]:text-emerald-600 dark:data-[state=active]:text-emerald-400" data-testid="tab-visiting">
+            <TabsTrigger value="visiting" className="data-[state=active]:bg-pink-400/80 data-[state=active]:text-pink-950 dark:data-[state=active]:bg-pink-500/80 dark:data-[state=active]:text-white" data-testid="tab-visiting">
               <span className="flex items-center mr-1 gap-0.5"><TreePalm className="w-3.5 h-3.5" /><Martini className="w-3.5 h-3.5" /></span>
               Visiting
             </TabsTrigger>

@@ -425,7 +425,9 @@ export default function Marketplace() {
 
   return (
     <Layout>
-      <div className="p-4">
+      <div className="flex flex-col h-full">
+      <div className="shrink-0">
+      <div className="px-4 pt-4">
       <div className="relative h-32 -mx-4 -mt-4 mb-4 overflow-hidden">
         <img 
           src={marketplaceBg} 
@@ -738,7 +740,10 @@ export default function Marketplace() {
           </Dialog>
         )}
       </div>
+      </div>
+      </div>
 
+      <div className="flex-1 overflow-y-auto px-4 pb-4">
       {isLoading ? (
         <div className="grid grid-cols-2 gap-3">
           {[1, 2, 3, 4].map(i => (
@@ -982,6 +987,7 @@ export default function Marketplace() {
           )}
         </DialogContent>
       </Dialog>
+      </div>
       </div>
     </Layout>
   );

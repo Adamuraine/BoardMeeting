@@ -59,6 +59,8 @@ export default function Profile() {
   const [editingGoals, setEditingGoals] = useState(false);
   const [goalsList, setGoalsList] = useState<string[]>([]);
   const [customGoal, setCustomGoal] = useState("");
+  const [editingTripInterests, setEditingTripInterests] = useState(false);
+  const [tripInterestsList, setTripInterestsList] = useState<string[]>([]);
   const [availabilitySlots, setAvailabilitySlots] = useState<Array<{day: string, startTime: string, endTime: string}>>([]);
 
   // Predefined surf tricks for dropdown
@@ -1880,6 +1882,110 @@ export default function Profile() {
                   Tap any trick for tutorial videos
                 </p>
               ) : null}
+            </div>
+
+            <div className="p-4 rounded-xl bg-sky-50/60 dark:bg-sky-950/20 border border-sky-200/50 dark:border-sky-800/30">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-sky-700 dark:text-sky-400 mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Plane className="h-4 w-4" />
+                  Trip Interests ({profile.tripInterests?.length || 0})
+                </span>
+                {!editingTripInterests && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost"
+                    onClick={() => {
+                      setTripInterestsList(profile.tripInterests || []);
+                      setEditingTripInterests(true);
+                    }}
+                    data-testid="button-edit-trip-interests"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </h3>
+              
+              {editingTripInterests ? (
+                <div className="space-y-4 p-4 bg-white/50 dark:bg-background/50 rounded-xl border border-sky-200/50 dark:border-sky-800/30">
+                  {[
+                    { label: "Vibe", items: ["Party", "420 Friendly", "Drinks", "Platonic Only"] },
+                    { label: "Status", items: ["Single", "In a Relationship"] },
+                    { label: "Activities", items: ["Spearfishing", "Zip Line", "Restaurants", "Coffee"] },
+                    { label: "Equipment", items: ["Needs Surf Lessons", "Needs Board", "Needs Dive Gear", "Has Dive Gear", "Has Surfboard", "Needs Surf Guide"] },
+                    { label: "Food & Experience", items: ["Wants Local Experience", "Local Food", "Fancy Food", "Pizza", "Chicken Tenders"] },
+                  ].map(category => (
+                    <div key={category.label}>
+                      <Label className="text-xs text-muted-foreground mb-2 block">{category.label}</Label>
+                      <div className="flex flex-wrap gap-2">
+                        {category.items.map(item => {
+                          const isSelected = tripInterestsList.includes(item);
+                          return (
+                            <Badge
+                              key={item}
+                              variant="outline"
+                              className={`cursor-pointer toggle-elevate ${isSelected ? "toggle-elevated bg-sky-200 dark:bg-sky-800 border-sky-400 dark:border-sky-600" : "bg-sky-50/50 dark:bg-sky-950/30 border-sky-200 dark:border-sky-800"}`}
+                              onClick={() => {
+                                const newList = isSelected
+                                  ? tripInterestsList.filter(i => i !== item)
+                                  : [...tripInterestsList, item];
+                                setTripInterestsList(newList);
+                                autoSave({ tripInterests: newList });
+                              }}
+                              data-testid={`badge-trip-interest-${item.toLowerCase().replace(/\s+/g, '-')}`}
+                            >
+                              {item}
+                            </Badge>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-sky-200/50 dark:border-sky-800/30">
+                    <p className="text-xs text-muted-foreground">Changes save automatically</p>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => {
+                        updateProfileMutation.mutate({ tripInterests: tripInterestsList });
+                        setEditingTripInterests(false);
+                      }}
+                      data-testid="button-done-trip-interests"
+                    >
+                      <Check className="h-4 w-4 mr-1" /> Done
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {profile.tripInterests?.length ? (
+                    profile.tripInterests.map((interest: string) => (
+                      <Badge 
+                        key={interest}
+                        variant="outline"
+                        className="bg-sky-100/50 dark:bg-sky-900/30 border-sky-300 dark:border-sky-700"
+                        data-testid={`profile-badge-trip-interest-${interest.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        {interest}
+                      </Badge>
+                    ))
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="border border-dashed border-sky-400/50 dark:border-sky-600/50 text-sky-700 dark:text-sky-400"
+                      onClick={() => {
+                        setTripInterestsList([]);
+                        setEditingTripInterests(true);
+                      }}
+                      data-testid="button-add-first-trip-interest"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add your trip preferences
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

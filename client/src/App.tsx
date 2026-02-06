@@ -57,7 +57,15 @@ function ProtectedRoute({ component: Component, requiresProfile = true }: { comp
 }
 
 // Browsable Route - Allows anonymous access, shows bottom nav
-function BrowsableRoute({ component: Component }: { component: React.ComponentType }) {
+function BrowsableRoute({ component: Component, redirectIncomplete = false }: { component: React.ComponentType; redirectIncomplete?: boolean }) {
+  const { user } = useAuth();
+  const { data: profile, isLoading: profileLoading } = useMyProfile();
+
+  if (redirectIncomplete && user) {
+    if (profileLoading) return <PageLoader />;
+    if (!profile || profile.isIncompleteProfile) return <Redirect to="/profile" />;
+  }
+
   return (
     <div className="pb-16 min-h-screen bg-background">
       <Suspense fallback={<PageLoader />}>
@@ -74,14 +82,18 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={() => {
-        const { user } = useAuth();
-        if (user) return <Redirect to="/home" />;
-        return <Landing />;
+        const { user, isLoading: authLoading } = useAuth();
+        const { data: profile, isLoading: profileLoading } = useMyProfile();
+        if (authLoading) return <PageLoader />;
+        if (!user) return <Landing />;
+        if (profileLoading) return <PageLoader />;
+        if (!profile || profile.isIncompleteProfile) return <Redirect to="/profile" />;
+        return <Redirect to="/home" />;
       }} />
       
       {/* Browsable Routes - Anyone can view */}
       <Route path="/home">
-        <BrowsableRoute component={Home} />
+        <BrowsableRoute component={Home} redirectIncomplete />
       </Route>
       <Route path="/buddies">
         <BrowsableRoute component={Buddies} />

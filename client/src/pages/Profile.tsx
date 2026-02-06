@@ -141,14 +141,14 @@ export default function Profile() {
     },
   });
 
-  // Auto-save helper with debounce
+  // Auto-save helper with debounce - always marks profile as complete
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const autoSave = useCallback((updates: Partial<ProfileType>) => {
     if (autoSaveTimeoutRef.current) {
       clearTimeout(autoSaveTimeoutRef.current);
     }
     autoSaveTimeoutRef.current = setTimeout(() => {
-      updateProfileMutation.mutate(updates);
+      updateProfileMutation.mutate({ ...updates, isIncompleteProfile: false });
     }, 1000);
   }, [updateProfileMutation]);
 

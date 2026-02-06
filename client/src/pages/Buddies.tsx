@@ -1,16 +1,18 @@
-import { useState, useRef } from "react";
-import { useProfiles, useSwipe } from "@/hooks/use-profiles";
+import { useState, useMemo } from "react";
+import { useProfiles, useSwipe, useMyProfile } from "@/hooks/use-profiles";
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { AnimatePresence, motion, PanInfo, useAnimation } from "framer-motion";
-import { X, MapPin, Info, Users, Search, Eye, LogIn } from "lucide-react";
+import { X, MapPin, Users, Search, Eye, LogIn, SlidersHorizontal, Crown } from "lucide-react";
 import shakaImg from "@assets/image_1767482724996.png";
 import { PremiumModal } from "@/components/PremiumModal";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SafeImage } from "@/components/SafeImage";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Link, useLocation } from "wouter";
 import { useQuery } from "@tanstack/react-query";
 import type { Profile } from "@shared/schema";
@@ -25,6 +27,7 @@ import {
 export default function Buddies() {
   const { user } = useAuth();
   const { data: profiles, isLoading, error } = useProfiles();
+  const { data: myProfile } = useMyProfile();
   const { mutate: swipe } = useSwipe();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [showPremium, setShowPremium] = useState(false);
@@ -32,8 +35,13 @@ export default function Buddies() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showResults, setShowResults] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+  const [showFilters, setShowFilters] = useState(false);
+  const [genderFilter, setGenderFilter] = useState<string>("all");
+  const [ageFilter, setAgeFilter] = useState<string>("all");
   const [, navigate] = useLocation();
   const controls = useAnimation();
+
+  const isPremium = myProfile?.isPremium ?? false;
 
   const { data: searchResults = [] } = useQuery<Profile[]>({
     queryKey: ['/api/profiles/search', searchQuery],
@@ -44,6 +52,21 @@ export default function Buddies() {
       return res.json();
     },
   });
+
+  const filteredProfiles = useMemo(() => {
+    if (!profiles) return [];
+    if (!isPremium) return profiles;
+    return profiles.filter(p => {
+      if (genderFilter !== "all" && p.gender && p.gender !== genderFilter) return false;
+      if (ageFilter !== "all" && p.age) {
+        const parts = ageFilter.split("-");
+        const min = parseInt(parts[0]);
+        const max = parts[1] === "+" ? Infinity : parseInt(parts[1]);
+        if (p.age < min || p.age > max) return false;
+      }
+      return true;
+    });
+  }, [profiles, genderFilter, ageFilter, isPremium]);
 
   if (isLoading) return <BuddiesSkeleton />;
   if (error) {
@@ -64,9 +87,10 @@ export default function Buddies() {
       </Layout>
     );
   }
-  if (!profiles || profiles.length === 0) return <NoBuddies />;
+  if (!filteredProfiles || filteredProfiles.length === 0) return <NoBuddies />;
 
-  const currentProfile = profiles[currentIndex];
+  const safeIndex = Math.min(currentIndex, filteredProfiles.length - 1);
+  const currentProfile = filteredProfiles[safeIndex];
 
   const handleDragEnd = async (_: any, info: PanInfo) => {
     // Check if user is logged in before allowing swipe
@@ -221,6 +245,59 @@ export default function Buddies() {
               </div>
             )}
           </div>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant={showFilters ? "default" : "outline"}
+              onClick={() => {
+                if (!isPremium) {
+                  setShowPremium(true);
+                  return;
+                }
+                setShowFilters(!showFilters);
+              }}
+              className="gap-1.5"
+              data-testid="button-toggle-filters"
+            >
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              Filters
+              {!isPremium && <Crown className="w-3 h-3 text-amber-500" />}
+            </Button>
+            {isPremium && (genderFilter !== "all" || ageFilter !== "all") && (
+              <Badge variant="secondary" className="text-xs">
+                {[genderFilter !== "all" ? genderFilter : null, ageFilter !== "all" ? ageFilter : null].filter(Boolean).join(", ")}
+              </Badge>
+            )}
+          </div>
+          {showFilters && isPremium && (
+            <div className="flex gap-2">
+              <Select value={genderFilter} onValueChange={(v) => { setGenderFilter(v); setCurrentIndex(0); }}>
+                <SelectTrigger className="h-9 flex-1" data-testid="select-gender-filter">
+                  <SelectValue placeholder="Gender" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Genders</SelectItem>
+                  <SelectItem value="male">Male</SelectItem>
+                  <SelectItem value="female">Female</SelectItem>
+                  <SelectItem value="non-binary">Non-binary</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+              <Select value={ageFilter} onValueChange={(v) => { setAgeFilter(v); setCurrentIndex(0); }}>
+                <SelectTrigger className="h-9 flex-1" data-testid="select-age-filter">
+                  <SelectValue placeholder="Age Range" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Ages</SelectItem>
+                  <SelectItem value="18-25">18 - 25</SelectItem>
+                  <SelectItem value="26-35">26 - 35</SelectItem>
+                  <SelectItem value="36-45">36 - 45</SelectItem>
+                  <SelectItem value="46-55">46 - 55</SelectItem>
+                  <SelectItem value="56-+">56+</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          )}
         </header>
 
         <div className="flex-1 relative flex items-center justify-center px-4 pb-2">

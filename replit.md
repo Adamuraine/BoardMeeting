@@ -9,6 +9,11 @@ Board Meeting is a social mobile-first web application for surfers to connect wi
 Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (February 2026)
+- Premium features now clearly labeled with $5/mo pricing everywhere they appear
+- Buddy swipe limit reduced from 10 to 5 per day for free users (unlimited for premium)
+- Added gender and age filters to buddy swipes (premium-only feature)
+- Trip broadcasting prominently labeled as premium-required in create trip dialog and trip itinerary
+- Extended forecast upgrade prompts now show $5/mo pricing
 - Surf report location preferences now persist to user profile in database (savedSurfSpots field)
 - Marketplace photo upload bug fixed (corrected upload endpoint and object path tracking)
 

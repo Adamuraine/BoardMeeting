@@ -2,7 +2,7 @@ import { useTrips, useCreateTrip, useUpdateTripActivities } from "@/hooks/use-tr
 import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download, Camera, Bell, Pencil } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download, Camera, Bell, Pencil, Crown, Radio } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -1474,6 +1474,19 @@ function CreateTripDialog({ open, onOpenChange }: { open: boolean, onOpenChange:
               placeholder={isVisiting ? "Tell locals about yourself and what you're looking for..." : "Looking for 2 people to split gas..."} 
               data-testid="input-description"
             />
+          </div>
+
+          <div className="flex items-center gap-2 p-3 bg-amber-50 dark:bg-amber-950/30 rounded-lg border border-amber-200/50 dark:border-amber-800/50">
+            <Radio className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+            <div className="min-w-0">
+              <p className="text-xs text-amber-800 dark:text-amber-300">
+                <span className="font-semibold">Broadcasting</span> your trip to other surfers requires Premium ($5/mo).
+              </p>
+              <p className="text-[10px] text-amber-600 dark:text-amber-400 mt-0.5">
+                You can enable broadcasting after creating your trip.
+              </p>
+            </div>
+            <Crown className="w-4 h-4 text-amber-500 shrink-0" />
           </div>
 
           <Button type="submit" disabled={isPending} className="w-full" data-testid="button-create-trip">

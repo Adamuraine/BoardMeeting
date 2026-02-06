@@ -1,6 +1,6 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Crown, Check } from "lucide-react";
+import { Crown, Waves, Users, Radio, SlidersHorizontal } from "lucide-react";
 import { useUpgradePremium } from "@/hooks/use-profiles";
 import { useToast } from "@/hooks/use-toast";
 
@@ -9,6 +9,13 @@ interface PremiumModalProps {
   onOpenChange: (open: boolean) => void;
 }
 
+const PREMIUM_FEATURES = [
+  { icon: Users, label: "Unlimited buddy swipes", description: "Free users get 5 per day" },
+  { icon: SlidersHorizontal, label: "Gender & age filters on buddy swipes", description: "Find exactly who you're looking for" },
+  { icon: Waves, label: "14-day extended surf forecasts", description: "Free users get 3-day forecasts" },
+  { icon: Radio, label: "Broadcast your trips & meetups", description: "Get seen by surfers in your area" },
+];
+
 export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
   const { mutate: upgrade, isPending } = useUpgradePremium();
   const { toast } = useToast();
@@ -16,7 +23,7 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
   const handleUpgrade = () => {
     upgrade(undefined, {
       onSuccess: () => {
-        toast({ title: "Welcome to Premium!", description: "You now have unlimited swipes and extended forecasts." });
+        toast({ title: "Welcome to Premium!", description: "You now have unlimited swipes, extended forecasts, and more." });
         onOpenChange(false);
       },
       onError: () => {
@@ -34,29 +41,32 @@ export function PremiumModal({ open, onOpenChange }: PremiumModalProps) {
           </div>
           <DialogTitle className="text-2xl font-display text-primary">Go Premium</DialogTitle>
           <DialogDescription className="text-base text-muted-foreground">
-            Unlock the full potential of Surf Buddy for just $5/month.
+            Unlock the full Board Meeting experience for just <span className="font-bold text-foreground">$5/mo</span>
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
-          <div className="flex items-center gap-3">
-            <div className="p-1 rounded-full bg-green-100 text-green-600"><Check className="w-4 h-4" /></div>
-            <span className="font-medium">Unlimited buddy swipes</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="p-1 rounded-full bg-green-100 text-green-600"><Check className="w-4 h-4" /></div>
-            <span className="font-medium">14-day extended surf forecasts</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="p-1 rounded-full bg-green-100 text-green-600"><Check className="w-4 h-4" /></div>
-            <span className="font-medium">Advanced filtering for buddies</span>
-          </div>
+        <div className="space-y-3 py-4">
+          {PREMIUM_FEATURES.map((feature) => {
+            const Icon = feature.icon;
+            return (
+              <div key={feature.label} className="flex items-start gap-3">
+                <div className="p-1.5 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 mt-0.5 shrink-0">
+                  <Icon className="w-4 h-4" />
+                </div>
+                <div className="min-w-0">
+                  <span className="font-medium text-sm">{feature.label}</span>
+                  <p className="text-xs text-muted-foreground">{feature.description}</p>
+                </div>
+              </div>
+            );
+          })}
         </div>
 
         <Button 
           onClick={handleUpgrade} 
           disabled={isPending}
           className="w-full bg-gradient-to-r from-accent to-orange-500 hover:from-accent/90 hover:to-orange-600 text-white font-bold h-12 rounded-xl shadow-lg shadow-orange-500/20"
+          data-testid="button-upgrade-premium"
         >
           {isPending ? "Processing..." : "Upgrade for $5/mo"}
         </Button>

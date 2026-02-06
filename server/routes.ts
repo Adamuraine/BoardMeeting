@@ -342,7 +342,7 @@ export async function registerRoutes(
       const profile = await storage.getProfile(userId);
       if (!profile?.isPremium) {
         const todayCount = await storage.getSwipesCountToday(userId);
-        if (todayCount >= 10) {
+        if (todayCount >= 5) {
           return res.status(403).json({ message: "Daily swipe limit reached", code: "LIMIT_REACHED" });
         }
       }

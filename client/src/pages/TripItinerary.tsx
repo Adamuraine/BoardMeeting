@@ -975,7 +975,7 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                     data-testid="button-upgrade"
                   >
                     <Crown className="w-4 h-4 mr-2" />
-                    Upgrade to Premium
+                    Upgrade for $5/mo to Broadcast
                   </Button>
                 )}
               </CardContent>

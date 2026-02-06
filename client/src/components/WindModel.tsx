@@ -219,7 +219,7 @@ function DaySelector({
             className="flex items-center px-2 py-1 rounded bg-teal-500/20 text-teal-400 text-[9px] font-medium min-w-[50px] hover:bg-teal-500/30"
             data-testid="button-unlock-forecast"
           >
-            +11 days
+            +11 days ($5/mo)
           </button>
         )}
       </div>

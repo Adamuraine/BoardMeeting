@@ -378,19 +378,16 @@ export default function Trips() {
           <header className="mb-4">
             <div className="flex justify-between items-start gap-2 mb-3">
               <h1 className="text-3xl font-display font-bold text-foreground">Surf Trips</h1>
-              <div className="flex items-center gap-2">
-                <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-2">
-                  <Bell className="h-4 w-4 text-muted-foreground" />
-                  <Switch
-                    id="trips-notifications"
-                    checked={myProfile?.tripsNotifications ?? false}
-                    onCheckedChange={(checked) => {
-                      updateProfile.mutate({ tripsNotifications: checked });
-                    }}
-                    data-testid="switch-trips-notifications"
-                  />
-                </div>
-                <CreateTripDialog open={open} onOpenChange={setOpen} />
+              <div className="flex items-center gap-2 bg-background/80 backdrop-blur-sm rounded-lg px-3 py-2">
+                <Bell className="h-4 w-4 text-muted-foreground" />
+                <Switch
+                  id="trips-notifications"
+                  checked={myProfile?.tripsNotifications ?? false}
+                  onCheckedChange={(checked) => {
+                    updateProfile.mutate({ tripsNotifications: checked });
+                  }}
+                  data-testid="switch-trips-notifications"
+                />
               </div>
             </div>
             <div className="bg-gradient-to-r from-cyan-500/20 to-blue-500/20 dark:from-cyan-600/30 dark:to-blue-600/30 backdrop-blur-sm rounded-xl p-3 border border-cyan-400/30 dark:border-cyan-500/40">

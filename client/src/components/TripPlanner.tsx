@@ -1,0 +1,338 @@
+import { useState, useMemo } from "react";
+import { Plane, Home, Car, Anchor, Building2, Users, BedDouble, Hotel, Tent, Castle, ExternalLink, Search } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
+import { cn } from "@/lib/utils";
+
+interface TripPlannerProps {
+  location: string;
+  startDate: string;
+  endDate: string;
+  className?: string;
+}
+
+function formatDateForGoogle(dateStr: string): string {
+  if (!dateStr) return "";
+  return dateStr.replace(/-/g, "-");
+}
+
+function formatDateForSkyscanner(dateStr: string): string {
+  if (!dateStr) return "";
+  return dateStr.replace(/-/g, "");
+}
+
+function encodeLocation(location: string): string {
+  return encodeURIComponent(location);
+}
+
+function buildFlightLinks(location: string, startDate: string, endDate: string) {
+  const loc = encodeLocation(location);
+  const sd = formatDateForGoogle(startDate);
+  const ed = formatDateForGoogle(endDate);
+  const skySd = formatDateForSkyscanner(startDate);
+  const skyEd = formatDateForSkyscanner(endDate);
+  return [
+    {
+      name: "Google Flights",
+      url: `https://www.google.com/travel/flights?q=flights+to+${loc}&d1=${sd}&d2=${ed}`,
+      color: "bg-blue-500",
+    },
+    {
+      name: "Skyscanner",
+      url: `https://www.skyscanner.com/transport/flights/anywhere/${loc}/${skySd}/${skyEd}/`,
+      color: "bg-cyan-500",
+    },
+    {
+      name: "Kayak",
+      url: `https://www.kayak.com/flights?search=1&destination=${loc}&depart=${sd}&return=${ed}`,
+      color: "bg-orange-500",
+    },
+  ];
+}
+
+type AccommodationType = "all" | "room" | "shared" | "hostel" | "resort";
+
+function buildAccommodationLinks(location: string, startDate: string, endDate: string, type: AccommodationType) {
+  const loc = encodeLocation(location);
+  const sd = formatDateForGoogle(startDate);
+  const ed = formatDateForGoogle(endDate);
+
+  const typeQueryMap: Record<AccommodationType, string> = {
+    all: "",
+    room: "+private+room",
+    shared: "+shared+room",
+    hostel: "+hostel",
+    resort: "+resort",
+  };
+  const typeQuery = typeQueryMap[type];
+
+  return [
+    {
+      name: "Airbnb",
+      url: `https://www.airbnb.com/s/${loc}/homes?checkin=${sd}&checkout=${ed}&query=${loc}${typeQuery ? `+${type}` : ""}`,
+      color: "bg-rose-500",
+    },
+    {
+      name: "Booking.com",
+      url: `https://www.booking.com/searchresults.html?ss=${loc}&checkin=${sd}&checkout=${ed}`,
+      color: "bg-blue-700",
+    },
+    {
+      name: "Hostelworld",
+      url: `https://www.hostelworld.com/st/hostels/${loc}/?DateRange=${sd},${ed}`,
+      color: "bg-orange-600",
+    },
+    {
+      name: "Hotels.com",
+      url: `https://www.hotels.com/search.do?q-destination=${loc}&q-check-in=${sd}&q-check-out=${ed}`,
+      color: "bg-red-600",
+    },
+  ];
+}
+
+function buildRentalLinks(location: string, startDate: string, endDate: string) {
+  const loc = encodeLocation(location);
+  const sd = formatDateForGoogle(startDate);
+  const ed = formatDateForGoogle(endDate);
+  return [
+    {
+      name: "Turo",
+      url: `https://turo.com/search?location=${loc}&startDate=${sd}&endDate=${ed}`,
+      color: "bg-purple-600",
+    },
+    {
+      name: "Rental Cars",
+      url: `https://www.rentalcars.com/search-results?location=${loc}&pick-up=${sd}&drop-off=${ed}`,
+      color: "bg-sky-600",
+    },
+    {
+      name: "Kayak Cars",
+      url: `https://www.kayak.com/cars/${loc}/${sd}/${ed}`,
+      color: "bg-orange-500",
+    },
+  ];
+}
+
+function buildSurfGuideLinks(location: string) {
+  const loc = encodeLocation(location);
+  return [
+    {
+      name: "Google Search",
+      url: `https://www.google.com/search?q=surf+guide+${loc}+lessons+tours`,
+      color: "bg-blue-500",
+    },
+    {
+      name: "TripAdvisor",
+      url: `https://www.tripadvisor.com/Search?q=surf+guide+${loc}`,
+      color: "bg-green-600",
+    },
+    {
+      name: "Airbnb Experiences",
+      url: `https://www.airbnb.com/s/${loc}/experiences?query=surf`,
+      color: "bg-rose-500",
+    },
+    {
+      name: "GetYourGuide",
+      url: `https://www.getyourguide.com/s/?q=surf+${loc}`,
+      color: "bg-blue-600",
+    },
+  ];
+}
+
+const ACCOMMODATION_TYPES: { id: AccommodationType; label: string; icon: typeof BedDouble }[] = [
+  { id: "all", label: "All", icon: Building2 },
+  { id: "room", label: "Room", icon: BedDouble },
+  { id: "shared", label: "Shared", icon: Users },
+  { id: "hostel", label: "Hostel", icon: Tent },
+  { id: "resort", label: "Resort", icon: Castle },
+];
+
+export function TripPlanner({ location, startDate, endDate, className }: TripPlannerProps) {
+  const [activeTab, setActiveTab] = useState("flights");
+  const [accomType, setAccomType] = useState<AccommodationType>("all");
+  const [expanded, setExpanded] = useState(false);
+
+  const hasRequiredInfo = location && startDate && endDate;
+
+  const flightLinks = useMemo(() => buildFlightLinks(location, startDate, endDate), [location, startDate, endDate]);
+  const accomLinks = useMemo(() => buildAccommodationLinks(location, startDate, endDate, accomType), [location, startDate, endDate, accomType]);
+  const rentalLinks = useMemo(() => buildRentalLinks(location, startDate, endDate), [location, startDate, endDate]);
+  const surfGuideLinks = useMemo(() => buildSurfGuideLinks(location), [location]);
+
+  if (!hasRequiredInfo && !expanded) {
+    return null;
+  }
+
+  return (
+    <div className={cn("rounded-xl border border-border/50 overflow-hidden", className)}>
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20"
+        data-testid="button-trip-planner-toggle"
+      >
+        <div className="flex items-center gap-2">
+          <Search className="w-4 h-4 text-indigo-500" />
+          <span className="text-sm font-semibold text-foreground">Trip Planner</span>
+          <Badge variant="secondary" className="text-[9px] no-default-active-elevate">AI</Badge>
+        </div>
+        <span className="text-xs text-muted-foreground">{expanded ? "Hide" : "Find deals"}</span>
+      </button>
+
+      {expanded && (
+        <div className="p-3 space-y-3 bg-card/50">
+          {!hasRequiredInfo ? (
+            <p className="text-xs text-muted-foreground text-center py-4">
+              Enter a location and dates above to find flights, stays, and more
+            </p>
+          ) : (
+            <>
+              <p className="text-[10px] text-muted-foreground text-center">
+                Search results for <span className="font-semibold text-foreground">{location}</span> &middot; {startDate} to {endDate}
+              </p>
+
+              <Tabs value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-4 h-auto">
+                  <TabsTrigger value="flights" className="text-[10px] py-1.5 flex flex-col items-center gap-0.5 data-[state=active]:bg-indigo-500/20 data-[state=active]:text-indigo-700 dark:data-[state=active]:text-indigo-300" data-testid="tab-planner-flights">
+                    <Plane className="w-3.5 h-3.5" />
+                    Flights
+                  </TabsTrigger>
+                  <TabsTrigger value="stays" className="text-[10px] py-1.5 flex flex-col items-center gap-0.5 data-[state=active]:bg-rose-500/20 data-[state=active]:text-rose-700 dark:data-[state=active]:text-rose-300" data-testid="tab-planner-stays">
+                    <Home className="w-3.5 h-3.5" />
+                    Stays
+                  </TabsTrigger>
+                  <TabsTrigger value="rentals" className="text-[10px] py-1.5 flex flex-col items-center gap-0.5 data-[state=active]:bg-purple-500/20 data-[state=active]:text-purple-700 dark:data-[state=active]:text-purple-300" data-testid="tab-planner-rentals">
+                    <Car className="w-3.5 h-3.5" />
+                    Rentals
+                  </TabsTrigger>
+                  <TabsTrigger value="guides" className="text-[10px] py-1.5 flex flex-col items-center gap-0.5 data-[state=active]:bg-teal-500/20 data-[state=active]:text-teal-700 dark:data-[state=active]:text-teal-300" data-testid="tab-planner-guides">
+                    <Anchor className="w-3.5 h-3.5" />
+                    Guides
+                  </TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="flights" className="mt-3 space-y-2">
+                  <div className="grid gap-2">
+                    {flightLinks.map((link) => (
+                      <a
+                        key={link.name}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50 hover-elevate transition-all"
+                        data-testid={`link-flight-${link.name.toLowerCase().replace(/\s/g, "-")}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-7 h-7 rounded-md flex items-center justify-center text-white", link.color)}>
+                            <Plane className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-sm font-medium">{link.name}</span>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                      </a>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="stays" className="mt-3 space-y-3">
+                  <div className="flex flex-wrap gap-1.5">
+                    {ACCOMMODATION_TYPES.map((t) => {
+                      const Icon = t.icon;
+                      return (
+                        <button
+                          key={t.id}
+                          onClick={() => setAccomType(t.id)}
+                          className={cn(
+                            "flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-medium transition-all",
+                            accomType === t.id
+                              ? "bg-rose-500 text-white"
+                              : "bg-secondary text-secondary-foreground hover-elevate"
+                          )}
+                          data-testid={`button-accom-type-${t.id}`}
+                        >
+                          <Icon className="w-3 h-3" />
+                          {t.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  <div className="grid gap-2">
+                    {accomLinks.map((link) => (
+                      <a
+                        key={link.name}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50 hover-elevate transition-all"
+                        data-testid={`link-stay-${link.name.toLowerCase().replace(/[\s.]/g, "-")}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-7 h-7 rounded-md flex items-center justify-center text-white", link.color)}>
+                            <Hotel className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-sm font-medium">{link.name}</span>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                      </a>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="rentals" className="mt-3 space-y-2">
+                  <div className="grid gap-2">
+                    {rentalLinks.map((link) => (
+                      <a
+                        key={link.name}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50 hover-elevate transition-all"
+                        data-testid={`link-rental-${link.name.toLowerCase().replace(/\s/g, "-")}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-7 h-7 rounded-md flex items-center justify-center text-white", link.color)}>
+                            <Car className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-sm font-medium">{link.name}</span>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                      </a>
+                    ))}
+                  </div>
+                </TabsContent>
+
+                <TabsContent value="guides" className="mt-3 space-y-2">
+                  <div className="grid gap-2">
+                    {surfGuideLinks.map((link) => (
+                      <a
+                        key={link.name}
+                        href={link.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center justify-between p-2.5 rounded-lg bg-secondary/50 hover-elevate transition-all"
+                        data-testid={`link-guide-${link.name.toLowerCase().replace(/\s/g, "-")}`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className={cn("w-7 h-7 rounded-md flex items-center justify-center text-white", link.color)}>
+                            <Anchor className="w-3.5 h-3.5" />
+                          </div>
+                          <span className="text-sm font-medium">{link.name}</span>
+                        </div>
+                        <ExternalLink className="w-3.5 h-3.5 text-muted-foreground" />
+                      </a>
+                    ))}
+                  </div>
+                  <div className="bg-gradient-to-r from-teal-500/10 to-emerald-500/10 rounded-lg p-3 border border-teal-500/20">
+                    <p className="text-[11px] text-muted-foreground leading-relaxed">
+                      Know a local surf guide, house rental, or hotel?{" "}
+                      <span className="font-semibold text-foreground">List them on Board Meeting</span> and earn referral fees for every booking.
+                    </p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}

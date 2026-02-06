@@ -25,6 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { type DateRange } from "react-day-picker";
 import treasureMapBg from "@assets/IMG_2639_1767484629952.jpeg";
+import { TripPlanner } from "@/components/TripPlanner";
 
 const LOCATIONS = [
   // California - San Diego County
@@ -610,6 +611,14 @@ export default function Trips() {
                 {createTrip.isPending ? "Creating..." : "Let's Go!"}
                 <ArrowRight className="w-4 h-4 ml-2" />
               </Button>
+
+              {destFilter && destFilter !== "all" && dateRange?.from && dateRange?.to && (
+                <TripPlanner
+                  location={destFilter}
+                  startDate={format(dateRange.from, "yyyy-MM-dd")}
+                  endDate={format(dateRange.to, "yyyy-MM-dd")}
+                />
+              )}
             </div>
 
             <Dialog open={tripDetailsOpen} onOpenChange={setTripDetailsOpen}>
@@ -1184,6 +1193,14 @@ export default function Trips() {
                 {createTrip.isPending ? "Posting..." : "Post Visit"}
                 <Martini className="w-4 h-4 ml-2" />
               </Button>
+
+              {visitLocation && visitStartDate && visitEndDate && (
+                <TripPlanner
+                  location={visitLocation}
+                  startDate={visitStartDate}
+                  endDate={visitEndDate}
+                />
+              )}
             </div>
 
             <div className="bg-card/90 backdrop-blur-sm rounded-xl p-4 border border-border/50">

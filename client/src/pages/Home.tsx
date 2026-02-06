@@ -16,7 +16,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
 interface PostCardProps {
-  post: PostWithUser & { location: { name: string } };
+  post: PostWithUser & { location: { name: string } | null };
   onMessageClick: (user: Profile) => void;
 }
 
@@ -101,12 +101,14 @@ function PostCard({ post, onMessageClick }: PostCardProps) {
           )}
         </AnimatePresence>
         
-        <div className="absolute top-4 left-4">
-          <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs border border-white/20">
-            <MapPin className="h-3 w-3" />
-            {post.location.name}
+        {post.location?.name && (
+          <div className="absolute top-4 left-4">
+            <div className="bg-black/40 backdrop-blur-md px-3 py-1.5 rounded-full flex items-center gap-2 text-white text-xs border border-white/20">
+              <MapPin className="h-3 w-3" />
+              {post.location.name}
+            </div>
           </div>
-        </div>
+        )}
         <div className="absolute bottom-4 left-4 right-4">
           <Link href={`/profile/${post.user.userId}`}>
             <Button variant="outline" size="sm" className="w-full bg-white/10 backdrop-blur-md border-white/20 text-white hover:bg-white/20">
@@ -244,7 +246,7 @@ interface AlertItem {
 
 export default function Home() {
   const { data: profile } = useMyProfile();
-  const { data: posts, isLoading } = useQuery<(PostWithUser & { location: { name: string } })[]>({
+  const { data: posts, isLoading } = useQuery<(PostWithUser & { location: { name: string } | null })[]>({
     queryKey: ["/api/posts"],
   });
   const { data: broadcastTrips } = useQuery<(Trip & { organizer: Profile })[]>({

@@ -1,30 +1,25 @@
 import { useState, useRef } from "react";
 import { useLocation } from "wouter";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ArrowLeft, Camera, Loader2, MapPin, Upload } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { ArrowLeft, Camera, Loader2, MapPin } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import type { Location as LocationType } from "@shared/schema";
 
 export default function NewPost() {
   const [, navigate] = useLocation();
   const { toast } = useToast();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-  const [locationId, setLocationId] = useState<string>("");
+  const [locationText, setLocationText] = useState("");
   const pendingPathRef = useRef<string | null>(null);
 
-  const { data: locations = [] } = useQuery<LocationType[]>({
-    queryKey: ["/api/locations"],
-  });
-
   const createPostMutation = useMutation({
-    mutationFn: async (data: { imageUrl: string; caption: string; locationId: number }) => {
+    mutationFn: async (data: { imageUrl: string; caption: string; location?: string }) => {
       const res = await apiRequest("POST", "/api/posts", data);
       return res.json();
     },
@@ -65,10 +60,10 @@ export default function NewPost() {
   };
 
   const handleSubmit = () => {
-    if (!imageUrl || !locationId) {
+    if (!imageUrl) {
       toast({
-        title: "Missing info",
-        description: "Please add a photo and select a surf spot",
+        title: "Missing photo",
+        description: "Please add a photo to share",
         variant: "destructive"
       });
       return;
@@ -76,7 +71,7 @@ export default function NewPost() {
     createPostMutation.mutate({
       imageUrl,
       caption,
-      locationId: parseInt(locationId),
+      location: locationText.trim() || undefined,
     });
   };
 
@@ -95,7 +90,7 @@ export default function NewPost() {
           <h1 className="text-lg font-semibold flex-1">Share Your Session</h1>
           <Button 
             onClick={handleSubmit}
-            disabled={!imageUrl || !locationId || createPostMutation.isPending}
+            disabled={!imageUrl || createPostMutation.isPending}
             data-testid="button-post"
           >
             {createPostMutation.isPending ? (
@@ -137,7 +132,7 @@ export default function NewPost() {
                 </div>
                 <div className="text-center">
                   <p className="font-medium text-foreground">Upload your best wave</p>
-                  <p className="text-xs text-muted-foreground">Tap to select a photo</p>
+                  <p className="text-xs text-muted-foreground">Tap to select a photo or video</p>
                 </div>
               </ObjectUploader>
             )}
@@ -146,20 +141,14 @@ export default function NewPost() {
           <div>
             <label className="text-sm font-medium text-muted-foreground mb-2 block">
               <MapPin className="h-4 w-4 inline mr-1" />
-              Surf Spot
+              Location (optional)
             </label>
-            <Select value={locationId} onValueChange={setLocationId}>
-              <SelectTrigger data-testid="select-location">
-                <SelectValue placeholder="Where did you surf?" />
-              </SelectTrigger>
-              <SelectContent>
-                {locations.map((loc) => (
-                  <SelectItem key={loc.id} value={loc.id.toString()}>
-                    {loc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Input
+              placeholder="e.g. Huntington Beach, Pipeline, Trestles..."
+              value={locationText}
+              onChange={(e) => setLocationText(e.target.value)}
+              data-testid="input-location"
+            />
           </div>
 
           <div>

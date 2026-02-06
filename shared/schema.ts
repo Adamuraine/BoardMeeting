@@ -131,7 +131,8 @@ export type TripParticipant = typeof tripParticipants.$inferSelect;
 export const posts = pgTable("posts", {
   id: serial("id").primaryKey(),
   userId: varchar("user_id").notNull().references(() => users.id),
-  locationId: integer("location_id").notNull().references(() => locations.id),
+  locationId: integer("location_id").references(() => locations.id),
+  location: text("location"),
   imageUrl: text("image_url").notNull(),
   caption: text("caption"),
   createdAt: timestamp("created_at").defaultNow(),

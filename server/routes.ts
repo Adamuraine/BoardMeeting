@@ -127,7 +127,9 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     try {
-      const input = insertPostSchema.parse({ ...req.body, userId });
+      const body = { ...req.body, userId };
+      if (!body.locationId) delete body.locationId;
+      const input = insertPostSchema.parse(body);
       const post = await storage.createPost(input);
       res.status(201).json(post);
     } catch (err) {

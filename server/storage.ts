@@ -51,7 +51,7 @@ export interface IStorage {
 
   // Posts
   createPost(post: InsertPost): Promise<Post>;
-  getPosts(): Promise<(Post & { user: Profile, location: Location })[]>;
+  getPosts(): Promise<(Post & { user: Profile, location: Location | null })[]>;
   getPostsByLocation(locationId: number): Promise<(Post & { user: Profile })[]>;
 
   // Post Likes (Shaka)
@@ -123,18 +123,26 @@ export class DatabaseStorage implements IStorage {
     return newPost;
   }
 
-  async getPosts(): Promise<(Post & { user: Profile, location: Location })[]> {
+  async getPosts(): Promise<(Post & { user: Profile, location: Location | null })[]> {
     const results = await db.select({
       post: posts,
       user: profiles,
-      location: locations
+      loc: locations
     })
     .from(posts)
     .innerJoin(profiles, eq(posts.userId, profiles.userId))
-    .innerJoin(locations, eq(posts.locationId, locations.id))
+    .leftJoin(locations, eq(posts.locationId, locations.id))
     .orderBy(desc(posts.createdAt));
     
-    return results.map(r => ({ ...r.post, user: r.user, location: r.location }));
+    return results.map(r => {
+      const locationName = r.loc?.name || r.post.location || null;
+      const locObj = r.loc ? r.loc : locationName ? { id: 0, name: locationName, latitude: '', longitude: '', description: null, difficultyLevel: null, region: null } as unknown as Location : null;
+      return {
+        ...r.post,
+        user: r.user,
+        location: locObj,
+      } as Post & { user: Profile, location: Location | null };
+    });
   }
 
   async getPostsByLocation(locationId: number): Promise<(Post & { user: Profile })[]> {

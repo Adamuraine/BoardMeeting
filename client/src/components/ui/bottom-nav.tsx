@@ -38,7 +38,7 @@ export default function BottomNav() {
   if (location === "/onboarding") return null;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 border-t bg-background/80 backdrop-blur-lg px-1 py-1 z-50 safe-area-bottom">
+    <div className="fixed bottom-0 left-0 right-0 border-t bg-background/80 backdrop-blur-lg px-1 py-1 z-[10000] safe-area-bottom">
       <div className="flex justify-around items-center max-w-md mx-auto">
         {navItems.map(({ href, icon: Icon, label }) => {
           const isActive = location === href;

@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
 import { useMyProfile } from "@/hooks/use-profiles";
-import { Button } from "@/components/ui/button";
-import { Lock, ChevronLeft, ChevronRight, Play, Pause, ChevronDown } from "lucide-react";
+import { Lock, SkipBack, SkipForward, Play, Pause, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PremiumModal } from "@/components/PremiumModal";
 
@@ -11,9 +9,9 @@ const STORMSURF_BASE = "https://www.stormsurfing.com/stormuser2/images/grib";
 const FRAME_INDICES = [1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61];
 
 const REGIONS = [
-  { id: "scal_wave", name: "Southern California Swell", short: "SoCal" },
+  { id: "scal_wave", name: "Southern California Swell", short: "SoCal Swell" },
   { id: "scal_comp", name: "Southern California Surf", short: "SoCal Surf" },
-  { id: "ncal_wave", name: "Northern California Swell", short: "NorCal" },
+  { id: "ncal_wave", name: "Northern California Swell", short: "NorCal Swell" },
   { id: "ncal_comp", name: "Northern California Surf", short: "NorCal Surf" },
   { id: "hi_wave", name: "Hawaii Swell", short: "Hawaii" },
   { id: "nj_wave", name: "New Jersey Swell", short: "New Jersey" },
@@ -24,6 +22,8 @@ function getImageUrl(regionId: string, frameIndex: number): string {
 }
 
 const FREE_FRAMES = 9;
+const PLAY_INTERVAL = 400;
+const FADE_DURATION = 250;
 
 export function SwellModel() {
   const { data: profile } = useMyProfile();
@@ -31,70 +31,86 @@ export function SwellModel() {
   const [selectedRegion, setSelectedRegion] = useState(0);
   const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showControls, setShowControls] = useState(false);
   const [showRegionMenu, setShowRegionMenu] = useState(false);
-  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const [imagesReady, setImagesReady] = useState(false);
   const [imageError, setImageError] = useState(false);
+  const [opacity, setOpacity] = useState(1);
   const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const hideControlsRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const imageContainerRef = useRef<HTMLDivElement>(null);
+  const preloadedRef = useRef<HTMLImageElement[]>([]);
 
   const isPremium = profile?.isPremium ?? false;
   const maxFrames = isPremium ? FRAME_INDICES.length : FREE_FRAMES;
   const region = REGIONS[selectedRegion];
   const totalFrames = FRAME_INDICES.length;
 
-  const currentImageUrl = getImageUrl(region.id, FRAME_INDICES[currentFrame]);
-
   useEffect(() => {
+    setImagesReady(false);
+    setCurrentFrame(0);
+    setIsPlaying(false);
+    setImageError(false);
+    setOpacity(1);
+
     const preloadCount = Math.min(maxFrames, totalFrames);
+    const images: HTMLImageElement[] = [];
+    let loadedCount = 0;
+
     for (let i = 0; i < preloadCount; i++) {
       const url = getImageUrl(region.id, FRAME_INDICES[i]);
       const img = new Image();
       img.onload = () => {
-        setLoadedImages(prev => new Set(prev).add(url));
+        loadedCount++;
+        if (loadedCount >= Math.min(3, preloadCount)) {
+          setImagesReady(true);
+          setIsPlaying(true);
+        }
+      };
+      img.onerror = () => {
+        loadedCount++;
+        if (loadedCount >= Math.min(3, preloadCount)) {
+          setImagesReady(true);
+        }
       };
       img.src = url;
+      images.push(img);
     }
+    preloadedRef.current = images;
   }, [region.id, maxFrames, totalFrames]);
 
-  const goToFrame = useCallback((frame: number) => {
-    if (frame >= 0 && frame < maxFrames) {
-      setCurrentFrame(frame);
+  const fadeToFrame = useCallback((newFrame: number) => {
+    setOpacity(0);
+    setTimeout(() => {
+      setCurrentFrame(newFrame);
       setImageError(false);
-    } else if (frame >= maxFrames && !isPremium) {
-      setIsPlaying(false);
-      setShowPremium(true);
-    }
-  }, [maxFrames, isPremium]);
+      setOpacity(1);
+    }, FADE_DURATION);
+  }, []);
 
   const nextFrame = useCallback(() => {
     setCurrentFrame(prev => {
       const next = prev + 1;
       if (next >= maxFrames) {
-        if (!isPremium) {
-          setIsPlaying(false);
-          setShowPremium(true);
-          return prev;
-        }
         return 0;
       }
       return next;
     });
-    setImageError(false);
-  }, [maxFrames, isPremium]);
+  }, [maxFrames]);
 
   const prevFrame = useCallback(() => {
     setCurrentFrame(prev => {
       if (prev <= 0) return maxFrames - 1;
       return prev - 1;
     });
-    setImageError(false);
   }, [maxFrames]);
 
   useEffect(() => {
-    if (isPlaying) {
+    if (isPlaying && imagesReady) {
       playIntervalRef.current = setInterval(() => {
         nextFrame();
-      }, 800);
+      }, PLAY_INTERVAL);
     } else if (playIntervalRef.current) {
       clearInterval(playIntervalRef.current);
       playIntervalRef.current = null;
@@ -102,13 +118,26 @@ export function SwellModel() {
     return () => {
       if (playIntervalRef.current) clearInterval(playIntervalRef.current);
     };
-  }, [isPlaying, nextFrame]);
+  }, [isPlaying, imagesReady, nextFrame]);
+
+  const handleShowControls = useCallback(() => {
+    setShowControls(true);
+    if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
+    hideControlsRef.current = setTimeout(() => {
+      setShowControls(false);
+    }, 3000);
+  }, []);
+
+  const handleHideControls = useCallback(() => {
+    if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
+    setShowControls(false);
+  }, []);
 
   useEffect(() => {
-    setCurrentFrame(0);
-    setIsPlaying(false);
-    setImageError(false);
-  }, [selectedRegion]);
+    return () => {
+      if (hideControlsRef.current) clearTimeout(hideControlsRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -123,37 +152,33 @@ export function SwellModel() {
   }, [showRegionMenu]);
 
   const forecastHour = currentFrame * 6;
-  const forecastDay = Math.floor(forecastHour / 24);
-  const forecastHourOfDay = forecastHour % 24;
+  const currentImageUrl = getImageUrl(region.id, FRAME_INDICES[currentFrame]);
 
   return (
-    <div className="flex flex-col h-full bg-slate-900" data-testid="swell-model-container">
+    <div className="flex flex-col h-full bg-black" data-testid="swell-model-container">
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
 
-      <div className="bg-gradient-to-r from-blue-800 to-blue-700 px-3 py-2 flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <img
-            src={boardMeetingLogo}
-            alt="Board Meeting"
-            className="w-7 h-7 rounded-full object-cover border border-white/30"
-          />
-          <div>
-            <h2 className="text-white font-bold text-sm leading-tight" data-testid="text-swell-title">Wave Model</h2>
-            <p className="text-blue-200 text-[10px]">Powered by STORMSURF</p>
+      <div className="bg-slate-900/90 px-3 py-2 flex items-center justify-between gap-2 border-b border-white/10 z-10">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="min-w-0">
+            <h2 className="text-white font-bold text-sm leading-tight truncate" data-testid="text-swell-title">
+              {region.name}
+            </h2>
+            <p className="text-white/40 text-[10px]">STORMSURF Wave Model</p>
           </div>
         </div>
 
-        <div className="relative" ref={menuRef}>
+        <div className="relative flex-shrink-0" ref={menuRef}>
           <button
             onClick={() => setShowRegionMenu(!showRegionMenu)}
-            className="flex items-center gap-1 bg-white/15 text-white text-xs px-2.5 py-1.5 rounded-md"
+            className="flex items-center gap-1 bg-white/10 text-white text-xs px-2.5 py-1.5 rounded-md"
             data-testid="button-swell-region-select"
           >
             {region.short}
             <ChevronDown className="h-3 w-3" />
           </button>
           {showRegionMenu && (
-            <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/20 rounded-md shadow-xl z-50 min-w-[180px] py-1" data-testid="menu-swell-regions">
+            <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/20 rounded-md shadow-xl z-50 min-w-[200px] py-1" data-testid="menu-swell-regions">
               {REGIONS.map((r, i) => (
                 <button
                   key={r.id}
@@ -177,121 +202,117 @@ export function SwellModel() {
         </div>
       </div>
 
-      <div className="bg-slate-800 px-3 py-1.5 flex items-center justify-between gap-2 border-b border-white/10">
-        <div className="flex items-center gap-1">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={prevFrame}
-            className="h-7 w-7 text-white/80"
-            data-testid="button-swell-prev"
-          >
-            <ChevronLeft className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setIsPlaying(!isPlaying)}
-            className="h-7 w-7 text-white/80"
-            data-testid="button-swell-play"
-          >
-            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={nextFrame}
-            className="h-7 w-7 text-white/80"
-            data-testid="button-swell-next"
-          >
-            <ChevronRight className="h-4 w-4" />
-          </Button>
-        </div>
-
-        <div className="flex items-center gap-3 text-white text-xs">
-          <span className="text-white/60">
-            Frame {currentFrame + 1}/{isPremium ? totalFrames : FREE_FRAMES}
-          </span>
-          <span className="font-medium text-blue-300" data-testid="text-swell-forecast-info">
-            +{forecastHour}hr (Day {forecastDay + 1}, {forecastHourOfDay.toString().padStart(2, '0')}Z)
-          </span>
-        </div>
-      </div>
-
-      <div className="bg-slate-800 px-2 py-1.5 border-b border-white/10">
-        <div className="flex gap-0.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
-          {Array.from({ length: isPremium ? totalFrames : totalFrames }).map((_, i) => {
-            const isLocked = i >= maxFrames;
-            const isActive = i === currentFrame;
-            return (
-              <button
-                key={i}
-                onClick={() => {
-                  if (isLocked) {
-                    setShowPremium(true);
-                  } else {
-                    goToFrame(i);
-                  }
-                }}
-                className={cn(
-                  "h-2 flex-1 min-w-[4px] max-w-[12px] rounded-sm transition-all",
-                  isActive
-                    ? "bg-blue-400 scale-y-150"
-                    : isLocked
-                      ? "bg-white/10"
-                      : loadedImages.has(getImageUrl(region.id, FRAME_INDICES[i]))
-                        ? "bg-blue-600/60"
-                        : "bg-white/20"
-                )}
-                data-testid={`button-swell-frame-${i}`}
-              />
-            );
-          })}
-        </div>
-        {!isPremium && (
-          <div className="flex items-center justify-center mt-1.5">
-            <button
-              onClick={() => setShowPremium(true)}
-              className="flex items-center gap-1 text-[10px] text-blue-400 font-medium"
-              data-testid="button-swell-unlock-forecast"
-            >
-              <Lock className="h-2.5 w-2.5" />
-              Unlock full 7-day forecast ($5/mo)
-            </button>
+      <div
+        className="flex-1 relative bg-black flex items-center justify-center overflow-hidden"
+        ref={imageContainerRef}
+        onMouseEnter={handleShowControls}
+        onMouseLeave={handleHideControls}
+        onTouchStart={handleShowControls}
+        data-testid="swell-image-area"
+      >
+        {!imagesReady ? (
+          <div className="flex flex-col items-center gap-3">
+            <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            <p className="text-white/50 text-sm">Loading forecast...</p>
           </div>
-        )}
-      </div>
-
-      <div className="flex-1 relative bg-slate-900 flex items-center justify-center overflow-hidden pb-16">
-        {imageError ? (
+        ) : imageError ? (
           <div className="text-white/50 text-sm text-center p-4">
             <p>Unable to load forecast image</p>
-            <p className="text-xs mt-1">Try selecting a different region or frame</p>
+            <p className="text-xs mt-1">Try selecting a different region</p>
           </div>
         ) : (
           <img
             src={currentImageUrl}
-            alt={`${region.name} Swell Height - +${forecastHour}hr forecast`}
+            alt={`${region.name} - +${forecastHour}hr forecast`}
             className="w-full h-full object-contain"
+            style={{
+              opacity,
+              transition: `opacity ${FADE_DURATION}ms ease-in-out`,
+            }}
             onError={() => setImageError(true)}
             data-testid="img-swell-forecast"
           />
         )}
 
-        {currentFrame >= maxFrames - 1 && !isPremium && (
-          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10">
-            <Lock className="h-8 w-8 text-white/80 mb-2" />
-            <p className="text-white font-semibold text-sm">Premium Forecast</p>
-            <p className="text-white/70 text-xs mt-1 mb-3">Get the full 7-day swell forecast</p>
-            <Button
-              onClick={() => setShowPremium(true)}
-              className="bg-blue-600 text-white text-sm"
-              data-testid="button-swell-premium-overlay"
+        <div
+          className={cn(
+            "absolute inset-0 flex items-center justify-center pointer-events-none transition-opacity duration-200",
+            showControls ? "opacity-100" : "opacity-0"
+          )}
+        >
+          <div className="flex items-center gap-1 pointer-events-auto bg-black/60 rounded-full px-2 py-1.5 backdrop-blur-sm" data-testid="swell-overlay-controls">
+            <button
+              onClick={(e) => { e.stopPropagation(); prevFrame(); handleShowControls(); }}
+              className="w-10 h-10 flex items-center justify-center text-white/90 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+              data-testid="button-swell-prev"
             >
-              Upgrade - $5/mo
-            </Button>
+              <SkipBack className="h-5 w-5" />
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setIsPlaying(!isPlaying); handleShowControls(); }}
+              className="w-12 h-12 flex items-center justify-center text-white bg-white/15 hover:bg-white/25 rounded-full transition-colors"
+              data-testid="button-swell-play"
+            >
+              {isPlaying ? <Pause className="h-6 w-6" /> : <Play className="h-6 w-6 ml-0.5" />}
+            </button>
+            <button
+              onClick={(e) => { e.stopPropagation(); nextFrame(); handleShowControls(); }}
+              className="w-10 h-10 flex items-center justify-center text-white/90 hover:text-white rounded-full hover:bg-white/10 transition-colors"
+              data-testid="button-swell-next"
+            >
+              <SkipForward className="h-5 w-5" />
+            </button>
           </div>
-        )}
+        </div>
+
+        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent pt-8 pb-2 px-3">
+          <div className="flex items-center justify-between text-white text-xs mb-1.5">
+            <span className="font-medium" data-testid="text-swell-forecast-info">
+              +{forecastHour}hr
+            </span>
+            <span className="text-white/50">
+              {currentFrame + 1} / {isPremium ? totalFrames : `${FREE_FRAMES} free`}
+            </span>
+          </div>
+          <div className="flex gap-[2px]">
+            {Array.from({ length: totalFrames }).map((_, i) => {
+              const isLocked = i >= maxFrames;
+              const isActive = i === currentFrame;
+              return (
+                <button
+                  key={i}
+                  onClick={() => {
+                    if (isLocked) {
+                      setShowPremium(true);
+                    } else {
+                      fadeToFrame(i);
+                    }
+                  }}
+                  className={cn(
+                    "h-1 flex-1 rounded-full transition-all",
+                    isActive
+                      ? "bg-white h-1.5"
+                      : isLocked
+                        ? "bg-white/15"
+                        : "bg-white/40"
+                  )}
+                  data-testid={`button-swell-frame-${i}`}
+                />
+              );
+            })}
+          </div>
+          {!isPremium && (
+            <button
+              onClick={() => setShowPremium(true)}
+              className="flex items-center gap-1 text-[10px] text-blue-400 font-medium mt-1.5 mx-auto"
+              data-testid="button-swell-unlock-forecast"
+            >
+              <Lock className="h-2.5 w-2.5" />
+              Unlock full 7-day forecast ($5/mo)
+            </button>
+          )}
+        </div>
+
       </div>
     </div>
   );

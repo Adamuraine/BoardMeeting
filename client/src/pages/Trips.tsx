@@ -829,103 +829,217 @@ export default function Trips() {
           </TabsContent>
 
           <TabsContent value="carpool" className="flex-1 space-y-4 mt-0 overflow-y-auto">
-            <div className="bg-card/90 backdrop-blur-sm rounded-xl p-3 border border-border/50 space-y-3">
-              <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-full bg-emerald-400/20 flex items-center justify-center">
-                  <Car className="w-4 h-4 text-emerald-500" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-sm">Post a Ride</h3>
-                  <p className="text-[10px] text-muted-foreground">Offer or request a ride to the beach</p>
-                </div>
-              </div>
+            <Tabs value={rideOffering ? "offer" : "need"} onValueChange={(v) => setRideOffering(v === "offer")}>
+              <TabsList className="grid w-full grid-cols-2 mb-3">
+                <TabsTrigger value="offer" className="data-[state=active]:bg-emerald-400/90 data-[state=active]:text-emerald-950 dark:data-[state=active]:bg-emerald-400/80 dark:data-[state=active]:text-emerald-950" data-testid="tab-offer-ride">
+                  <ThumbsUp className="w-3.5 h-3.5 mr-1" />
+                  Offer a Ride
+                </TabsTrigger>
+                <TabsTrigger value="need" className="data-[state=active]:bg-orange-400/90 data-[state=active]:text-orange-950 dark:data-[state=active]:bg-orange-400/80 dark:data-[state=active]:text-orange-950" data-testid="tab-need-ride">
+                  <Car className="w-3.5 h-3.5 mr-1" />
+                  Need a Ride
+                </TabsTrigger>
+              </TabsList>
 
-              <div className="flex items-center justify-between p-2.5 bg-secondary/30 rounded-lg">
-                <Label className="text-xs font-medium">{rideOffering ? "Offering a ride" : "Need a ride"}</Label>
-                <Switch checked={rideOffering} onCheckedChange={setRideOffering} data-testid="switch-ride-offering" />
-              </div>
+              <TabsContent value="offer" className="mt-0">
+                <div className="bg-card/90 backdrop-blur-sm rounded-xl p-3 border border-border/50 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-8 h-8 rounded-full bg-emerald-400/20 flex items-center justify-center">
+                      <ThumbsUp className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Offer a Ride</h3>
+                      <p className="text-[10px] text-muted-foreground">Give fellow surfers a lift to the beach</p>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Pickup Location</Label>
-                  <Input
-                    value={ridePickup}
-                    onChange={(e) => setRidePickup(e.target.value)}
-                    list="ride-pickup-locations"
-                    placeholder="Where from?"
-                    data-testid="input-ride-pickup"
-                  />
-                  <datalist id="ride-pickup-locations">
-                    {LOCATIONS.map(loc => (
-                      <option key={loc} value={loc} />
-                    ))}
-                  </datalist>
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Beach / Spot</Label>
-                  <Input
-                    value={rideDestination}
-                    onChange={(e) => setRideDestination(e.target.value)}
-                    list="ride-dest-locations"
-                    placeholder="Going to?"
-                    data-testid="input-ride-destination"
-                  />
-                  <datalist id="ride-dest-locations">
-                    {LOCATIONS.map(loc => (
-                      <option key={loc} value={loc} />
-                    ))}
-                  </datalist>
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Pickup Location</Label>
+                      <Input
+                        value={ridePickup}
+                        onChange={(e) => setRidePickup(e.target.value)}
+                        list="ride-pickup-locations"
+                        placeholder="Where from?"
+                        data-testid="input-ride-pickup"
+                      />
+                      <datalist id="ride-pickup-locations">
+                        {LOCATIONS.map(loc => (
+                          <option key={loc} value={loc} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Beach / Spot</Label>
+                      <Input
+                        value={rideDestination}
+                        onChange={(e) => setRideDestination(e.target.value)}
+                        list="ride-dest-locations-offer"
+                        placeholder="Going to?"
+                        data-testid="input-ride-destination"
+                      />
+                      <datalist id="ride-dest-locations-offer">
+                        {LOCATIONS.map(loc => (
+                          <option key={loc} value={loc} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Date</Label>
-                  <Input
-                    type="date"
-                    value={rideDate}
-                    onChange={(e) => setRideDate(e.target.value)}
-                    data-testid="input-ride-date"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Seats Available</Label>
-                  <Select value={rideSeats} onValueChange={setRideSeats}>
-                    <SelectTrigger data-testid="select-ride-seats">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="1">1 seat</SelectItem>
-                      <SelectItem value="2">2 seats</SelectItem>
-                      <SelectItem value="3">3 seats</SelectItem>
-                      <SelectItem value="4">4 seats</SelectItem>
-                      <SelectItem value="5">5+ seats</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-              </div>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Date</Label>
+                      <Input
+                        type="date"
+                        value={rideDate}
+                        onChange={(e) => setRideDate(e.target.value)}
+                        data-testid="input-ride-date"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Seats Available</Label>
+                      <Select value={rideSeats} onValueChange={setRideSeats}>
+                        <SelectTrigger data-testid="select-ride-seats">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="1">1 seat</SelectItem>
+                          <SelectItem value="2">2 seats</SelectItem>
+                          <SelectItem value="3">3 seats</SelectItem>
+                          <SelectItem value="4">4 seats</SelectItem>
+                          <SelectItem value="5">5+ seats</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
 
-              <div className="space-y-1">
-                <Label className="text-xs text-muted-foreground">Notes (optional)</Label>
-                <Textarea
-                  value={rideNotes}
-                  onChange={(e) => setRideNotes(e.target.value)}
-                  placeholder="Meeting time, gas split, board space..."
-                  className="resize-none text-sm"
-                  rows={2}
-                  data-testid="input-ride-notes"
-                />
-              </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Notes (optional)</Label>
+                    <Textarea
+                      value={rideNotes}
+                      onChange={(e) => setRideNotes(e.target.value)}
+                      placeholder="Meeting time, gas split, board space..."
+                      className="resize-none text-sm"
+                      rows={2}
+                      data-testid="input-ride-notes"
+                    />
+                  </div>
 
-              <Button
-                onClick={handlePostRide}
-                disabled={createTrip.isPending || !rideDestination || !rideDate}
-                className="w-full bg-emerald-400 hover:bg-emerald-500 text-emerald-950 font-semibold"
-                data-testid="button-post-ride"
-              >
-                {createTrip.isPending ? "Posting..." : rideOffering ? "Offer Ride" : "Request Ride"}
-                <ThumbsUp className="w-4 h-4 ml-2" />
-              </Button>
+                  <Button
+                    onClick={handlePostRide}
+                    disabled={createTrip.isPending || !rideDestination || !rideDate}
+                    className="w-full bg-emerald-400 hover:bg-emerald-500 text-emerald-950 font-semibold"
+                    data-testid="button-post-ride"
+                  >
+                    {createTrip.isPending ? "Posting..." : "Offer Ride"}
+                    <ThumbsUp className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="need" className="mt-0">
+                <div className="bg-card/90 backdrop-blur-sm rounded-xl p-3 border border-border/50 space-y-3">
+                  <div className="flex items-center gap-2 mb-1">
+                    <div className="w-8 h-8 rounded-full bg-orange-400/20 flex items-center justify-center">
+                      <Car className="w-4 h-4 text-orange-500" />
+                    </div>
+                    <div>
+                      <h3 className="font-semibold text-sm">Need a Ride</h3>
+                      <p className="text-[10px] text-muted-foreground">Find a surfer heading to the same spot</p>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Your Location</Label>
+                      <Input
+                        value={ridePickup}
+                        onChange={(e) => setRidePickup(e.target.value)}
+                        list="ride-pickup-locations-need"
+                        placeholder="Pick me up at..."
+                        data-testid="input-ride-pickup-need"
+                      />
+                      <datalist id="ride-pickup-locations-need">
+                        {LOCATIONS.map(loc => (
+                          <option key={loc} value={loc} />
+                        ))}
+                      </datalist>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Beach / Spot</Label>
+                      <Input
+                        value={rideDestination}
+                        onChange={(e) => setRideDestination(e.target.value)}
+                        list="ride-dest-locations-need"
+                        placeholder="Want to go to..."
+                        data-testid="input-ride-destination-need"
+                      />
+                      <datalist id="ride-dest-locations-need">
+                        {LOCATIONS.map(loc => (
+                          <option key={loc} value={loc} />
+                        ))}
+                      </datalist>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Date</Label>
+                    <Input
+                      type="date"
+                      value={rideDate}
+                      onChange={(e) => setRideDate(e.target.value)}
+                      data-testid="input-ride-date-need"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <Label className="text-xs text-muted-foreground">Notes (optional)</Label>
+                    <Textarea
+                      value={rideNotes}
+                      onChange={(e) => setRideNotes(e.target.value)}
+                      placeholder="When you're free, how many boards you have..."
+                      className="resize-none text-sm"
+                      rows={2}
+                      data-testid="input-ride-notes-need"
+                    />
+                  </div>
+
+                  <Button
+                    onClick={handlePostRide}
+                    disabled={createTrip.isPending || !rideDestination || !rideDate}
+                    className="w-full bg-orange-400 hover:bg-orange-500 text-orange-950 font-semibold"
+                    data-testid="button-request-ride"
+                  >
+                    {createTrip.isPending ? "Posting..." : "Request Ride"}
+                    <Car className="w-4 h-4 ml-2" />
+                  </Button>
+                </div>
+              </TabsContent>
+            </Tabs>
+
+            <div className="bg-gradient-to-r from-amber-500/15 to-yellow-500/15 dark:from-amber-600/20 dark:to-yellow-600/20 rounded-xl p-3 border border-amber-400/30 dark:border-amber-500/30">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-amber-500/20 flex items-center justify-center shrink-0">
+                  <Crown className="w-4.5 h-4.5 text-amber-500" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-semibold text-sm">Boost Your Post</h4>
+                  <p className="text-[10px] text-muted-foreground leading-tight">
+                    Add your ride to the home page feed so more surfers see it. Subscribe for Premium $5/mo.
+                  </p>
+                </div>
+                <Button
+                  size="sm"
+                  className="bg-amber-500 hover:bg-amber-600 text-white shrink-0 text-xs"
+                  onClick={() => {
+                    window.location.href = "/api/checkout/premium";
+                  }}
+                  data-testid="button-boost-ride"
+                >
+                  <Crown className="w-3 h-3 mr-1" />
+                  $5/mo
+                </Button>
+              </div>
             </div>
 
             {isLoading ? (

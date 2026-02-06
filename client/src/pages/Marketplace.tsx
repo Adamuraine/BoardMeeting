@@ -15,7 +15,8 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useLocation } from "wouter";
-import { Plus, MessageCircle, MapPin, Tag, X, LayoutGrid, MapPinned, Search, Loader2, Bell } from "lucide-react";
+import { Plus, MessageCircle, MapPin, Tag, X, LayoutGrid, Search, Loader2, Bell } from "lucide-react";
+import mapSearchIcon from "@assets/IMG_4807_1770411311458.jpeg";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -512,7 +513,7 @@ export default function Marketplace() {
               onClick={() => setViewMode('map')}
               data-testid="button-view-map"
             >
-              <MapPinned className="w-5 h-5" />
+              <img src={mapSearchIcon} alt="Map" className="w-6 h-6 rounded-sm object-cover" />
             </Button>
           </div>
         </div>

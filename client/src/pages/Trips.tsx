@@ -191,6 +191,17 @@ export default function Trips() {
   const [selectedWaveTypes, setSelectedWaveTypes] = useState<string[]>([]);
   const [selectedPriceRange, setSelectedPriceRange] = useState<string>("");
   const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
+  const [ridePickup, setRidePickup] = useState<string>("");
+  const [rideDestination, setRideDestination] = useState<string>("");
+  const [rideDate, setRideDate] = useState<string>("");
+  const [rideOffering, setRideOffering] = useState(true);
+  const [rideSeats, setRideSeats] = useState<string>("3");
+  const [rideNotes, setRideNotes] = useState<string>("");
+  const [visitLocation, setVisitLocation] = useState<string>("");
+  const [visitStartDate, setVisitStartDate] = useState<string>("");
+  const [visitEndDate, setVisitEndDate] = useState<string>("");
+  const [visitInterests, setVisitInterests] = useState<string[]>([]);
+  const [visitNotes, setVisitNotes] = useState<string>("");
 
   const handleLetsGo = () => {
     if (!user || !destFilter || destFilter === "all" || !dateRange?.from || !dateRange?.to) {
@@ -216,6 +227,64 @@ export default function Trips() {
         setCreatedTripId(trip.id);
         setTripDetailsOpen(true);
         setDateRange(undefined);
+      }
+    });
+  };
+
+  const handlePostRide = () => {
+    if (!user || !rideDestination || !rideDate) return;
+    createTrip.mutate({
+      organizerId: user.id,
+      destination: rideDestination,
+      startingLocation: ridePickup || undefined,
+      startDate: rideDate,
+      endDate: rideDate,
+      tripType: "beach_carpool",
+      description: `${rideOffering ? "Offering" : "Need"} a ride${rideSeats ? ` (${rideSeats} seats)` : ""}${rideNotes ? ` - ${rideNotes}` : ""}`,
+      cost: 0,
+    }, {
+      onSuccess: () => {
+        setRidePickup("");
+        setRideDestination("");
+        setRideDate("");
+        setRideNotes("");
+        setRideSeats("3");
+        setRideOffering(true);
+      }
+    });
+  };
+
+  const VISIT_INTEREST_OPTIONS = [
+    { id: "surf_sessions", label: "Surf Sessions" },
+    { id: "local_spots", label: "Local Spots" },
+    { id: "nightlife", label: "Nightlife" },
+    { id: "food_scene", label: "Food Scene" },
+    { id: "photography", label: "Photography" },
+    { id: "fishing", label: "Fishing" },
+    { id: "yoga_wellness", label: "Yoga/Wellness" },
+    { id: "hiking", label: "Hiking" },
+    { id: "snorkeling", label: "Snorkeling" },
+    { id: "local_culture", label: "Local Culture" },
+  ];
+
+  const handlePostVisit = () => {
+    if (!user || !visitLocation || !visitStartDate || !visitEndDate) return;
+    createTrip.mutate({
+      organizerId: user.id,
+      destination: visitLocation,
+      startDate: visitStartDate,
+      endDate: visitEndDate,
+      isVisiting: true,
+      tripType: "surf_trip",
+      description: `${visitInterests.length > 0 ? `Interests: ${visitInterests.map(i => VISIT_INTEREST_OPTIONS.find(o => o.id === i)?.label || i).join(", ")}` : ""}${visitNotes ? `\n${visitNotes}` : ""}`,
+      cost: 0,
+    }, {
+      onSuccess: () => {
+        setVisitLocation("");
+        setVisitStartDate("");
+        setVisitEndDate("");
+        setVisitInterests([]);
+        setVisitNotes("");
       }
     });
   };
@@ -760,18 +829,103 @@ export default function Trips() {
           </TabsContent>
 
           <TabsContent value="carpool" className="flex-1 space-y-4 mt-0 overflow-y-auto">
-            <div className="bg-gradient-to-r from-green-500/20 to-emerald-500/20 dark:from-green-600/30 dark:to-emerald-600/30 rounded-xl p-4 border border-green-400/30 dark:border-green-500/40">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-green-500/20 dark:bg-green-500/30 flex items-center justify-center shrink-0">
-                  <ThumbsUp className="w-5 h-5 text-green-600 dark:text-green-400" />
+            <div className="bg-card/90 backdrop-blur-sm rounded-xl p-3 border border-border/50 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
+                  <Car className="w-4 h-4 text-purple-500" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">Need a Ride to the Beach?</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Connect with surfers who can give you a ride to local surf spots. No car? No problem!
-                  </p>
+                  <h3 className="font-semibold text-sm">Post a Ride</h3>
+                  <p className="text-[10px] text-muted-foreground">Offer or request a ride to the beach</p>
                 </div>
               </div>
+
+              <div className="flex items-center justify-between p-2.5 bg-secondary/30 rounded-lg">
+                <Label className="text-xs font-medium">{rideOffering ? "Offering a ride" : "Need a ride"}</Label>
+                <Switch checked={rideOffering} onCheckedChange={setRideOffering} data-testid="switch-ride-offering" />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Pickup Location</Label>
+                  <Input
+                    value={ridePickup}
+                    onChange={(e) => setRidePickup(e.target.value)}
+                    list="ride-pickup-locations"
+                    placeholder="Where from?"
+                    data-testid="input-ride-pickup"
+                  />
+                  <datalist id="ride-pickup-locations">
+                    {LOCATIONS.map(loc => (
+                      <option key={loc} value={loc} />
+                    ))}
+                  </datalist>
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Beach / Spot</Label>
+                  <Input
+                    value={rideDestination}
+                    onChange={(e) => setRideDestination(e.target.value)}
+                    list="ride-dest-locations"
+                    placeholder="Going to?"
+                    data-testid="input-ride-destination"
+                  />
+                  <datalist id="ride-dest-locations">
+                    {LOCATIONS.map(loc => (
+                      <option key={loc} value={loc} />
+                    ))}
+                  </datalist>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Date</Label>
+                  <Input
+                    type="date"
+                    value={rideDate}
+                    onChange={(e) => setRideDate(e.target.value)}
+                    data-testid="input-ride-date"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Seats Available</Label>
+                  <Select value={rideSeats} onValueChange={setRideSeats}>
+                    <SelectTrigger data-testid="select-ride-seats">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="1">1 seat</SelectItem>
+                      <SelectItem value="2">2 seats</SelectItem>
+                      <SelectItem value="3">3 seats</SelectItem>
+                      <SelectItem value="4">4 seats</SelectItem>
+                      <SelectItem value="5">5+ seats</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Notes (optional)</Label>
+                <Textarea
+                  value={rideNotes}
+                  onChange={(e) => setRideNotes(e.target.value)}
+                  placeholder="Meeting time, gas split, board space..."
+                  className="resize-none text-sm"
+                  rows={2}
+                  data-testid="input-ride-notes"
+                />
+              </div>
+
+              <Button
+                onClick={handlePostRide}
+                disabled={createTrip.isPending || !rideDestination || !rideDate}
+                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold"
+                data-testid="button-post-ride"
+              >
+                {createTrip.isPending ? "Posting..." : rideOffering ? "Offer Ride" : "Request Ride"}
+                <ThumbsUp className="w-4 h-4 ml-2" />
+              </Button>
             </div>
 
             {isLoading ? (
@@ -786,30 +940,111 @@ export default function Trips() {
                 {carpoolTrips.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
                     <Car className="w-12 h-12 mx-auto mb-4 opacity-20" />
-                    <p className="font-medium">No carpool offers yet</p>
-                    <p className="text-sm">Offer a ride or request one!</p>
+                    <p className="font-medium">No rides posted yet</p>
+                    <p className="text-sm">Be the first to offer or request a ride!</p>
                   </div>
                 )}
               </div>
             )}
           </TabsContent>
 
-          <TabsContent value="visiting" className="flex-1 space-y-4 mt-0">
-            <div className="bg-gradient-to-r from-amber-500/20 to-orange-500/20 dark:from-amber-600/30 dark:to-orange-600/30 rounded-xl p-4 border border-amber-400/30 dark:border-amber-500/40">
-              <div className="flex items-start gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-500/20 dark:bg-amber-500/30 flex items-center justify-center shrink-0">
-                  <Users className="w-5 h-5 text-amber-600 dark:text-amber-400" />
+          <TabsContent value="visiting" className="flex-1 space-y-4 mt-0 overflow-y-auto">
+            <div className="bg-card/90 backdrop-blur-sm rounded-xl p-3 border border-border/50 space-y-3">
+              <div className="flex items-center gap-2 mb-1">
+                <div className="w-8 h-8 rounded-full bg-pink-500/20 flex items-center justify-center">
+                  <TreePalm className="w-4 h-4 text-pink-500" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-sm">Solo Travelers</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Connect with surfers visiting your area or find locals when you travel to a new spot
-                  </p>
+                  <h3 className="font-semibold text-sm">Post a Visit</h3>
+                  <p className="text-[10px] text-muted-foreground">Let locals know you're coming and find surf buddies</p>
                 </div>
               </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Where are you visiting?</Label>
+                <Input
+                  value={visitLocation}
+                  onChange={(e) => setVisitLocation(e.target.value)}
+                  list="visit-locations"
+                  placeholder="e.g. North Shore, Bali, Portugal..."
+                  data-testid="input-visit-location"
+                />
+                <datalist id="visit-locations">
+                  {LOCATIONS.map(loc => (
+                    <option key={loc} value={loc} />
+                  ))}
+                </datalist>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Arriving</Label>
+                  <Input
+                    type="date"
+                    value={visitStartDate}
+                    onChange={(e) => setVisitStartDate(e.target.value)}
+                    data-testid="input-visit-start-date"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Leaving</Label>
+                  <Input
+                    type="date"
+                    value={visitEndDate}
+                    onChange={(e) => setVisitEndDate(e.target.value)}
+                    data-testid="input-visit-end-date"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
+                <Label className="text-xs text-muted-foreground">Interests</Label>
+                <div className="flex flex-wrap gap-1.5">
+                  {VISIT_INTEREST_OPTIONS.map((interest) => (
+                    <button
+                      key={interest.id}
+                      onClick={() => setVisitInterests(prev =>
+                        prev.includes(interest.id)
+                          ? prev.filter(i => i !== interest.id)
+                          : [...prev, interest.id]
+                      )}
+                      className={cn(
+                        "px-2.5 py-1 rounded-full text-[11px] font-medium transition-all",
+                        visitInterests.includes(interest.id)
+                          ? "bg-pink-500 text-white"
+                          : "bg-secondary text-secondary-foreground hover-elevate"
+                      )}
+                      data-testid={`button-interest-${interest.id}`}
+                    >
+                      {interest.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">About your trip (optional)</Label>
+                <Textarea
+                  value={visitNotes}
+                  onChange={(e) => setVisitNotes(e.target.value)}
+                  placeholder="Tell locals about yourself and what you're looking for..."
+                  className="resize-none text-sm"
+                  rows={2}
+                  data-testid="input-visit-notes"
+                />
+              </div>
+
+              <Button
+                onClick={handlePostVisit}
+                disabled={createTrip.isPending || !visitLocation || !visitStartDate || !visitEndDate}
+                className="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold"
+                data-testid="button-post-visit"
+              >
+                {createTrip.isPending ? "Posting..." : "Post Visit"}
+                <Martini className="w-4 h-4 ml-2" />
+              </Button>
             </div>
 
-            {/* Open to Guiding Toggle */}
             <div className="bg-card/90 backdrop-blur-sm rounded-xl p-4 border border-border/50">
               <div className="flex items-center justify-between gap-3">
                 <div className="flex-1">
@@ -823,7 +1058,6 @@ export default function Trips() {
                   onCheckedChange={(checked) => {
                     updateProfile.mutate({ openToGuiding: checked });
                   }}
-                  className="data-[state=checked]:bg-green-500"
                   data-testid="switch-open-to-guiding"
                 />
               </div>
@@ -840,7 +1074,7 @@ export default function Trips() {
                 ))}
                 {visitingTrips.length === 0 && (
                   <div className="text-center py-16 text-muted-foreground">
-                    <Plane className="w-12 h-12 mx-auto mb-4 opacity-20" />
+                    <TreePalm className="w-12 h-12 mx-auto mb-4 opacity-20" />
                     <p className="font-medium">No visitors yet</p>
                     <p className="text-sm">Be the first to post you're visiting an area!</p>
                   </div>

@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Sparkles } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Sparkles, Target } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -56,6 +56,9 @@ export default function Profile() {
   const [editingTricks, setEditingTricks] = useState(false);
   const [tricksList, setTricksList] = useState<string[]>([]);
   const [customTrick, setCustomTrick] = useState("");
+  const [editingGoals, setEditingGoals] = useState(false);
+  const [goalsList, setGoalsList] = useState<string[]>([]);
+  const [customGoal, setCustomGoal] = useState("");
   const [availabilitySlots, setAvailabilitySlots] = useState<Array<{day: string, startTime: string, endTime: string}>>([]);
 
   // Predefined surf tricks for dropdown
@@ -1526,8 +1529,185 @@ export default function Profile() {
               <p className="text-xs text-muted-foreground mt-2">Tap to edit your personal records</p>
             </div>
 
-            <div>
-              <h3 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center justify-between">
+            <div className="p-4 rounded-xl bg-amber-50/60 dark:bg-amber-950/20 border border-amber-200/50 dark:border-amber-800/30">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400 mb-3 flex items-center justify-between">
+                <span className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Trick Goals ({profile.trickGoals?.length || 0})
+                </span>
+                {!editingGoals && (
+                  <Button 
+                    size="icon" 
+                    variant="ghost"
+                    onClick={() => {
+                      setGoalsList(profile.trickGoals || []);
+                      setCustomGoal("");
+                      setEditingGoals(true);
+                    }}
+                    data-testid="button-edit-goals"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                )}
+              </h3>
+              
+              {editingGoals ? (
+                <div className="space-y-4 p-4 bg-white/50 dark:bg-background/50 rounded-xl border border-amber-200/50 dark:border-amber-800/30">
+                  <div className="flex flex-wrap gap-2">
+                    {goalsList.map((goal: string, index: number) => (
+                      <div key={`${goal}-${index}`} className="flex items-center gap-1">
+                        <Badge 
+                          variant="outline"
+                          className="bg-amber-100/50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700"
+                          data-testid={`badge-goal-${goal.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          {goal}
+                        </Badge>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          onClick={() => {
+                            const newGoals = goalsList.filter((_, i) => i !== index);
+                            setGoalsList(newGoals);
+                            autoSave({ trickGoals: newGoals });
+                          }}
+                          data-testid={`button-remove-goal-${index}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ))}
+                    {goalsList.length === 0 && (
+                      <p className="text-sm text-muted-foreground italic">No goals yet. Add tricks you want to learn!</p>
+                    )}
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1">Select a trick to learn</Label>
+                    <Select
+                      value=""
+                      onValueChange={(value) => {
+                        if (value && !goalsList.includes(value)) {
+                          const newGoals = [...goalsList, value];
+                          setGoalsList(newGoals);
+                          autoSave({ trickGoals: newGoals });
+                        }
+                      }}
+                    >
+                      <SelectTrigger data-testid="select-goal">
+                        <SelectValue placeholder="Choose a trick to learn..." />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {PREDEFINED_TRICKS.filter(t => !goalsList.includes(t) && !(profile.tricks || []).includes(t)).map(trick => (
+                          <SelectItem key={trick} value={trick}>{trick}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div>
+                    <Label className="text-xs text-muted-foreground mb-1">Or type a custom trick goal</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="text"
+                        value={customGoal}
+                        onChange={(e) => setCustomGoal(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && customGoal.trim() && !goalsList.includes(customGoal.trim())) {
+                            const newGoals = [...goalsList, customGoal.trim()];
+                            setGoalsList(newGoals);
+                            autoSave({ trickGoals: newGoals });
+                            setCustomGoal("");
+                          }
+                        }}
+                        placeholder="Type a trick you want to learn..."
+                        className="flex-1"
+                        data-testid="input-custom-goal"
+                      />
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        disabled={!customGoal.trim() || goalsList.includes(customGoal.trim())}
+                        onClick={() => {
+                          if (customGoal.trim() && !goalsList.includes(customGoal.trim())) {
+                            const newGoals = [...goalsList, customGoal.trim()];
+                            setGoalsList(newGoals);
+                            autoSave({ trickGoals: newGoals });
+                            setCustomGoal("");
+                          }
+                        }}
+                        data-testid="button-add-custom-goal"
+                      >
+                        <Plus className="h-4 w-4 mr-1" /> Add
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between pt-2 border-t border-amber-200/50 dark:border-amber-800/30">
+                    <p className="text-xs text-muted-foreground">Changes save automatically</p>
+                    <Button 
+                      size="sm" 
+                      variant="ghost"
+                      onClick={() => {
+                        updateProfileMutation.mutate({ trickGoals: goalsList });
+                        setEditingGoals(false);
+                      }}
+                      data-testid="button-done-goals"
+                    >
+                      <Check className="h-4 w-4 mr-1" /> Done
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {profile.trickGoals?.length ? (
+                    profile.trickGoals.map((goal: string) => (
+                      <a
+                        key={goal}
+                        href={`https://www.youtube.com/results?search_query=how+to+${encodeURIComponent(goal)}+surfing+tutorial`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="group"
+                        data-testid={`goal-link-${goal.toLowerCase().replace(/\s+/g, '-')}`}
+                      >
+                        <Badge 
+                          variant="outline"
+                          className="cursor-pointer hover-elevate flex items-center gap-1.5 bg-amber-100/50 dark:bg-amber-900/30 border-amber-300 dark:border-amber-700"
+                          data-testid={`profile-badge-goal-${goal.toLowerCase().replace(/\s+/g, '-')}`}
+                        >
+                          <SiYoutube className="w-3 h-3 text-red-500 opacity-70 group-hover:opacity-100" />
+                          {goal}
+                        </Badge>
+                      </a>
+                    ))
+                  ) : (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="border border-dashed border-amber-400/50 dark:border-amber-600/50 text-amber-700 dark:text-amber-400"
+                      onClick={() => {
+                        setGoalsList([]);
+                        setCustomGoal("");
+                        setEditingGoals(true);
+                      }}
+                      data-testid="button-add-first-goal"
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add tricks you want to learn
+                    </Button>
+                  )}
+                </div>
+              )}
+              {!editingGoals && profile.trickGoals?.length ? (
+                <p className="text-xs text-amber-600 dark:text-amber-500 mt-2 flex items-center gap-1">
+                  <SiYoutube className="w-3 h-3 text-red-500" />
+                  Tap any goal for how-to videos
+                </p>
+              ) : null}
+            </div>
+
+            <div className="p-4 rounded-xl bg-emerald-50/60 dark:bg-emerald-950/20 border border-emerald-200/50 dark:border-emerald-800/30">
+              <h3 className="text-sm font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-3 flex items-center justify-between">
                 <span className="flex items-center gap-2">
                   <TrendingUp className="h-4 w-4" />
                   Tricks Mastered ({profile.tricks?.length || 0})
@@ -1549,13 +1729,13 @@ export default function Profile() {
               </h3>
               
               {editingTricks ? (
-                <div className="space-y-4 p-4 bg-secondary/30 rounded-xl border border-border/50">
-                  {/* Current tricks with remove buttons */}
+                <div className="space-y-4 p-4 bg-white/50 dark:bg-background/50 rounded-xl border border-emerald-200/50 dark:border-emerald-800/30">
                   <div className="flex flex-wrap gap-2">
                     {tricksList.map((trick: string, index: number) => (
                       <div key={`${trick}-${index}`} className="flex items-center gap-1">
                         <Badge 
-                          variant="secondary"
+                          variant="outline"
+                          className="bg-emerald-100/50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700"
                           data-testid={`badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
                         >
                           {trick}
@@ -1579,7 +1759,6 @@ export default function Profile() {
                     )}
                   </div>
                   
-                  {/* Dropdown to select from predefined tricks */}
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1">Select a trick</Label>
                     <Select
@@ -1603,7 +1782,6 @@ export default function Profile() {
                     </Select>
                   </div>
                   
-                  {/* Custom trick input */}
                   <div>
                     <Label className="text-xs text-muted-foreground mb-1">Or type a custom trick</Label>
                     <div className="flex gap-2">
@@ -1642,7 +1820,7 @@ export default function Profile() {
                     </div>
                   </div>
                   
-                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                  <div className="flex items-center justify-between pt-2 border-t border-emerald-200/50 dark:border-emerald-800/30">
                     <p className="text-xs text-muted-foreground">Changes save automatically</p>
                     <Button 
                       size="sm" 
@@ -1669,8 +1847,8 @@ export default function Profile() {
                         className="group"
                       >
                         <Badge 
-                          variant="secondary"
-                          className="cursor-pointer hover-elevate flex items-center gap-1.5"
+                          variant="outline"
+                          className="cursor-pointer hover-elevate flex items-center gap-1.5 bg-emerald-100/50 dark:bg-emerald-900/30 border-emerald-300 dark:border-emerald-700"
                           data-testid={`profile-badge-trick-${trick.toLowerCase().replace(/\s+/g, '-')}`}
                         >
                           {trick}
@@ -1682,6 +1860,7 @@ export default function Profile() {
                     <Button
                       variant="ghost"
                       size="sm"
+                      className="border border-dashed border-emerald-400/50 dark:border-emerald-600/50 text-emerald-700 dark:text-emerald-400"
                       onClick={() => {
                         setTricksList([]);
                         setCustomTrick("");
@@ -1696,7 +1875,7 @@ export default function Profile() {
                 </div>
               )}
               {!editingTricks && profile.tricks?.length ? (
-                <p className="text-xs text-muted-foreground mt-2 flex items-center gap-1">
+                <p className="text-xs text-emerald-600 dark:text-emerald-500 mt-2 flex items-center gap-1">
                   <SiYoutube className="w-3 h-3 text-red-500" />
                   Tap any trick for tutorial videos
                 </p>

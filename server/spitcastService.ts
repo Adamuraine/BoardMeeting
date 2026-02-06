@@ -156,14 +156,21 @@ export async function getSpitcastForecast(spotId: number, days: number = 7): Pro
         continue;
       }
 
-      const sizes = hourlyData.map(h => h.size_ft || 0).filter(s => s > 0);
+      const daytimeData = hourlyData.filter(h => {
+        const hour = typeof h.hour === 'string' ? parseInt(h.hour) : (h.hour || 0);
+        return hour >= 6 && hour <= 18;
+      });
+      const relevantData = daytimeData.length > 0 ? daytimeData : hourlyData;
+
+      const sizes = relevantData.map(h => h.size_ft || 0).filter(s => s > 0);
       if (sizes.length === 0) continue;
       
+      sizes.sort((a, b) => a - b);
+      const p25 = sizes[Math.floor(sizes.length * 0.25)];
+      const p75 = sizes[Math.floor(sizes.length * 0.75)];
       const avgSize = sizes.reduce((a, b) => a + b, 0) / sizes.length;
-      const maxSize = Math.max(...sizes);
-      const minSize = Math.min(...sizes);
 
-      const shapes = hourlyData.map(h => h.shape).filter(s => s !== undefined && s !== null);
+      const shapes = relevantData.map(h => h.shape).filter(s => s !== undefined && s !== null);
       const avgShapeValue = shapes.length > 0 
         ? shapes.reduce((sum, s) => {
             const val = typeof s === 'number' ? s : parseFloat(s);
@@ -183,8 +190,8 @@ export async function getSpitcastForecast(spotId: number, days: number = 7): Pro
 
       forecasts.push({
         date: dateStr,
-        waveHeightMin: Math.round(Math.max(1, minSize)),
-        waveHeightMax: Math.round(Math.max(1, maxSize)),
+        waveHeightMin: Math.round(Math.max(1, p25)),
+        waveHeightMax: Math.round(Math.max(1, p75)),
         rating,
         shape: shapeDesc,
       });

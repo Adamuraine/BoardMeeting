@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
@@ -280,10 +280,19 @@ export default function Marketplace() {
     });
   };
 
+  const marketplaceUploadPaths = useRef<Record<string, string>>({});
+
   const handleImageUpload = async (file: { name: string; size: number; type: string }) => {
-    const response = await fetch(`/api/object-storage/presign?filename=${encodeURIComponent(file.name)}&contentType=${encodeURIComponent(file.type)}`);
-    const { url, objectPath } = await response.json();
-    return { method: "PUT" as const, url, objectPath };
+    const res = await fetch("/api/uploads/request-url", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: file.name, size: file.size, contentType: file.type }),
+      credentials: "include",
+    });
+    if (!res.ok) throw new Error("Failed to get upload URL");
+    const { uploadURL, objectPath } = await res.json();
+    marketplaceUploadPaths.current[file.name] = objectPath;
+    return { method: "PUT" as const, url: uploadURL, objectPath };
   };
 
   const filteredListings = listings?.filter(listing => {
@@ -597,15 +606,17 @@ export default function Marketplace() {
                     maxNumberOfFiles={5}
                     maxFileSize={10485760}
                     onGetUploadParameters={async (file) => {
-                      const { url } = await handleImageUpload({ name: file.name, size: file.size || 0, type: file.type });
-                      return { method: "PUT" as const, url };
+                      const { url, objectPath } = await handleImageUpload({ name: file.name, size: file.size || 0, type: file.type });
+                      return { method: "PUT" as const, url, headers: { "Content-Type": file.type || "application/octet-stream" } };
                     }}
                     onComplete={(result) => {
-                      const uploaded = result.successful?.map(f => {
-                        const url = new URL(f.uploadURL || "");
-                        return url.pathname;
-                      }) || [];
-                      setImageUrls(prev => [...prev, ...uploaded]);
+                      const paths = (result.successful || [])
+                        .map((f: any) => marketplaceUploadPaths.current[f.name] || marketplaceUploadPaths.current[f.id])
+                        .filter(Boolean) as string[];
+                      if (paths.length > 0) {
+                        setImageUrls(prev => [...prev, ...paths]);
+                        marketplaceUploadPaths.current = {};
+                      }
                     }}
                     buttonClassName="w-full"
                   >

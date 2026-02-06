@@ -32,6 +32,45 @@ L.Icon.Default.mergeOptions({
   shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
 });
 
+function createDollarIcon(price: string) {
+  return L.divIcon({
+    className: 'marketplace-dollar-marker',
+    html: `<div style="
+      background: #16a34a;
+      color: white;
+      font-weight: 700;
+      font-size: 13px;
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2.5px solid white;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+      cursor: pointer;
+      line-height: 1;
+    ">${price}</div>`,
+    iconSize: [32, 32],
+    iconAnchor: [16, 16],
+    popupAnchor: [0, -18],
+  });
+}
+
+function MapFitBounds({ listings }: { listings: ListingWithSeller[] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (listings.length === 0) return;
+    const bounds = L.latLngBounds(
+      listings.map(l => [parseFloat(l.latitude!), parseFloat(l.longitude!)] as [number, number])
+    );
+    if (bounds.isValid()) {
+      map.fitBounds(bounds, { padding: [40, 40], maxZoom: 13 });
+    }
+  }, [listings, map]);
+  return null;
+}
+
 function getZoomForRadius(miles: number): number {
   if (miles <= 5) return 12;
   if (miles <= 10) return 11;
@@ -727,10 +766,14 @@ export default function Marketplace() {
             doubleClickZoom={true}
             dragging={true}
           >
-            <MapController 
-              center={userCoords ? [userCoords.lat, userCoords.lng] : null} 
-              radius={radius} 
-            />
+            {userCoords ? (
+              <MapController 
+                center={[userCoords.lat, userCoords.lng]} 
+                radius={radius} 
+              />
+            ) : (
+              <MapFitBounds listings={listingsWithCoords} />
+            )}
             <TileLayer
               attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
               url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -751,21 +794,46 @@ export default function Marketplace() {
               <Marker
                 key={listing.id}
                 position={[parseFloat(listing.latitude!), parseFloat(listing.longitude!)]}
+                icon={createDollarIcon(
+                  listing.listingType === 'free' ? 'FREE' :
+                  listing.listingType === 'trade' ? '$' :
+                  listing.price ? `$${Math.round(listing.price / 100)}` : '$'
+                )}
               >
                 <Popup>
-                  <div className="min-w-[150px]">
-                    <h3 className="font-medium text-sm">{listing.title}</h3>
-                    <p className="text-primary font-semibold">
-                      {formatPrice(listing.price, listing.listingType)}
-                    </p>
-                    <Button
-                      size="sm"
-                      className="w-full mt-2"
-                      onClick={() => handleViewDetails(listing)}
-                      data-testid={`button-map-view-${listing.id}`}
-                    >
-                      View Details
-                    </Button>
+                  <div style={{ width: '180px', padding: '0', margin: '-10px -16px -10px -16px' }}>
+                    {listing.imageUrls && listing.imageUrls.length > 0 ? (
+                      <img 
+                        src={listing.imageUrls[0]} 
+                        alt={listing.title}
+                        style={{ width: '100%', height: '110px', objectFit: 'cover', borderRadius: '4px 4px 0 0', display: 'block' }}
+                      />
+                    ) : (
+                      <div style={{ width: '100%', height: '80px', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '4px 4px 0 0' }}>
+                        <span style={{ fontSize: '24px', color: '#9ca3af' }}>$</span>
+                      </div>
+                    )}
+                    <div style={{ padding: '8px 12px 10px' }}>
+                      <div style={{ fontWeight: 600, fontSize: '13px', lineHeight: '1.3', marginBottom: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {listing.title}
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: '14px', color: '#16a34a' }}>
+                        {formatPrice(listing.price, listing.listingType)}
+                      </div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', marginTop: '2px' }}>
+                        {listing.location || listing.seller.location || ''}
+                      </div>
+                      <button
+                        onClick={() => handleViewDetails(listing)}
+                        style={{
+                          marginTop: '6px', width: '100%', padding: '5px 0', fontSize: '12px', fontWeight: 600,
+                          background: '#16a34a', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer'
+                        }}
+                        data-testid={`button-map-view-${listing.id}`}
+                      >
+                        View Details
+                      </button>
+                    </div>
                   </div>
                 </Popup>
               </Marker>

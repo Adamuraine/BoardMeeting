@@ -255,16 +255,41 @@ export default function Trips() {
   };
 
   const VISIT_INTEREST_OPTIONS = [
-    { id: "surf_sessions", label: "Surf Sessions" },
-    { id: "local_spots", label: "Local Spots" },
-    { id: "nightlife", label: "Nightlife" },
-    { id: "food_scene", label: "Food Scene" },
-    { id: "photography", label: "Photography" },
-    { id: "fishing", label: "Fishing" },
-    { id: "yoga_wellness", label: "Yoga/Wellness" },
-    { id: "hiking", label: "Hiking" },
-    { id: "snorkeling", label: "Snorkeling" },
-    { id: "local_culture", label: "Local Culture" },
+    { id: "surf_sessions", label: "Surf Sessions", category: "Activities" },
+    { id: "local_spots", label: "Local Spots", category: "Activities" },
+    { id: "nightlife", label: "Nightlife", category: "Activities" },
+    { id: "photography", label: "Photography", category: "Activities" },
+    { id: "fishing", label: "Fishing", category: "Activities" },
+    { id: "yoga_wellness", label: "Yoga/Wellness", category: "Activities" },
+    { id: "hiking", label: "Hiking", category: "Activities" },
+    { id: "snorkeling", label: "Snorkeling", category: "Activities" },
+    { id: "spearfishing", label: "Spearfishing", category: "Activities" },
+    { id: "zip_line", label: "Zip Line", category: "Activities" },
+    { id: "restaurants", label: "Restaurants", category: "Activities" },
+    { id: "coffee", label: "Coffee", category: "Activities" },
+    { id: "party", label: "Party", category: "Vibe" },
+    { id: "420_friendly", label: "420 Friendly", category: "Vibe" },
+    { id: "drinks", label: "Drinks", category: "Vibe" },
+    { id: "platonic_only", label: "Platonic Only", category: "Vibe" },
+    { id: "single", label: "Single", category: "Status" },
+    { id: "in_a_relationship", label: "In a Relationship", category: "Status" },
+    { id: "needs_surf_lessons", label: "Needs Surf Lessons", category: "Equipment" },
+    { id: "needs_board", label: "Needs Board", category: "Equipment" },
+    { id: "needs_dive_gear", label: "Needs Dive Gear", category: "Equipment" },
+    { id: "has_dive_gear", label: "Has Dive Gear", category: "Equipment" },
+    { id: "has_surfboard", label: "Has Surfboard", category: "Equipment" },
+    { id: "needs_surf_guide", label: "Needs Surf Guide", category: "Equipment" },
+    { id: "wants_local_experience", label: "Wants Local Experience", category: "Food & Experience" },
+    { id: "local_food", label: "Local Food", category: "Food & Experience" },
+    { id: "fancy_food", label: "Fancy Food", category: "Food & Experience" },
+    { id: "food_scene", label: "Food Scene", category: "Food & Experience" },
+    { id: "pizza", label: "Pizza", category: "Food & Experience" },
+    { id: "chicken_tenders", label: "Chicken Tenders", category: "Food & Experience" },
+    { id: "local_culture", label: "Local Culture", category: "Food & Experience" },
+    { id: "speaks_the_language", label: "Speaks the Language", category: "Language" },
+    { id: "knows_few_words", label: "Knows a Few Words", category: "Language" },
+    { id: "hand_gestures_grunting", label: "Hand Gestures & Grunting", category: "Language" },
+    { id: "has_interpreter_app", label: "Has Interpreter App", category: "Language" },
   ];
 
   const handlePostVisit = () => {
@@ -1108,29 +1133,34 @@ export default function Trips() {
                 </div>
               </div>
 
-              <div className="space-y-1.5">
+              <div className="space-y-2">
                 <Label className="text-xs text-muted-foreground">Interests</Label>
-                <div className="flex flex-wrap gap-1.5">
-                  {VISIT_INTEREST_OPTIONS.map((interest) => (
-                    <button
-                      key={interest.id}
-                      onClick={() => setVisitInterests(prev =>
-                        prev.includes(interest.id)
-                          ? prev.filter(i => i !== interest.id)
-                          : [...prev, interest.id]
-                      )}
-                      className={cn(
-                        "px-2.5 py-1 rounded-full text-[11px] font-medium transition-all",
-                        visitInterests.includes(interest.id)
-                          ? "bg-pink-500 text-white"
-                          : "bg-secondary text-secondary-foreground hover-elevate"
-                      )}
-                      data-testid={`button-interest-${interest.id}`}
-                    >
-                      {interest.label}
-                    </button>
-                  ))}
-                </div>
+                {["Activities", "Vibe", "Status", "Equipment", "Food & Experience", "Language"].map(cat => (
+                  <div key={cat} className="space-y-1">
+                    <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{cat}</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {VISIT_INTEREST_OPTIONS.filter(o => o.category === cat).map((interest) => (
+                        <button
+                          key={interest.id}
+                          onClick={() => setVisitInterests(prev =>
+                            prev.includes(interest.id)
+                              ? prev.filter(i => i !== interest.id)
+                              : [...prev, interest.id]
+                          )}
+                          className={cn(
+                            "px-2.5 py-1 rounded-full text-[11px] font-medium transition-all",
+                            visitInterests.includes(interest.id)
+                              ? "bg-pink-500 text-white"
+                              : "bg-secondary text-secondary-foreground hover-elevate"
+                          )}
+                          data-testid={`button-interest-${interest.id}`}
+                        >
+                          {interest.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="space-y-1">

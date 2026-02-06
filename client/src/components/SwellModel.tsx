@@ -1,387 +1,297 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
 import { useMyProfile } from "@/hooks/use-profiles";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Slider } from "@/components/ui/slider";
-import { Search, Lock, Play, Pause } from "lucide-react";
-import { format, addHours, startOfDay } from "date-fns";
+import { Lock, ChevronLeft, ChevronRight, Play, Pause, ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { PremiumModal } from "@/components/PremiumModal";
 
-async function geocodeLocation(query: string): Promise<{ lat: number; lng: number; name: string } | null> {
-  try {
-    const response = await fetch(
-      `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(query)}&count=1&language=en&format=json`
-    );
-    const data = await response.json();
-    if (data.results && data.results.length > 0) {
-      const result = data.results[0];
-      return {
-        lat: result.latitude,
-        lng: result.longitude,
-        name: `${result.name}, ${result.country || ''}`.trim(),
-      };
-    }
-    return null;
-  } catch {
-    return null;
-  }
+const STORMSURF_BASE = "https://www.stormsurfing.com/stormuser2/images/grib";
+
+const FRAME_INDICES = [1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39,41,43,45,47,49,51,53,55,57,59,61];
+
+const REGIONS = [
+  { id: "scal_wave", name: "Southern California Swell", short: "SoCal" },
+  { id: "scal_comp", name: "Southern California Surf", short: "SoCal Surf" },
+  { id: "ncal_wave", name: "Northern California Swell", short: "NorCal" },
+  { id: "ncal_comp", name: "Northern California Surf", short: "NorCal Surf" },
+  { id: "hi_wave", name: "Hawaii Swell", short: "Hawaii" },
+  { id: "nj_wave", name: "New Jersey Swell", short: "New Jersey" },
+];
+
+function getImageUrl(regionId: string, frameIndex: number): string {
+  return `${STORMSURF_BASE}/${regionId}_${frameIndex}.png`;
 }
 
-function SwellHeightScale() {
-  const heights = [18, 16, 14, 12, 10, 8, 6, 4, 2, 0];
+const FREE_FRAMES = 9;
 
-  const getSwellColorHex = (height: number): string => {
-    if (height < 2) return "#1e3a5f";
-    if (height < 4) return "#2563eb";
-    if (height < 6) return "#06b6d4";
-    if (height < 8) return "#10b981";
-    if (height < 10) return "#84cc16";
-    if (height < 12) return "#eab308";
-    if (height < 14) return "#f97316";
-    if (height < 16) return "#ef4444";
-    return "#dc2626";
-  };
-
-  return (
-    <div className="absolute left-2 top-[35%] -translate-y-1/2 z-20 flex flex-col items-center text-[9px] font-medium text-white bg-black/30 rounded-md overflow-hidden">
-      <span className="py-1 px-1.5 opacity-80 bg-black/40">ft</span>
-      {heights.map((height) => (
-        <div
-          key={height}
-          className="w-7 h-5 flex items-center justify-center"
-          style={{ backgroundColor: getSwellColorHex(height) }}
-        >
-          <span className="text-white/90 drop-shadow-sm">{height}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function SwellEmbed({
-  lat,
-  lng,
-  zoom = 7,
-  timestamp
-}: {
-  lat: number;
-  lng: number;
-  zoom?: number;
-  timestamp: number;
-}) {
-  const [key, setKey] = useState(0);
-
-  const embedUrl = useMemo(() => {
-    const calendarParam = timestamp ? timestamp : 'now';
-    return `https://embed.windy.com/embed.html?type=map&location=coordinates&metricRain=default&metricTemp=default&metricWind=default&zoom=${zoom}&overlay=swell1&product=ecmwf&level=surface&lat=${lat}&lon=${lng}&detailLat=${lat}&detailLon=${lng}&marker=true&message=true&calendar=${calendarParam}&pressure=false&type=map&menu=`;
-  }, [lat, lng, zoom, timestamp]);
-
-  useEffect(() => {
-    setKey(prev => prev + 1);
-  }, [lat, lng, timestamp]);
-
-  return (
-    <div className="relative w-full h-full overflow-hidden">
-      <iframe
-        key={key}
-        src={embedUrl}
-        className="w-full h-full border-0"
-        title="Windy Swell Map"
-        allow="fullscreen"
-        data-testid="swell-embed"
-      />
-      <div
-        className="absolute top-3 left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-blue-700 to-blue-600 rounded-lg shadow-md"
-      >
-        <img
-          src={boardMeetingLogo}
-          alt="Board Meeting Logo"
-          className="w-6 h-6 rounded-full object-cover"
-        />
-        <span className="text-white font-semibold text-sm tracking-wide">Board Meeting</span>
-      </div>
-    </div>
-  );
-}
-
-function SwellTimeSlider({
-  selectedHour,
-  onHourChange,
-  selectedDay,
-  isPlaying,
-  onTogglePlay
-}: {
-  selectedHour: number;
-  onHourChange: (hour: number) => void;
-  selectedDay: Date;
-  isPlaying: boolean;
-  onTogglePlay: () => void;
-}) {
-  const timeLabels = ['12a', '6a', '12p', '6p'];
-
-  return (
-    <div className="bg-slate-800 px-2 py-1.5 border-b border-white/10">
-      <div className="flex items-center gap-2">
-        <Button
-          size="icon"
-          variant="ghost"
-          className="h-6 w-6 text-white/80 hover:text-white"
-          onClick={onTogglePlay}
-          data-testid="button-swell-play-time"
-        >
-          {isPlaying ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-        </Button>
-
-        <div className="flex-1">
-          <Slider
-            value={[selectedHour]}
-            onValueChange={(v) => onHourChange(v[0])}
-            min={0}
-            max={23}
-            step={1}
-            className="w-full"
-            data-testid="slider-swell-time"
-          />
-          <div className="flex justify-between mt-0.5 text-[8px] text-white/50">
-            {timeLabels.map((label, i) => (
-              <span key={i}>{label}</span>
-            ))}
-          </div>
-        </div>
-
-        <div className="text-white text-[10px] font-medium min-w-[45px] text-right">
-          {format(addHours(startOfDay(selectedDay), selectedHour), 'h a')}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SwellDaySelector({
-  days,
-  selectedDay,
-  onSelectDay,
-  maxDays,
-  isPremium,
-  onShowPremium
-}: {
-  days: Date[];
-  selectedDay: number;
-  onSelectDay: (day: number) => void;
-  maxDays: number;
-  isPremium: boolean;
-  onShowPremium: () => void;
-}) {
-  const scrollRef = useRef<HTMLDivElement>(null);
-
-  return (
-    <div className="bg-slate-800 border-b border-white/10">
-      <div
-        ref={scrollRef}
-        className="flex overflow-x-auto scrollbar-hide py-1.5 px-2 gap-1"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {days.map((day, i) => {
-          const isSelected = i === selectedDay;
-          const isLocked = i >= maxDays;
-
-          return (
-            <button
-              key={i}
-              onClick={() => {
-                if (isLocked) {
-                  onShowPremium();
-                } else {
-                  onSelectDay(i);
-                }
-              }}
-              className={cn(
-                "flex flex-col items-center px-2 py-1 rounded transition-all min-w-[40px]",
-                isSelected
-                  ? "bg-blue-600 text-white"
-                  : "bg-white/10 text-white/80 hover:bg-white/20",
-                isLocked && "opacity-50"
-              )}
-              data-testid={`button-swell-day-${i}`}
-            >
-              {isLocked && <Lock className="h-2 w-2" />}
-              <span className="text-[9px] font-medium">{format(day, 'EEE')}</span>
-              <span className="text-sm font-bold leading-tight">{format(day, 'd')}</span>
-            </button>
-          );
-        })}
-        {!isPremium && (
-          <button
-            onClick={onShowPremium}
-            className="flex items-center px-2 py-1 rounded bg-blue-500/20 text-blue-400 text-[9px] font-medium min-w-[50px] hover:bg-blue-500/30"
-            data-testid="button-swell-unlock-forecast"
-          >
-            +5 days ($5/mo)
-          </button>
-        )}
-      </div>
-    </div>
-  );
-}
-
-type SwellModelProps = {
-  lat?: number;
-  lng?: number;
-  locationName?: string;
-}
-
-export function SwellModel({ lat: propLat = 32.55, lng: propLng = -117.39, locationName: initialName = "Oceanside, CA" }: SwellModelProps) {
+export function SwellModel() {
   const { data: profile } = useMyProfile();
   const [showPremium, setShowPremium] = useState(false);
-  const [lat, setLat] = useState(propLat);
-  const [lng, setLng] = useState(propLng);
-  const [locationName, setLocationName] = useState(initialName);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [selectedDay, setSelectedDay] = useState(0);
-  const [selectedHour, setSelectedHour] = useState(new Date().getHours());
+  const [selectedRegion, setSelectedRegion] = useState(0);
+  const [currentFrame, setCurrentFrame] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
+  const [showRegionMenu, setShowRegionMenu] = useState(false);
+  const [loadedImages, setLoadedImages] = useState<Set<string>>(new Set());
+  const [imageError, setImageError] = useState(false);
+  const playIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   const isPremium = profile?.isPremium ?? false;
-  const maxDays = isPremium ? 7 : 2;
+  const maxFrames = isPremium ? FRAME_INDICES.length : FREE_FRAMES;
+  const region = REGIONS[selectedRegion];
+  const totalFrames = FRAME_INDICES.length;
 
-  const days = useMemo(() => {
-    const result: Date[] = [];
-    const today = new Date();
-    for (let i = 0; i < 7; i++) {
-      const day = new Date(today);
-      day.setDate(today.getDate() + i);
-      result.push(day);
-    }
-    return result;
-  }, []);
-
-  const timestamp = useMemo(() => {
-    const baseDate = startOfDay(days[selectedDay]);
-    const dateWithHour = addHours(baseDate, selectedHour);
-    return dateWithHour.getTime();
-  }, [days, selectedDay, selectedHour]);
+  const currentImageUrl = getImageUrl(region.id, FRAME_INDICES[currentFrame]);
 
   useEffect(() => {
-    if (!isPlaying) return;
+    const preloadCount = Math.min(maxFrames, totalFrames);
+    for (let i = 0; i < preloadCount; i++) {
+      const url = getImageUrl(region.id, FRAME_INDICES[i]);
+      const img = new Image();
+      img.onload = () => {
+        setLoadedImages(prev => new Set(prev).add(url));
+      };
+      img.src = url;
+    }
+  }, [region.id, maxFrames, totalFrames]);
 
-    const interval = setInterval(() => {
-      setSelectedHour(prev => {
-        if (prev >= 23) {
-          if (selectedDay < maxDays - 1) {
-            setSelectedDay(d => d + 1);
-            return 0;
-          } else {
-            setIsPlaying(false);
-            return prev;
-          }
+  const goToFrame = useCallback((frame: number) => {
+    if (frame >= 0 && frame < maxFrames) {
+      setCurrentFrame(frame);
+      setImageError(false);
+    } else if (frame >= maxFrames && !isPremium) {
+      setIsPlaying(false);
+      setShowPremium(true);
+    }
+  }, [maxFrames, isPremium]);
+
+  const nextFrame = useCallback(() => {
+    setCurrentFrame(prev => {
+      const next = prev + 1;
+      if (next >= maxFrames) {
+        if (!isPremium) {
+          setIsPlaying(false);
+          setShowPremium(true);
+          return prev;
         }
-        return prev + 3;
-      });
-    }, 1500);
+        return 0;
+      }
+      return next;
+    });
+    setImageError(false);
+  }, [maxFrames, isPremium]);
 
-    return () => clearInterval(interval);
-  }, [isPlaying, selectedDay, maxDays]);
+  const prevFrame = useCallback(() => {
+    setCurrentFrame(prev => {
+      if (prev <= 0) return maxFrames - 1;
+      return prev - 1;
+    });
+    setImageError(false);
+  }, [maxFrames]);
 
   useEffect(() => {
-    if ('geolocation' in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        async (position) => {
-          const userLat = position.coords.latitude;
-          const userLng = position.coords.longitude;
-          setLat(userLat);
-          setLng(userLng);
-
-          try {
-            const reverseResult = await geocodeLocation(`${userLat.toFixed(2)}, ${userLng.toFixed(2)}`);
-            if (reverseResult) {
-              setLocationName(reverseResult.name);
-            } else {
-              setLocationName(`${Math.abs(userLat).toFixed(2)}${userLat >= 0 ? 'N' : 'S'}, ${Math.abs(userLng).toFixed(2)}${userLng >= 0 ? 'W' : 'E'}`);
-            }
-          } catch {
-            setLocationName(`${Math.abs(userLat).toFixed(2)}${userLat >= 0 ? 'N' : 'S'}, ${Math.abs(userLng).toFixed(2)}${userLng >= 0 ? 'W' : 'E'}`);
-          }
-        },
-        () => {},
-        { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
-      );
+    if (isPlaying) {
+      playIntervalRef.current = setInterval(() => {
+        nextFrame();
+      }, 800);
+    } else if (playIntervalRef.current) {
+      clearInterval(playIntervalRef.current);
+      playIntervalRef.current = null;
     }
-  }, []);
+    return () => {
+      if (playIntervalRef.current) clearInterval(playIntervalRef.current);
+    };
+  }, [isPlaying, nextFrame]);
 
-  const handleSearch = async () => {
-    if (!searchQuery.trim()) return;
+  useEffect(() => {
+    setCurrentFrame(0);
+    setIsPlaying(false);
+    setImageError(false);
+  }, [selectedRegion]);
 
-    setIsSearching(true);
-    const result = await geocodeLocation(searchQuery);
-    setIsSearching(false);
-
-    if (result) {
-      setLat(result.lat);
-      setLng(result.lng);
-      setLocationName(result.name);
-      setSearchQuery("");
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setShowRegionMenu(false);
+      }
     }
-  };
+    if (showRegionMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [showRegionMenu]);
+
+  const forecastHour = currentFrame * 6;
+  const forecastDay = Math.floor(forecastHour / 24);
+  const forecastHourOfDay = forecastHour % 24;
 
   return (
-    <div className="flex flex-col h-full" data-testid="swell-model-container">
+    <div className="flex flex-col h-full bg-slate-900" data-testid="swell-model-container">
       <PremiumModal open={showPremium} onOpenChange={setShowPremium} />
 
-      <div className="px-2 py-1.5 bg-slate-800 border-b border-white/10 sticky top-0 z-10">
-        <div className="flex gap-1.5 items-center">
-          <div className="relative flex-1">
-            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-white/60" />
-            <Input
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-              placeholder="Search location..."
-              className="pl-7 bg-slate-700 border-white/20 text-white placeholder:text-white/50 h-7 text-xs"
-              data-testid="input-swell-location-search"
-            />
+      <div className="bg-gradient-to-r from-blue-800 to-blue-700 px-3 py-2 flex items-center justify-between gap-2">
+        <div className="flex items-center gap-2">
+          <img
+            src={boardMeetingLogo}
+            alt="Board Meeting"
+            className="w-7 h-7 rounded-full object-cover border border-white/30"
+          />
+          <div>
+            <h2 className="text-white font-bold text-sm leading-tight" data-testid="text-swell-title">Wave Model</h2>
+            <p className="text-blue-200 text-[10px]">Powered by STORMSURF</p>
           </div>
-          <Button
-            onClick={handleSearch}
-            disabled={isSearching}
-            className="bg-blue-600 hover:bg-blue-700 text-white h-7 px-2 text-xs"
-            data-testid="button-swell-search-location"
+        </div>
+
+        <div className="relative" ref={menuRef}>
+          <button
+            onClick={() => setShowRegionMenu(!showRegionMenu)}
+            className="flex items-center gap-1 bg-white/15 text-white text-xs px-2.5 py-1.5 rounded-md"
+            data-testid="button-swell-region-select"
           >
-            {isSearching ? "..." : "Go"}
-          </Button>
-          <div className="text-white/70 text-[10px] flex flex-col items-end min-w-[70px]">
-            <span className="truncate max-w-[70px]">{locationName}</span>
-            <span className="text-blue-400">{format(addHours(startOfDay(days[selectedDay]), selectedHour), 'MMM d, h a')}</span>
-          </div>
+            {region.short}
+            <ChevronDown className="h-3 w-3" />
+          </button>
+          {showRegionMenu && (
+            <div className="absolute right-0 top-full mt-1 bg-slate-800 border border-white/20 rounded-md shadow-xl z-50 min-w-[180px] py-1" data-testid="menu-swell-regions">
+              {REGIONS.map((r, i) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    setSelectedRegion(i);
+                    setShowRegionMenu(false);
+                  }}
+                  className={cn(
+                    "w-full text-left px-3 py-2 text-sm",
+                    i === selectedRegion
+                      ? "bg-blue-600 text-white"
+                      : "text-white/80 hover:bg-white/10"
+                  )}
+                  data-testid={`button-region-${r.id}`}
+                >
+                  {r.name}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
-      <SwellTimeSlider
-        selectedHour={selectedHour}
-        onHourChange={setSelectedHour}
-        selectedDay={days[selectedDay]}
-        isPlaying={isPlaying}
-        onTogglePlay={() => setIsPlaying(!isPlaying)}
-      />
+      <div className="bg-slate-800 px-3 py-1.5 flex items-center justify-between gap-2 border-b border-white/10">
+        <div className="flex items-center gap-1">
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={prevFrame}
+            className="h-7 w-7 text-white/80"
+            data-testid="button-swell-prev"
+          >
+            <ChevronLeft className="h-4 w-4" />
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={() => setIsPlaying(!isPlaying)}
+            className="h-7 w-7 text-white/80"
+            data-testid="button-swell-play"
+          >
+            {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+          </Button>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={nextFrame}
+            className="h-7 w-7 text-white/80"
+            data-testid="button-swell-next"
+          >
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
 
-      <SwellDaySelector
-        days={days}
-        selectedDay={selectedDay}
-        onSelectDay={setSelectedDay}
-        maxDays={maxDays}
-        isPremium={isPremium}
-        onShowPremium={() => setShowPremium(true)}
-      />
+        <div className="flex items-center gap-3 text-white text-xs">
+          <span className="text-white/60">
+            Frame {currentFrame + 1}/{isPremium ? totalFrames : FREE_FRAMES}
+          </span>
+          <span className="font-medium text-blue-300" data-testid="text-swell-forecast-info">
+            +{forecastHour}hr (Day {forecastDay + 1}, {forecastHourOfDay.toString().padStart(2, '0')}Z)
+          </span>
+        </div>
+      </div>
 
-      <div className="flex-1 min-h-[350px] relative pb-16">
-        <SwellEmbed
-          lat={lat}
-          lng={lng}
-          zoom={7}
-          timestamp={timestamp}
-        />
+      <div className="bg-slate-800 px-2 py-1.5 border-b border-white/10">
+        <div className="flex gap-0.5 overflow-x-auto" style={{ scrollbarWidth: 'none' }}>
+          {Array.from({ length: isPremium ? totalFrames : totalFrames }).map((_, i) => {
+            const isLocked = i >= maxFrames;
+            const isActive = i === currentFrame;
+            return (
+              <button
+                key={i}
+                onClick={() => {
+                  if (isLocked) {
+                    setShowPremium(true);
+                  } else {
+                    goToFrame(i);
+                  }
+                }}
+                className={cn(
+                  "h-2 flex-1 min-w-[4px] max-w-[12px] rounded-sm transition-all",
+                  isActive
+                    ? "bg-blue-400 scale-y-150"
+                    : isLocked
+                      ? "bg-white/10"
+                      : loadedImages.has(getImageUrl(region.id, FRAME_INDICES[i]))
+                        ? "bg-blue-600/60"
+                        : "bg-white/20"
+                )}
+                data-testid={`button-swell-frame-${i}`}
+              />
+            );
+          })}
+        </div>
+        {!isPremium && (
+          <div className="flex items-center justify-center mt-1.5">
+            <button
+              onClick={() => setShowPremium(true)}
+              className="flex items-center gap-1 text-[10px] text-blue-400 font-medium"
+              data-testid="button-swell-unlock-forecast"
+            >
+              <Lock className="h-2.5 w-2.5" />
+              Unlock full 7-day forecast ($5/mo)
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="flex-1 relative bg-slate-900 flex items-center justify-center overflow-hidden pb-16">
+        {imageError ? (
+          <div className="text-white/50 text-sm text-center p-4">
+            <p>Unable to load forecast image</p>
+            <p className="text-xs mt-1">Try selecting a different region or frame</p>
+          </div>
+        ) : (
+          <img
+            src={currentImageUrl}
+            alt={`${region.name} Swell Height - +${forecastHour}hr forecast`}
+            className="w-full h-full object-contain"
+            onError={() => setImageError(true)}
+            data-testid="img-swell-forecast"
+          />
+        )}
+
+        {currentFrame >= maxFrames - 1 && !isPremium && (
+          <div className="absolute inset-0 bg-black/60 flex flex-col items-center justify-center z-10">
+            <Lock className="h-8 w-8 text-white/80 mb-2" />
+            <p className="text-white font-semibold text-sm">Premium Forecast</p>
+            <p className="text-white/70 text-xs mt-1 mb-3">Get the full 7-day swell forecast</p>
+            <Button
+              onClick={() => setShowPremium(true)}
+              className="bg-blue-600 text-white text-sm"
+              data-testid="button-swell-premium-overlay"
+            >
+              Upgrade - $5/mo
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );

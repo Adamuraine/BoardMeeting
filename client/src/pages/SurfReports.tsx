@@ -1430,11 +1430,7 @@ export default function SurfReports() {
           </main>
         ) : (
           <main className="flex-1 overflow-y-auto pb-24">
-            <SwellModel 
-              lat={userSpots[0]?.lat || 33.1936} 
-              lng={userSpots[0]?.lng || -117.3831} 
-              locationName={userSpots[0]?.name || "Oceanside, CA"} 
-            />
+            <SwellModel />
           </main>
         )}
       </div>

@@ -200,8 +200,8 @@ export default function Trips() {
   const [rideSeats, setRideSeats] = useState<string>("3");
   const [rideNotes, setRideNotes] = useState<string>("");
   const [visitLocation, setVisitLocation] = useState<string>("");
-  const [visitStartDate, setVisitStartDate] = useState<string>("");
-  const [visitEndDate, setVisitEndDate] = useState<string>("");
+  const [visitDateRange, setVisitDateRange] = useState<DateRange | undefined>(undefined);
+  const [visitCalendarOpen, setVisitCalendarOpen] = useState(false);
   const [visitInterests, setVisitInterests] = useState<string[]>([]);
   const [visitNotes, setVisitNotes] = useState<string>("");
 
@@ -295,12 +295,12 @@ export default function Trips() {
   ];
 
   const handlePostVisit = () => {
-    if (!user || !visitLocation || !visitStartDate || !visitEndDate) return;
+    if (!user || !visitLocation || !visitDateRange?.from || !visitDateRange?.to) return;
     createTrip.mutate({
       organizerId: user.id,
       destination: visitLocation,
-      startDate: visitStartDate,
-      endDate: visitEndDate,
+      startDate: format(visitDateRange.from, "yyyy-MM-dd"),
+      endDate: format(visitDateRange.to, "yyyy-MM-dd"),
       isVisiting: true,
       tripType: "surf_trip",
       description: `${visitInterests.length > 0 ? `Interests: ${visitInterests.map(i => VISIT_INTEREST_OPTIONS.find(o => o.id === i)?.label || i).join(", ")}` : ""}${visitNotes ? `\n${visitNotes}` : ""}`,
@@ -308,8 +308,7 @@ export default function Trips() {
     }, {
       onSuccess: () => {
         setVisitLocation("");
-        setVisitStartDate("");
-        setVisitEndDate("");
+        setVisitDateRange(undefined);
         setVisitInterests([]);
         setVisitNotes("");
       }
@@ -426,16 +425,16 @@ export default function Trips() {
           </header>
 
         <Tabs defaultValue="trips" className="flex-1 flex flex-col">
-          <TabsList className="grid w-full grid-cols-3 mb-4">
-            <TabsTrigger value="trips" className="data-[state=active]:bg-amber-400/90 data-[state=active]:text-amber-950 dark:data-[state=active]:bg-amber-500/80 dark:data-[state=active]:text-amber-950" data-testid="tab-trips">
+          <TabsList className="grid w-full grid-cols-3 mb-4 gap-1 bg-transparent p-1">
+            <TabsTrigger value="trips" className="border-2 border-amber-400 dark:border-amber-500 data-[state=active]:bg-amber-400/90 data-[state=active]:text-amber-950 dark:data-[state=active]:bg-amber-500/80 dark:data-[state=active]:text-amber-950 rounded-md" data-testid="tab-trips">
               <Plane className="w-4 h-4 mr-1" />
               Trips
             </TabsTrigger>
-            <TabsTrigger value="carpool" className="data-[state=active]:bg-emerald-400/90 data-[state=active]:text-emerald-950 dark:data-[state=active]:bg-emerald-400/80 dark:data-[state=active]:text-emerald-950" data-testid="tab-carpool">
+            <TabsTrigger value="carpool" className="border-2 border-emerald-400 dark:border-emerald-500 data-[state=active]:bg-emerald-400/90 data-[state=active]:text-emerald-950 dark:data-[state=active]:bg-emerald-400/80 dark:data-[state=active]:text-emerald-950 rounded-md" data-testid="tab-carpool">
               <span className="flex items-center mr-1 gap-0.5"><ThumbsUp className="w-3.5 h-3.5" /><Car className="w-3.5 h-3.5" /></span>
               Rides
             </TabsTrigger>
-            <TabsTrigger value="visiting" className="data-[state=active]:bg-pink-400/80 data-[state=active]:text-pink-950 dark:data-[state=active]:bg-pink-500/80 dark:data-[state=active]:text-white" data-testid="tab-visiting">
+            <TabsTrigger value="visiting" className="border-2 border-pink-400 dark:border-pink-500 data-[state=active]:bg-pink-400/80 data-[state=active]:text-pink-950 dark:data-[state=active]:bg-pink-500/80 dark:data-[state=active]:text-white rounded-md" data-testid="tab-visiting">
               <span className="flex items-center mr-1 gap-0.5"><TreePalm className="w-3.5 h-3.5" /><Martini className="w-3.5 h-3.5" /></span>
               Visiting
             </TabsTrigger>
@@ -1146,25 +1145,43 @@ export default function Trips() {
                 </datalist>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Arriving</Label>
-                  <Input
-                    type="date"
-                    value={visitStartDate}
-                    onChange={(e) => setVisitStartDate(e.target.value)}
-                    data-testid="input-visit-start-date"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label className="text-xs text-muted-foreground">Leaving</Label>
-                  <Input
-                    type="date"
-                    value={visitEndDate}
-                    onChange={(e) => setVisitEndDate(e.target.value)}
-                    data-testid="input-visit-end-date"
-                  />
-                </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Visit Dates</Label>
+                <Popover open={visitCalendarOpen} onOpenChange={setVisitCalendarOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className={cn(
+                        "w-full h-10 justify-start text-left font-normal",
+                        !visitDateRange && "text-muted-foreground"
+                      )}
+                      data-testid="button-visit-date-picker"
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {visitDateRange?.from ? (
+                        visitDateRange.to ? (
+                          <>
+                            {format(visitDateRange.from, "MMM d")} - {format(visitDateRange.to, "MMM d, yyyy")}
+                          </>
+                        ) : (
+                          format(visitDateRange.from, "MMM d, yyyy")
+                        )
+                      ) : (
+                        <span>Select dates</span>
+                      )}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="range"
+                      defaultMonth={visitDateRange?.from}
+                      selected={visitDateRange}
+                      onSelect={setVisitDateRange}
+                      numberOfMonths={1}
+                      data-testid="calendar-visit-date-range"
+                    />
+                  </PopoverContent>
+                </Popover>
               </div>
 
               <div className="space-y-2">
@@ -1211,25 +1228,25 @@ export default function Trips() {
 
               <Button
                 onClick={handlePostVisit}
-                disabled={createTrip.isPending || !visitLocation || !visitStartDate || !visitEndDate}
-                className="w-full bg-pink-500 hover:bg-pink-600 text-white font-semibold"
+                disabled={createTrip.isPending || !visitLocation || !visitDateRange?.from || !visitDateRange?.to}
+                className="w-full bg-pink-500 text-white font-semibold"
                 data-testid="button-post-visit"
               >
                 {createTrip.isPending ? "Posting..." : "Post Visit"}
                 <Martini className="w-4 h-4 ml-2" />
               </Button>
 
-              {visitLocation && visitStartDate && visitEndDate && (
+              {visitLocation && visitDateRange?.from && visitDateRange?.to && (
                 <>
                   <TripMatchPopup
                     destination={visitLocation}
-                    startDate={visitStartDate}
-                    endDate={visitEndDate}
+                    startDate={format(visitDateRange.from, "yyyy-MM-dd")}
+                    endDate={format(visitDateRange.to, "yyyy-MM-dd")}
                   />
                   <TripPlanner
                     location={visitLocation}
-                    startDate={visitStartDate}
-                    endDate={visitEndDate}
+                    startDate={format(visitDateRange.from, "yyyy-MM-dd")}
+                    endDate={format(visitDateRange.to, "yyyy-MM-dd")}
                   />
                 </>
               )}

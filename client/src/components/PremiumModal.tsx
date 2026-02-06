@@ -12,7 +12,7 @@ interface PremiumModalProps {
 const PREMIUM_FEATURES = [
   { icon: Users, label: "Unlimited buddy swipes", description: "Free users get 5 per day" },
   { icon: SlidersHorizontal, label: "Gender & age filters on buddy swipes", description: "Find exactly who you're looking for" },
-  { icon: Waves, label: "14-day extended surf forecasts", description: "Free users get 3-day forecasts" },
+  { icon: Waves, label: "7-day extended surf forecasts", description: "Free users get 3-day forecasts" },
   { icon: Radio, label: "Broadcast your trips & meetups", description: "Get seen by surfers in your area" },
 ];
 

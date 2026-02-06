@@ -886,7 +886,7 @@ function SpotCard({ spot, onRemove, onAddSpot, allSpots, isPremium, onShowPremiu
             data-testid="button-upgrade-forecast"
           >
             <Lock className="h-3 w-3" />
-            <span className="font-medium">Upgrade for $5/mo - Full Week Forecast</span>
+            <span className="font-medium">Upgrade for $5/mo - 7 Day Forecast</span>
           </button>
         )}
       </div>
@@ -1392,7 +1392,7 @@ function LocationDetail({ location, open, onOpenChange }: { location: any, open:
   if (!location) return null;
 
   const isPremium = profile?.isPremium;
-  const daysToShow = isPremium ? 14 : 3;
+  const daysToShow = isPremium ? 7 : 3;
   const today = new Date();
   const isFav = favorites?.some(f => f.id === location.id);
 
@@ -1443,7 +1443,7 @@ function LocationDetail({ location, open, onOpenChange }: { location: any, open:
                 <h3 className="font-bold text-lg text-foreground">Forecast</h3>
                 {!isPremium && (
                   <button onClick={() => setShowPremium(true)} className="text-xs text-primary font-medium flex items-center hover:underline">
-                    Unlock 14 Days - $5/mo <Lock className="w-3 h-3 ml-1" />
+                    Unlock 7 Day Forecast - $5/mo <Lock className="w-3 h-3 ml-1" />
                   </button>
                 )}
               </div>

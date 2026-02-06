@@ -14,6 +14,7 @@ Preferred communication style: Simple, everyday language.
 - Added gender and age filters to buddy swipes (premium-only feature)
 - Trip broadcasting prominently labeled as premium-required in create trip dialog and trip itinerary
 - Surf forecast: 2 days free, 7 days for premium (was 14 days), upgrade prompts show $5/mo pricing
+- Added Swell Model as 3rd tab in surf report page (Surf Report / Wind / Swell) using Windy swell1 overlay
 - Surf report location preferences now persist to user profile in database (savedSurfSpots field)
 - Marketplace photo upload bug fixed (corrected upload endpoint and object path tracking)
 

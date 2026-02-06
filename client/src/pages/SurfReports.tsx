@@ -3,7 +3,7 @@ import { Layout } from "@/components/Layout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check } from "lucide-react";
+import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 import { PremiumModal } from "@/components/PremiumModal";
@@ -18,6 +18,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { PostWithUser } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
 import { WindModel } from "@/components/WindModel";
+import { SwellModel } from "@/components/SwellModel";
 
 // Worldwide surf spots database with hierarchical location data
 type SurfSpot = {
@@ -1321,10 +1322,10 @@ export default function SurfReports() {
       <div className="flex flex-col h-full bg-gradient-to-b from-sky-50 via-cyan-50/30 to-background dark:from-slate-900 dark:via-slate-900 dark:to-background">
         <header className="px-4 pt-4 pb-3">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-3 h-12 p-1">
+            <TabsList className="grid w-full grid-cols-3 mb-3 h-12 p-1">
               <TabsTrigger 
                 value="surf" 
-                className="gap-2 data-[state=active]:bg-cyan-500 data-[state=active]:text-white data-[state=inactive]:text-cyan-700 dark:data-[state=inactive]:text-cyan-400" 
+                className="gap-1.5 text-xs data-[state=active]:bg-cyan-500 data-[state=active]:text-white data-[state=inactive]:text-cyan-700 dark:data-[state=inactive]:text-cyan-400" 
                 data-testid="tab-surf-report"
               >
                 <Waves className="h-4 w-4" />
@@ -1332,11 +1333,19 @@ export default function SurfReports() {
               </TabsTrigger>
               <TabsTrigger 
                 value="wind" 
-                className="gap-2 data-[state=active]:bg-teal-600 data-[state=active]:text-white data-[state=inactive]:text-teal-700 dark:data-[state=inactive]:text-teal-400" 
+                className="gap-1.5 text-xs data-[state=active]:bg-teal-600 data-[state=active]:text-white data-[state=inactive]:text-teal-700 dark:data-[state=inactive]:text-teal-400" 
                 data-testid="tab-wind-model"
               >
                 <Wind className="h-4 w-4" />
-                Wind Model
+                Wind
+              </TabsTrigger>
+              <TabsTrigger 
+                value="swell" 
+                className="gap-1.5 text-xs data-[state=active]:bg-blue-600 data-[state=active]:text-white data-[state=inactive]:text-blue-700 dark:data-[state=inactive]:text-blue-400" 
+                data-testid="tab-swell-model"
+              >
+                <Activity className="h-4 w-4" />
+                Swell
               </TabsTrigger>
             </TabsList>
           </Tabs>
@@ -1411,9 +1420,17 @@ export default function SurfReports() {
               ))
             )}
           </main>
-        ) : (
+        ) : activeTab === "wind" ? (
           <main className="flex-1 overflow-y-auto pb-24">
             <WindModel 
+              lat={userSpots[0]?.lat || 33.1936} 
+              lng={userSpots[0]?.lng || -117.3831} 
+              locationName={userSpots[0]?.name || "Oceanside, CA"} 
+            />
+          </main>
+        ) : (
+          <main className="flex-1 overflow-y-auto pb-24">
+            <SwellModel 
               lat={userSpots[0]?.lat || 33.1936} 
               lng={userSpots[0]?.lng || -117.3831} 
               locationName={userSpots[0]?.name || "Oceanside, CA"} 

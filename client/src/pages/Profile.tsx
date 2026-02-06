@@ -19,6 +19,7 @@ import { Link } from "wouter";
 import type { Profile as ProfileType, Trip } from "@shared/schema";
 import { format } from "date-fns";
 import boardMeetingLogo from "@assets/IMG_3950_1769110363136.jpeg";
+import cardiffKookImg from "@assets/default-surfer.jpeg";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
@@ -751,9 +752,13 @@ export default function Profile() {
                   : 'border-background'
               }`}>
                  {missingFields.photo ? (
-                   <div className="w-full h-full flex flex-col items-center justify-center bg-primary/10">
-                     <Camera className="w-10 h-10 text-primary mb-1" />
-                     <span className="text-xs text-primary font-medium">Add Photo</span>
+                   <div className="w-full h-full relative">
+                     <img src={cardiffKookImg} alt="Cardiff Kook - Add your photo" className="w-full h-full object-cover" />
+                     <div className="absolute inset-0 flex items-end justify-center pb-2 bg-gradient-to-t from-black/60 to-transparent">
+                       <span className="text-white text-[10px] font-bold px-2 py-0.5 bg-primary/80 rounded-full flex items-center gap-1">
+                         <Camera className="w-3 h-3" /> Add Photo
+                       </span>
+                     </div>
                    </div>
                  ) : (
                    <SafeImage 
@@ -807,19 +812,19 @@ export default function Profile() {
             ) : (
               <div 
                 className={`cursor-pointer group ${
-                  missingFields.name && isNewUser 
-                    ? 'p-3 -m-3 rounded-lg border-2 border-dashed border-primary bg-primary/5' 
+                  isNewUser 
+                    ? 'p-3 -m-3 rounded-lg border-2 border-dashed border-primary bg-primary/5 animate-pulse' 
                     : ''
                 }`}
                 onClick={() => { setNameText(profile.displayName || ""); setEditingName(true); }}
                 data-testid="display-name"
               >
                 <h1 className={`text-3xl font-display font-bold flex items-center gap-2 ${
-                  missingFields.name ? 'text-primary' : 'text-foreground'
+                  isNewUser ? 'text-primary' : 'text-foreground'
                 }`}>
-                  {missingFields.name ? (
+                  {isNewUser ? (
                     <>
-                      <Pencil className="w-5 h-5" /> Tap to add your name
+                      <Pencil className="w-5 h-5" /> Name:
                     </>
                   ) : (
                     <>
@@ -892,8 +897,12 @@ export default function Profile() {
                 </div>
               </div>
             ) : (
-              <p 
-                className="text-muted-foreground cursor-pointer group flex items-center gap-1"
+              <div 
+                className={`cursor-pointer group ${
+                  isNewUser && (!profile.location || !profile.skillLevel)
+                    ? 'p-2 -mx-2 rounded-lg border-2 border-dashed border-primary bg-primary/5 animate-pulse mt-2'
+                    : ''
+                }`}
                 onClick={() => { 
                   setDetailsLocation(profile.location || ""); 
                   setDetailsSkillLevel(profile.skillLevel || "intermediate"); 
@@ -901,9 +910,23 @@ export default function Profile() {
                 }}
                 data-testid="profile-details"
               >
-                {profile.location || "Add location"} - {profile.skillLevel || "intermediate"} Surfer
-                <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
-              </p>
+                <p className={`flex items-center gap-1 ${
+                  isNewUser && (!profile.location || !profile.skillLevel)
+                    ? 'text-primary font-medium'
+                    : 'text-muted-foreground'
+                }`}>
+                  {isNewUser && !profile.location ? (
+                    <>
+                      <MapPin className="w-4 h-4" /> Location / Surf Ability
+                    </>
+                  ) : (
+                    <>
+                      {profile.location || "Add location"} - {profile.skillLevel || "intermediate"} Surfer
+                      <Pencil className="w-3 h-3 opacity-0 group-hover:opacity-50 transition-opacity" />
+                    </>
+                  )}
+                </p>
+              </div>
             )}
             
             {profile.openToGuiding && (
@@ -920,7 +943,7 @@ export default function Profile() {
           <div className="space-y-8">
             <div className={`${
               missingFields.bio && isNewUser 
-                ? 'p-4 -mx-4 rounded-lg border-2 border-dashed border-primary bg-primary/5' 
+                ? 'p-4 -mx-4 rounded-lg border-2 border-dashed border-primary bg-primary/5 animate-pulse' 
                 : ''
             }`}>
               <h3 className={`text-sm font-bold uppercase tracking-wider mb-3 flex items-center justify-between ${

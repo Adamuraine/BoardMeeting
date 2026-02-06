@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/hooks/use-auth";
 import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useLocation } from "wouter";
-import { Plus, MessageCircle, MapPin, Tag, X, Grid3X3, Map, Search, Loader2, Bell } from "lucide-react";
+import { Plus, MessageCircle, MapPin, Tag, X, LayoutGrid, MapPinned, Search, Loader2, Bell } from "lucide-react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { queryClient, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -497,22 +497,22 @@ export default function Marketplace() {
 
           <div className="flex items-center border rounded-md overflow-visible">
             <Button
-              size="sm"
+              size="default"
               variant={viewMode === 'grid' ? 'default' : 'ghost'}
               className="rounded-none"
               onClick={() => setViewMode('grid')}
               data-testid="button-view-grid"
             >
-              <Grid3X3 className="w-4 h-4" />
+              <LayoutGrid className="w-5 h-5" />
             </Button>
             <Button
-              size="sm"
+              size="default"
               variant={viewMode === 'map' ? 'default' : 'ghost'}
               className="rounded-none"
               onClick={() => setViewMode('map')}
               data-testid="button-view-map"
             >
-              <Map className="w-4 h-4" />
+              <MapPinned className="w-5 h-5" />
             </Button>
           </div>
         </div>

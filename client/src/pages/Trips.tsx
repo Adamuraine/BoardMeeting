@@ -1338,21 +1338,21 @@ function WaitlistSection() {
 
   return (
     <div className="space-y-3">
-      <div className="rounded-xl border border-sky-400/40 bg-gradient-to-r from-sky-500/10 to-indigo-500/10 dark:from-sky-500/15 dark:to-indigo-500/15 p-3 space-y-3">
+      <div className="rounded-xl border-2 border-blue-500 bg-white dark:bg-white p-3 space-y-3">
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full bg-sky-400/20 flex items-center justify-center">
-              <Globe className="w-4 h-4 text-sky-500" />
+            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center">
+              <Globe className="w-4 h-4 text-white" />
             </div>
             <div>
-              <h3 className="font-semibold text-sm">Surf Trip Waitlist</h3>
-              <p className="text-[10px] text-muted-foreground">Go anywhere, with anyone</p>
+              <h3 className="font-semibold text-sm text-gray-900">Surf Trip Waitlist</h3>
+              <p className="text-[10px] text-gray-500">Go anywhere, with anyone</p>
             </div>
           </div>
           {otherEntries.length > 0 && (
             <button
               onClick={() => setExpanded(!expanded)}
-              className="text-xs text-sky-600 dark:text-sky-400 font-medium"
+              className="text-xs text-blue-600 font-medium"
               data-testid="button-toggle-waitlist"
             >
               {expanded ? "Hide" : `${otherEntries.length} surfer${otherEntries.length !== 1 ? "s" : ""} waiting`}
@@ -1362,20 +1362,20 @@ function WaitlistSection() {
 
         {!isOnWaitlist ? (
           <div className="space-y-2">
-            <p className="text-xs text-foreground/80 leading-relaxed">
+            <p className="text-xs text-gray-600 leading-relaxed">
               Not sure where or when? Join the waitlist and get matched when someone plans a trip. No destination or dates needed.
             </p>
             <Input
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
               placeholder="Optional: what you're looking for (e.g. barrel hunting, chill longboard trip...)"
-              className="text-xs"
+              className="text-xs border-blue-200 text-gray-900 placeholder:text-gray-400"
               data-testid="input-waitlist-notes"
             />
             <Button
               onClick={() => joinWaitlist.mutate()}
               disabled={joinWaitlist.isPending || !user}
-              className="w-full bg-sky-500 text-white font-semibold"
+              className="w-full bg-blue-500 text-white font-semibold"
               data-testid="button-join-waitlist"
             >
               {joinWaitlist.isPending ? "Joining..." : "I'm Down!"}
@@ -1383,10 +1383,10 @@ function WaitlistSection() {
             </Button>
           </div>
         ) : (
-          <div className="flex items-center justify-between gap-2 bg-sky-500/10 dark:bg-sky-500/20 rounded-lg p-2.5">
+          <div className="flex items-center justify-between gap-2 bg-blue-50 rounded-lg p-2.5">
             <div className="flex items-center gap-2">
-              <Check className="w-4 h-4 text-sky-500" />
-              <span className="text-xs font-medium text-foreground">You're on the waitlist!</span>
+              <Check className="w-4 h-4 text-blue-600" />
+              <span className="text-xs font-medium text-gray-900">You're on the waitlist!</span>
             </div>
             <Button
               size="sm"
@@ -1403,24 +1403,24 @@ function WaitlistSection() {
         )}
 
         {expanded && otherEntries.length > 0 && (
-          <div className="space-y-2 pt-2 border-t border-sky-400/20">
-            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Surfers ready to go</p>
+          <div className="space-y-2 pt-2 border-t border-blue-200">
+            <p className="text-[10px] font-medium text-gray-500 uppercase tracking-wide">Surfers ready to go</p>
             {otherEntries.map((entry: any) => (
               <div
                 key={entry.id}
-                className="flex items-center gap-2.5 bg-card/60 rounded-lg p-2"
+                className="flex items-center gap-2.5 bg-blue-50 rounded-lg p-2"
                 data-testid={`waitlist-entry-${entry.id}`}
               >
-                <Avatar className="w-8 h-8 border border-sky-400/30">
+                <Avatar className="w-8 h-8 border border-blue-300">
                   <AvatarImage src={entry.organizer?.profilePhoto} alt={entry.organizer?.displayName || "Surfer"} />
-                  <AvatarFallback className="text-xs bg-sky-100 dark:bg-sky-900 text-sky-800 dark:text-sky-200">
+                  <AvatarFallback className="text-xs bg-blue-100 text-blue-700">
                     {(entry.organizer?.displayName || "?")[0]}
                   </AvatarFallback>
                 </Avatar>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium truncate">{entry.organizer?.displayName || "Surfer"}</p>
+                  <p className="text-sm font-medium truncate text-gray-900">{entry.organizer?.displayName || "Surfer"}</p>
                   {entry.description && entry.description !== "Down for any surf trip!" && (
-                    <p className="text-[10px] text-muted-foreground truncate">{entry.description}</p>
+                    <p className="text-[10px] text-gray-500 truncate">{entry.description}</p>
                   )}
                 </div>
                 <Button

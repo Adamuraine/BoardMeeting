@@ -148,6 +148,30 @@ async function geocodeZipCode(zip: string): Promise<{ lat: number; lng: number }
   }
 }
 
+async function geocodeLocationText(locationText: string): Promise<{ lat: number; lng: number } | null> {
+  try {
+    const response = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(locationText)}&format=json&limit=1`,
+      {
+        headers: {
+          'User-Agent': 'SurfTribe-Marketplace/1.0'
+        }
+      }
+    );
+    const data = await response.json();
+    if (data && data.length > 0) {
+      return {
+        lat: parseFloat(data[0].lat),
+        lng: parseFloat(data[0].lon)
+      };
+    }
+    return null;
+  } catch (error) {
+    console.error('Geocoding location text error:', error);
+    return null;
+  }
+}
+
 export default function Marketplace() {
   const { user } = useAuth();
   const { data: profile } = useMyProfile();
@@ -190,10 +214,26 @@ export default function Marketplace() {
         setListingCoords(coords);
         setIsGeocodingZip(false);
       });
-    } else {
+    } else if (zipCode.length > 0) {
       setListingCoords(null);
     }
   }, [zipCode]);
+
+  useEffect(() => {
+    if (zipCode.length > 0) return;
+    if (!location || location.length < 3) {
+      setListingCoords(null);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setIsGeocodingZip(true);
+      geocodeLocationText(location).then(coords => {
+        setListingCoords(coords);
+        setIsGeocodingZip(false);
+      });
+    }, 800);
+    return () => clearTimeout(timer);
+  }, [location, zipCode]);
 
   const handleSearchLocation = async () => {
     if (!searchZip || searchZip.length !== 5) {
@@ -257,7 +297,7 @@ export default function Marketplace() {
     setListingCoords(null);
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!title || !category || !condition || !listingType) {
       toast({ title: "Missing fields", description: "Please fill in all required fields", variant: "destructive" });
       return;
@@ -265,6 +305,17 @@ export default function Marketplace() {
 
     const priceInCents = (listingType === "trade" || listingType === "free") ? null : (price ? Math.round(parseFloat(price) * 100) : null);
     
+    let finalLat = listingCoords?.lat?.toString() || undefined;
+    let finalLng = listingCoords?.lng?.toString() || undefined;
+
+    if (!finalLat && !finalLng && location) {
+      const coords = await geocodeLocationText(location);
+      if (coords) {
+        finalLat = coords.lat.toString();
+        finalLng = coords.lng.toString();
+      }
+    }
+
     createListing.mutate({
       title,
       description: description || undefined,
@@ -275,8 +326,8 @@ export default function Marketplace() {
       location: location || undefined,
       imageUrls: imageUrls.length > 0 ? imageUrls : undefined,
       zipCode: zipCode || undefined,
-      latitude: listingCoords?.lat?.toString() || undefined,
-      longitude: listingCoords?.lng?.toString() || undefined,
+      latitude: finalLat,
+      longitude: finalLng,
     });
   };
 
@@ -555,17 +606,27 @@ export default function Marketplace() {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="location">Location</Label>
-                    <Input 
-                      id="location" 
-                      value={location} 
-                      onChange={(e) => setLocationValue(e.target.value)} 
-                      placeholder="e.g. San Diego, CA"
-                      data-testid="input-location"
-                    />
+                    <div className="relative">
+                      <Input 
+                        id="location" 
+                        value={location} 
+                        onChange={(e) => setLocationValue(e.target.value)} 
+                        placeholder="e.g. San Diego, CA"
+                        data-testid="input-location"
+                      />
+                      {!zipCode && isGeocodingZip && (
+                        <Loader2 className="w-4 h-4 animate-spin absolute right-2 top-1/2 -translate-y-1/2" />
+                      )}
+                    </div>
+                    {!zipCode && listingCoords && (
+                      <p className="text-xs text-green-600 mt-1" data-testid="text-location-coords-success">
+                        Location found
+                      </p>
+                    )}
                   </div>
 
                   <div>
-                    <Label htmlFor="zipCode">Zip Code</Label>
+                    <Label htmlFor="zipCode">Zip Code (optional)</Label>
                     <div className="relative">
                       <Input 
                         id="zipCode" 

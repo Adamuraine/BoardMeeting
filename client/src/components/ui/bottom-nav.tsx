@@ -4,14 +4,14 @@ import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 
 const pastelColors: Record<string, { bg: string; text: string; activeBg: string; activeText: string }> = {
-  "/home":        { bg: "bg-sky-50 dark:bg-sky-950/30",         text: "text-black dark:text-gray-300",          activeBg: "bg-sky-200 dark:bg-sky-800/50",         activeText: "text-sky-700 dark:text-sky-300" },
-  "/surf":        { bg: "bg-teal-50 dark:bg-teal-950/30",       text: "text-black dark:text-gray-300",          activeBg: "bg-teal-200 dark:bg-teal-800/50",       activeText: "text-teal-700 dark:text-teal-300" },
-  "/marketplace": { bg: "bg-emerald-50 dark:bg-emerald-950/30", text: "text-black dark:text-gray-300",          activeBg: "bg-emerald-200 dark:bg-emerald-800/50", activeText: "text-emerald-700 dark:text-emerald-300" },
-  "/buddies":     { bg: "bg-violet-50 dark:bg-violet-950/30",   text: "text-black dark:text-gray-300",          activeBg: "bg-violet-200 dark:bg-violet-800/50",   activeText: "text-violet-700 dark:text-violet-300" },
-  "/trips":       { bg: "bg-amber-50 dark:bg-amber-950/30",     text: "text-black dark:text-gray-300",          activeBg: "bg-amber-200 dark:bg-amber-800/50",     activeText: "text-amber-700 dark:text-amber-300" },
-  "/messages":    { bg: "bg-pink-50 dark:bg-pink-950/30",       text: "text-black dark:text-gray-300",          activeBg: "bg-pink-200 dark:bg-pink-800/50",       activeText: "text-pink-700 dark:text-pink-300" },
-  "/profile":     { bg: "bg-indigo-50 dark:bg-indigo-950/30",   text: "text-black dark:text-gray-300",          activeBg: "bg-indigo-200 dark:bg-indigo-800/50",   activeText: "text-indigo-700 dark:text-indigo-300" },
-  "/":            { bg: "bg-sky-50 dark:bg-sky-950/30",         text: "text-black dark:text-gray-300",          activeBg: "bg-sky-200 dark:bg-sky-800/50",         activeText: "text-sky-700 dark:text-sky-300" },
+  "/home":        { bg: "bg-sky-100 dark:bg-sky-900/40",         text: "text-black dark:text-gray-300",          activeBg: "bg-sky-300 dark:bg-sky-700/60",         activeText: "text-sky-800 dark:text-sky-200" },
+  "/surf":        { bg: "bg-teal-100 dark:bg-teal-900/40",       text: "text-black dark:text-gray-300",          activeBg: "bg-teal-300 dark:bg-teal-700/60",       activeText: "text-teal-800 dark:text-teal-200" },
+  "/marketplace": { bg: "bg-emerald-100 dark:bg-emerald-900/40", text: "text-black dark:text-gray-300",          activeBg: "bg-emerald-300 dark:bg-emerald-700/60", activeText: "text-emerald-800 dark:text-emerald-200" },
+  "/buddies":     { bg: "bg-violet-100 dark:bg-violet-900/40",   text: "text-black dark:text-gray-300",          activeBg: "bg-violet-300 dark:bg-violet-700/60",   activeText: "text-violet-800 dark:text-violet-200" },
+  "/trips":       { bg: "bg-amber-100 dark:bg-amber-900/40",     text: "text-black dark:text-gray-300",          activeBg: "bg-amber-300 dark:bg-amber-700/60",     activeText: "text-amber-800 dark:text-amber-200" },
+  "/messages":    { bg: "bg-pink-100 dark:bg-pink-900/40",       text: "text-black dark:text-gray-300",          activeBg: "bg-pink-300 dark:bg-pink-700/60",       activeText: "text-pink-800 dark:text-pink-200" },
+  "/profile":     { bg: "bg-indigo-100 dark:bg-indigo-900/40",   text: "text-black dark:text-gray-300",          activeBg: "bg-indigo-300 dark:bg-indigo-700/60",   activeText: "text-indigo-800 dark:text-indigo-200" },
+  "/":            { bg: "bg-sky-100 dark:bg-sky-900/40",         text: "text-black dark:text-gray-300",          activeBg: "bg-sky-300 dark:bg-sky-700/60",         activeText: "text-sky-800 dark:text-sky-200" },
 };
 
 export default function BottomNav() {

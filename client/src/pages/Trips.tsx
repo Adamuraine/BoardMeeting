@@ -2,7 +2,7 @@ import { useTrips, useCreateTrip, useUpdateTripActivities } from "@/hooks/use-tr
 import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download, Camera, Bell, Pencil, Crown, Radio, TreePalm, Martini } from "lucide-react";
+import { Plus, Calendar as CalendarIcon, MapPin, Car, Anchor, Plane, Users, ThumbsUp, ArrowRight, Sailboat, Umbrella, Beer, Leaf, Fish, Footprints, Share2, Download, Camera, Bell, Pencil, Crown, Radio, TreePalm, Martini, Globe, MessageCircle, Check, X } from "lucide-react";
 import { useLocation } from "wouter";
 import { format } from "date-fns";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -18,7 +18,8 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "@/hooks/use-auth";
 import { apiRequest, queryClient } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Switch } from "@/components/ui/switch";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -335,6 +336,7 @@ export default function Trips() {
     return trips.filter(trip => {
       if (trip.isVisiting) return false;
       if (trip.tripType === 'beach_carpool') return false;
+      if (trip.tripType === 'waitlist') return false;
       
       if (startFilter && startFilter !== "all") {
         if (flexibleLocation) {
@@ -816,6 +818,8 @@ export default function Trips() {
               </DialogContent>
             </Dialog>
 
+            <WaitlistSection />
+
             {isLoading ? (
               <div className="space-y-4">
                 {[1, 2].map(i => <div key={i} className="h-48 bg-muted animate-pulse rounded-2xl" />)}
@@ -1272,6 +1276,152 @@ export default function Trips() {
         </div>
       </div>
     </Layout>
+  );
+}
+
+function WaitlistSection() {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const [notes, setNotes] = useState("");
+  const [expanded, setExpanded] = useState(false);
+
+  const { data: myEntry, isLoading: loadingMy } = useQuery<any>({
+    queryKey: ["/api/waitlist/me"],
+    enabled: !!user,
+  });
+
+  const { data: entries, isLoading: loadingEntries } = useQuery<any[]>({
+    queryKey: ["/api/waitlist"],
+  });
+
+  const joinWaitlist = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("POST", "/api/waitlist", { notes: notes || undefined });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/waitlist/me"] });
+      setNotes("");
+    },
+  });
+
+  const leaveWaitlist = useMutation({
+    mutationFn: async () => {
+      await apiRequest("DELETE", "/api/waitlist");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/waitlist"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/waitlist/me"] });
+    },
+  });
+
+  const otherEntries = entries?.filter(e => e.organizerId !== user?.id) ?? [];
+  const isOnWaitlist = !!myEntry;
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-xl border border-sky-400/40 bg-gradient-to-r from-sky-500/10 to-indigo-500/10 dark:from-sky-500/15 dark:to-indigo-500/15 p-3 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-sky-400/20 flex items-center justify-center">
+              <Globe className="w-4 h-4 text-sky-500" />
+            </div>
+            <div>
+              <h3 className="font-semibold text-sm">Surf Trip Waitlist</h3>
+              <p className="text-[10px] text-muted-foreground">Go anywhere, with anyone</p>
+            </div>
+          </div>
+          {otherEntries.length > 0 && (
+            <button
+              onClick={() => setExpanded(!expanded)}
+              className="text-xs text-sky-600 dark:text-sky-400 font-medium"
+              data-testid="button-toggle-waitlist"
+            >
+              {expanded ? "Hide" : `${otherEntries.length} surfer${otherEntries.length !== 1 ? "s" : ""} waiting`}
+            </button>
+          )}
+        </div>
+
+        {!isOnWaitlist ? (
+          <div className="space-y-2">
+            <p className="text-xs text-foreground/80 leading-relaxed">
+              Not sure where or when? Join the waitlist and get matched when someone plans a trip. No destination or dates needed.
+            </p>
+            <Input
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Optional: what you're looking for (e.g. barrel hunting, chill longboard trip...)"
+              className="text-xs"
+              data-testid="input-waitlist-notes"
+            />
+            <Button
+              onClick={() => joinWaitlist.mutate()}
+              disabled={joinWaitlist.isPending || !user}
+              className="w-full bg-sky-500 text-white font-semibold"
+              data-testid="button-join-waitlist"
+            >
+              {joinWaitlist.isPending ? "Joining..." : "I'm Down!"}
+              <ThumbsUp className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center justify-between gap-2 bg-sky-500/10 dark:bg-sky-500/20 rounded-lg p-2.5">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-sky-500" />
+              <span className="text-xs font-medium text-foreground">You're on the waitlist!</span>
+            </div>
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => leaveWaitlist.mutate()}
+              disabled={leaveWaitlist.isPending}
+              className="text-xs text-muted-foreground"
+              data-testid="button-leave-waitlist"
+            >
+              <X className="w-3.5 h-3.5 mr-1" />
+              Leave
+            </Button>
+          </div>
+        )}
+
+        {expanded && otherEntries.length > 0 && (
+          <div className="space-y-2 pt-2 border-t border-sky-400/20">
+            <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-wide">Surfers ready to go</p>
+            {otherEntries.map((entry: any) => (
+              <div
+                key={entry.id}
+                className="flex items-center gap-2.5 bg-card/60 rounded-lg p-2"
+                data-testid={`waitlist-entry-${entry.id}`}
+              >
+                <Avatar className="w-8 h-8 border border-sky-400/30">
+                  <AvatarImage src={entry.organizer?.profilePhoto} alt={entry.organizer?.displayName || "Surfer"} />
+                  <AvatarFallback className="text-xs bg-sky-100 dark:bg-sky-900 text-sky-800 dark:text-sky-200">
+                    {(entry.organizer?.displayName || "?")[0]}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium truncate">{entry.organizer?.displayName || "Surfer"}</p>
+                  {entry.description && entry.description !== "Down for any surf trip!" && (
+                    <p className="text-[10px] text-muted-foreground truncate">{entry.description}</p>
+                  )}
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="shrink-0 text-xs"
+                  onClick={() => navigate(`/messages?to=${entry.organizerId}`)}
+                  data-testid={`button-message-waitlist-${entry.id}`}
+                >
+                  <MessageCircle className="w-3.5 h-3.5 mr-1" />
+                  Invite
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

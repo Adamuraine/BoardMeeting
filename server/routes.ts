@@ -630,6 +630,70 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/waitlist", async (req, res) => {
+    try {
+      const entries = await storage.getWaitlistEntries();
+      res.json(entries);
+    } catch (err) {
+      console.error("Failed to get waitlist:", err);
+      res.status(500).json({ message: "Failed to get waitlist" });
+    }
+  });
+
+  app.get("/api/waitlist/me", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const entry = await storage.getUserWaitlistEntry(userId);
+      res.json(entry || null);
+    } catch (err) {
+      console.error("Failed to get user waitlist entry:", err);
+      res.status(500).json({ message: "Failed to get user waitlist entry" });
+    }
+  });
+
+  app.post("/api/waitlist", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const existing = await storage.getUserWaitlistEntry(userId);
+      if (existing) {
+        return res.json(existing);
+      }
+      const { notes, waveType, activities } = req.body;
+      const endDate = new Date();
+      endDate.setDate(endDate.getDate() + 90);
+      const trip = await storage.createTrip({
+        organizerId: userId,
+        destination: "Anywhere",
+        startDate: new Date().toISOString().split("T")[0],
+        endDate: endDate.toISOString().split("T")[0],
+        tripType: "waitlist",
+        description: notes || "Down for any surf trip!",
+        cost: 0,
+        waveType: waveType || undefined,
+        activities: activities || undefined,
+        approximateDates: true,
+      });
+      res.json(trip);
+    } catch (err) {
+      console.error("Failed to join waitlist:", err);
+      res.status(500).json({ message: "Failed to join waitlist" });
+    }
+  });
+
+  app.delete("/api/waitlist", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      await storage.removeWaitlistEntry(userId);
+      res.json({ success: true });
+    } catch (err) {
+      console.error("Failed to leave waitlist:", err);
+      res.status(500).json({ message: "Failed to leave waitlist" });
+    }
+  });
+
   app.get("/api/trips/broadcast", async (req, res) => {
     const trips = await storage.getBroadcastTrips();
     res.json(trips);

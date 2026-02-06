@@ -98,6 +98,11 @@ export interface IStorage {
   findSimilarTrips(destination: string, startDate: string, endDate: string, excludeUserId: string): Promise<(Trip & { organizer: Profile })[]>;
   findSimilarRides(destination: string, date: string, excludeUserId: string): Promise<(Trip & { organizer: Profile })[]>;
   
+  // Waitlist
+  getWaitlistEntries(): Promise<(Trip & { organizer: Profile })[]>;
+  getUserWaitlistEntry(userId: string): Promise<Trip | undefined>;
+  removeWaitlistEntry(userId: string): Promise<void>;
+  
   // Trip Participants
   requestToJoinTrip(tripId: number, userId: string): Promise<TripParticipant>;
   getTripParticipants(tripId: number): Promise<(TripParticipant & { profile: Profile })[]>;
@@ -551,6 +556,47 @@ export class DatabaseStorage implements IStorage {
     );
 
     return ridesData.map(({ trip, organizer }) => ({ ...trip, organizer }));
+  }
+
+  async getWaitlistEntries(): Promise<(Trip & { organizer: Profile })[]> {
+    const data = await db.select({
+      trip: trips,
+      organizer: profiles
+    })
+    .from(trips)
+    .innerJoin(profiles, eq(trips.organizerId, profiles.userId))
+    .where(
+      and(
+        sql`${trips.tripType} = 'waitlist'`,
+        sql`${trips.endDate} >= CURRENT_DATE`
+      )
+    )
+    .orderBy(sql`${trips.id} DESC`);
+
+    return data.map(({ trip, organizer }) => ({ ...trip, organizer }));
+  }
+
+  async getUserWaitlistEntry(userId: string): Promise<Trip | undefined> {
+    const [entry] = await db.select()
+      .from(trips)
+      .where(
+        and(
+          eq(trips.organizerId, userId),
+          sql`${trips.tripType} = 'waitlist'`,
+          sql`${trips.endDate} >= CURRENT_DATE`
+        )
+      );
+    return entry;
+  }
+
+  async removeWaitlistEntry(userId: string): Promise<void> {
+    await db.delete(trips)
+      .where(
+        and(
+          eq(trips.organizerId, userId),
+          sql`${trips.tripType} = 'waitlist'`
+        )
+      );
   }
 
   async setPremium(userId: string, status: boolean): Promise<void> {

@@ -1,8 +1,13 @@
 import { useState, useMemo } from "react";
-import { Plane, Home, Car, Anchor, Building2, Users, BedDouble, Hotel, Tent, Castle, ExternalLink, Search } from "lucide-react";
+import { Plane, Home, Car, Anchor, Building2, Users, BedDouble, Hotel, Tent, Castle, ExternalLink, Search, X, MessageCircle, UserPlus, MapPin, Calendar as CalendarIcon, Sparkles } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
+import { useLocation } from "wouter";
 
 interface TripPlannerProps {
   location: string;
@@ -150,7 +155,7 @@ const ACCOMMODATION_TYPES: { id: AccommodationType; label: string; icon: typeof 
 export function TripPlanner({ location, startDate, endDate, className }: TripPlannerProps) {
   const [activeTab, setActiveTab] = useState("flights");
   const [accomType, setAccomType] = useState<AccommodationType>("all");
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   const hasRequiredInfo = location && startDate && endDate;
 
@@ -333,6 +338,121 @@ export function TripPlanner({ location, startDate, endDate, className }: TripPla
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+interface TripMatchPopupProps {
+  destination: string;
+  startDate: string;
+  endDate: string;
+  className?: string;
+}
+
+export function TripMatchPopup({ destination, startDate, endDate, className }: TripMatchPopupProps) {
+  const { user } = useAuth();
+  const [, navigate] = useLocation();
+  const [dismissed, setDismissed] = useState<Set<number>>(new Set());
+
+  const hasInfo = destination && startDate && endDate;
+
+  const queryUrl = hasInfo
+    ? `/api/trips/similar?${new URLSearchParams({ destination, startDate, endDate }).toString()}`
+    : '';
+
+  const { data: matches, isLoading } = useQuery<any[]>({
+    queryKey: [queryUrl],
+    enabled: !!user && !!hasInfo,
+    staleTime: 30000,
+  });
+
+  const visibleMatches = matches?.filter(m => !dismissed.has(m.id)) ?? [];
+
+  if (!hasInfo) return null;
+
+  if (isLoading) {
+    return (
+      <div className={cn("rounded-xl border border-amber-400/30 bg-gradient-to-r from-amber-500/5 to-orange-500/5 p-3", className)}>
+        <div className="flex items-center gap-2">
+          <Sparkles className="w-4 h-4 text-amber-400 animate-pulse" />
+          <span className="text-xs text-muted-foreground">Checking for trip matches...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (visibleMatches.length === 0) return null;
+
+  return (
+    <div className={cn("space-y-2", className)}>
+      {visibleMatches.map((match: any) => (
+        <div
+          key={match.id}
+          className="relative rounded-xl border border-amber-400/50 bg-gradient-to-r from-amber-500/10 to-orange-500/10 dark:from-amber-500/20 dark:to-orange-500/20 p-3 space-y-2"
+          data-testid={`trip-match-popup-${match.id}`}
+        >
+          <button
+            onClick={() => setDismissed(prev => { const next = new Set(Array.from(prev)); next.add(match.id); return next; })}
+            className="absolute top-2 right-2 text-muted-foreground"
+            data-testid={`button-dismiss-match-${match.id}`}
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+
+          <div className="flex items-center gap-1.5">
+            <Sparkles className="w-4 h-4 text-amber-500" />
+            <span className="text-xs font-semibold text-amber-700 dark:text-amber-300">Trip Match Found!</span>
+          </div>
+
+          <div className="flex items-center gap-2.5">
+            <Avatar className="w-9 h-9 border-2 border-amber-400/50">
+              <AvatarImage src={match.organizer?.profilePhoto} alt={match.organizer?.displayName || "User"} />
+              <AvatarFallback className="text-xs bg-amber-100 dark:bg-amber-900 text-amber-800 dark:text-amber-200">
+                {(match.organizer?.displayName || "?")[0]}
+              </AvatarFallback>
+            </Avatar>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">
+                {match.organizer?.displayName || "Surfer"}
+              </p>
+              <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                <MapPin className="w-3 h-3 shrink-0" />
+                <span className="truncate">{match.destination}</span>
+                <span className="shrink-0">·</span>
+                <CalendarIcon className="w-3 h-3 shrink-0" />
+                <span className="shrink-0">{match.startDate} - {match.endDate}</span>
+              </div>
+            </div>
+          </div>
+
+          <p className="text-xs text-foreground/80 leading-relaxed">
+            This user is also going to <span className="font-semibold">{match.destination}</span> around similar dates! Send them an invite or message to jump on their trip.
+          </p>
+
+          <div className="flex gap-2">
+            <Button
+              size="sm"
+              variant="default"
+              className="flex-1 bg-amber-500 text-white border-amber-600"
+              onClick={() => navigate(`/messages?to=${match.organizerId}`)}
+              data-testid={`button-message-match-${match.id}`}
+            >
+              <MessageCircle className="w-3.5 h-3.5 mr-1" />
+              Message
+            </Button>
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1"
+              onClick={() => navigate(`/trips?view=${match.id}`)}
+              data-testid={`button-view-trip-match-${match.id}`}
+            >
+              <UserPlus className="w-3.5 h-3.5 mr-1" />
+              View Trip
+            </Button>
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -94,6 +94,9 @@ export interface IStorage {
   getProfileByStripeCustomerId(customerId: string): Promise<Profile | undefined>;
   updateUserPremiumStatus(userId: string, isPremium: boolean): Promise<void>;
   
+  // Trip Matching
+  findSimilarTrips(destination: string, startDate: string, endDate: string, excludeUserId: string): Promise<(Trip & { organizer: Profile })[]>;
+  
   // Trip Participants
   requestToJoinTrip(tripId: number, userId: string): Promise<TripParticipant>;
   getTripParticipants(tripId: number): Promise<(TripParticipant & { profile: Profile })[]>;
@@ -499,6 +502,32 @@ export class DatabaseStorage implements IStorage {
     .innerJoin(profiles, eq(trips.organizerId, profiles.userId))
     .where(eq(trips.broadcastEnabled, true));
     
+    return tripsData.map(({ trip, organizer }) => ({ ...trip, organizer }));
+  }
+
+  async findSimilarTrips(destination: string, startDate: string, endDate: string, excludeUserId: string): Promise<(Trip & { organizer: Profile })[]> {
+    const destLower = destination.toLowerCase();
+    const tripsData = await db.select({
+      trip: trips,
+      organizer: profiles
+    })
+    .from(trips)
+    .innerJoin(profiles, eq(trips.organizerId, profiles.userId))
+    .where(
+      and(
+        sql`LOWER(${trips.destination}) LIKE ${'%' + destLower + '%'}`,
+        sql`${trips.organizerId} != ${excludeUserId}`,
+        sql`${trips.endDate} >= CURRENT_DATE`,
+        or(
+          and(
+            sql`${trips.startDate} <= ${endDate}`,
+            sql`${trips.endDate} >= ${startDate}`
+          ),
+          sql`ABS(${trips.startDate}::date - ${startDate}::date) <= 14`
+        )
+      )
+    );
+
     return tripsData.map(({ trip, organizer }) => ({ ...trip, organizer }));
   }
 

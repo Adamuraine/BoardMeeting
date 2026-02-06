@@ -589,6 +589,27 @@ export async function registerRoutes(
     res.json(trips);
   });
 
+  app.get("/api/trips/similar", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const { destination, startDate, endDate } = req.query;
+    if (!destination || !startDate || !endDate) {
+      return res.status(400).json({ message: "destination, startDate, and endDate are required" });
+    }
+    try {
+      const similar = await storage.findSimilarTrips(
+        destination as string,
+        startDate as string,
+        endDate as string,
+        userId
+      );
+      res.json(similar);
+    } catch (err) {
+      console.error("Failed to find similar trips:", err);
+      res.status(500).json({ message: "Failed to find similar trips" });
+    }
+  });
+
   app.get("/api/trips/broadcast", async (req, res) => {
     const trips = await storage.getBroadcastTrips();
     res.json(trips);

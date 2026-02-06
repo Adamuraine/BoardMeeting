@@ -25,7 +25,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { type DateRange } from "react-day-picker";
 import treasureMapBg from "@assets/IMG_2639_1767484629952.jpeg";
-import { TripPlanner } from "@/components/TripPlanner";
+import { TripPlanner, TripMatchPopup } from "@/components/TripPlanner";
 
 const LOCATIONS = [
   // California - San Diego County
@@ -613,11 +613,18 @@ export default function Trips() {
               </Button>
 
               {destFilter && destFilter !== "all" && dateRange?.from && dateRange?.to && (
-                <TripPlanner
-                  location={destFilter}
-                  startDate={format(dateRange.from, "yyyy-MM-dd")}
-                  endDate={format(dateRange.to, "yyyy-MM-dd")}
-                />
+                <>
+                  <TripMatchPopup
+                    destination={destFilter}
+                    startDate={format(dateRange.from, "yyyy-MM-dd")}
+                    endDate={format(dateRange.to, "yyyy-MM-dd")}
+                  />
+                  <TripPlanner
+                    location={destFilter}
+                    startDate={format(dateRange.from, "yyyy-MM-dd")}
+                    endDate={format(dateRange.to, "yyyy-MM-dd")}
+                  />
+                </>
               )}
             </div>
 
@@ -1195,11 +1202,18 @@ export default function Trips() {
               </Button>
 
               {visitLocation && visitStartDate && visitEndDate && (
-                <TripPlanner
-                  location={visitLocation}
-                  startDate={visitStartDate}
-                  endDate={visitEndDate}
-                />
+                <>
+                  <TripMatchPopup
+                    destination={visitLocation}
+                    startDate={visitStartDate}
+                    endDate={visitEndDate}
+                  />
+                  <TripPlanner
+                    location={visitLocation}
+                    startDate={visitStartDate}
+                    endDate={visitEndDate}
+                  />
+                </>
               )}
             </div>
 

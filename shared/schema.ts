@@ -36,6 +36,7 @@ export const profiles = pgTable("profiles", {
   messagesNotifications: boolean("messages_notifications").default(false), // Enable notifications for messages
   marketplaceNotifications: boolean("marketplace_notifications").default(false), // Enable notifications for marketplace
   tripsNotifications: boolean("trips_notifications").default(false), // Enable notifications for trips
+  savedSurfSpots: text("saved_surf_spots").array(), // User's saved surf spot names for surf report page
 });
 
 // === SWIPES ===

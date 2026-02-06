@@ -8,7 +8,11 @@ Board Meeting is a social mobile-first web application for surfers to connect wi
 
 Preferred communication style: Simple, everyday language.
 
-## Recent Updates (January 2026)
+## Recent Updates (February 2026)
+- Surf report location preferences now persist to user profile in database (savedSurfSpots field)
+- Marketplace photo upload bug fixed (corrected upload endpoint and object path tracking)
+
+## Updates (January 2026)
 - Integrated Spitcast API for accurate California surf forecasts (matches Surfline data)
 - Massively expanded surf spot database from ~382 to 600+ worldwide locations
 - Added 40+ Hawaii spots across all islands (North Shore, South Shore, Maui, Kauai, Big Island)

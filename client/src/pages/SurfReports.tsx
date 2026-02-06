@@ -2,12 +2,12 @@ import { useLocations, useFavoriteLocations, useToggleFavorite } from "@/hooks/u
 import { Layout } from "@/components/Layout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 import { PremiumModal } from "@/components/PremiumModal";
-import { useMyProfile } from "@/hooks/use-profiles";
+import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
@@ -1182,8 +1182,12 @@ export default function SurfReports() {
   const [showPremiumModal, setShowPremiumModal] = useState(false);
   const { data: profile } = useMyProfile();
   const isPremium = profile?.isPremium;
+  const updateProfile = useUpdateProfile();
+  const hasSyncedFromServer = useRef(false);
+  const userChangedSpots = useRef(false);
+  const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   const [addedSpots, setAddedSpots] = useState<string[]>(() => {
-    // Load saved spots from localStorage on initial render
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem(STORAGE_KEY);
       if (saved) {
@@ -1197,10 +1201,37 @@ export default function SurfReports() {
     return [];
   });
 
-  // Save spots to localStorage whenever they change
   useEffect(() => {
+    if (profile && !hasSyncedFromServer.current) {
+      hasSyncedFromServer.current = true;
+      const serverSpots = (profile.savedSurfSpots || []).filter(Boolean);
+      if (serverSpots.length > 0) {
+        setAddedSpots(serverSpots);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(serverSpots));
+      } else {
+        const localSpots = addedSpots;
+        if (localSpots.length > 0) {
+          updateProfile.mutate({ savedSurfSpots: localSpots });
+        }
+      }
+    }
+  }, [profile]);  // eslint-disable-line react-hooks/exhaustive-deps
+
+  const setAddedSpotsWithSave = useCallback((updater: string[] | ((prev: string[]) => string[])) => {
+    userChangedSpots.current = true;
+    setAddedSpots(updater);
+  }, []);
+
+  useEffect(() => {
+    if (!userChangedSpots.current) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(addedSpots));
-  }, [addedSpots]);
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    saveTimerRef.current = setTimeout(() => {
+      if (profile) {
+        updateProfile.mutate({ savedSurfSpots: addedSpots });
+      }
+    }, 1000);
+  }, [addedSpots]);  // eslint-disable-line react-hooks/exhaustive-deps
 
   const today = new Date();
     
@@ -1209,9 +1240,9 @@ export default function SurfReports() {
   
   const toggleSpot = (spotName: string) => {
     if (addedSpots.includes(spotName)) {
-      setAddedSpots(prev => prev.filter(s => s !== spotName));
+      setAddedSpotsWithSave(prev => prev.filter(s => s !== spotName));
     } else {
-      setAddedSpots(prev => [...prev, spotName]);
+      setAddedSpotsWithSave(prev => [...prev, spotName]);
     }
   };
 
@@ -1303,10 +1334,10 @@ export default function SurfReports() {
                   allSpots={WORLDWIDE_SPOTS}
                   isPremium={isPremium ?? false}
                   onShowPremium={() => setShowPremiumModal(true)}
-                  onRemove={() => setAddedSpots(prev => prev.filter(s => s !== spot.name))}
+                  onRemove={() => setAddedSpotsWithSave(prev => prev.filter(s => s !== spot.name))}
                   onAddSpot={(spotName) => {
                     if (!addedSpots.includes(spotName)) {
-                      setAddedSpots(prev => [...prev, spotName]);
+                      setAddedSpotsWithSave(prev => [...prev, spotName]);
                     }
                   }}
                 />

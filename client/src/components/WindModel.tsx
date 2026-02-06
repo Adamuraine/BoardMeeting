@@ -219,7 +219,7 @@ function DaySelector({
             className="flex items-center px-2 py-1 rounded bg-teal-500/20 text-teal-400 text-[9px] font-medium min-w-[50px] hover:bg-teal-500/30"
             data-testid="button-unlock-forecast"
           >
-            +4 days ($5/mo)
+            +5 days ($5/mo)
           </button>
         )}
       </div>
@@ -246,7 +246,7 @@ export function WindModel({ lat: propLat = 32.55, lng: propLng = -117.39, locati
   const [isPlaying, setIsPlaying] = useState(false);
   
   const isPremium = profile?.isPremium ?? false;
-  const maxDays = isPremium ? 7 : 3;
+  const maxDays = isPremium ? 7 : 2;
   
   const days = useMemo(() => {
     const result: Date[] = [];

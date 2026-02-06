@@ -13,7 +13,7 @@ Preferred communication style: Simple, everyday language.
 - Buddy swipe limit reduced from 10 to 5 per day for free users (unlimited for premium)
 - Added gender and age filters to buddy swipes (premium-only feature)
 - Trip broadcasting prominently labeled as premium-required in create trip dialog and trip itinerary
-- Surf forecast: 3 days free, 7 days for premium (was 14 days), upgrade prompts show $5/mo pricing
+- Surf forecast: 2 days free, 7 days for premium (was 14 days), upgrade prompts show $5/mo pricing
 - Surf report location preferences now persist to user profile in database (savedSurfSpots field)
 - Marketplace photo upload bug fixed (corrected upload endpoint and object path tracking)
 

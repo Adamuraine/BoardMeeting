@@ -640,7 +640,7 @@ async function fetchSurfData(lat: number, lng: number, spotName?: string) {
         if (spitcastResponse.ok) {
           const spitcastData = await spitcastResponse.json();
           if (spitcastData && spitcastData.length > 0) {
-            return spitcastData.map((report: any) => ({
+            const spitcastReports = spitcastData.map((report: any) => ({
               date: report.date,
               waveHeightMin: report.waveHeightMin || 1,
               waveHeightMax: report.waveHeightMax || 2,
@@ -650,6 +650,46 @@ async function fetchSurfData(lat: number, lng: number, spotName?: string) {
               source: 'spitcast',
               spotName: report.spotName,
             }));
+            
+            if (spitcastReports.length >= 7) {
+              return spitcastReports;
+            }
+            
+            try {
+              const meteoFallback = await fetch(
+                `https://marine-api.open-meteo.com/v1/marine?latitude=${lat}&longitude=${lng}&daily=wave_height_max,wave_period_max,wave_direction_dominant&timezone=auto&forecast_days=7`
+              );
+              const meteoData = await meteoFallback.json();
+              if (meteoData.daily) {
+                const spitcastDates = new Set(spitcastReports.map((r: any) => r.date));
+                const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+                const meteoFills = meteoData.daily.time
+                  .map((date: string, i: number) => {
+                    if (spitcastDates.has(date)) return null;
+                    const waveHeightM = meteoData.daily.wave_height_max[i] || 0;
+                    const waveHeightFt = Math.round(waveHeightM * 3.28084);
+                    const period = meteoData.daily.wave_period_max[i] || 0;
+                    const direction = meteoData.daily.wave_direction_dominant[i] || 0;
+                    let rating = 'poor';
+                    if (waveHeightFt >= 6 && period >= 12) rating = 'epic';
+                    else if (waveHeightFt >= 4 && period >= 10) rating = 'good';
+                    else if (waveHeightFt >= 2 && period >= 8) rating = 'fair';
+                    return {
+                      date,
+                      waveHeightMin: Math.max(1, waveHeightFt - 1),
+                      waveHeightMax: waveHeightFt,
+                      rating,
+                      windDirection: directions[Math.round(direction / 45) % 8],
+                      period,
+                      source: 'open-meteo',
+                    };
+                  })
+                  .filter(Boolean);
+                return [...spitcastReports, ...meteoFills].sort((a: any, b: any) => a.date.localeCompare(b.date));
+              }
+            } catch {}
+            
+            return spitcastReports;
           }
         }
       } catch (spitcastError) {
@@ -735,9 +775,9 @@ function SpotCard({ spot, onRemove, onAddSpot, allSpots, isPremium, onShowPremiu
   });
   
   const todayReport = reports?.[0];
-  // Show 3 days for free users, 7 days for premium
-  const forecastDays = isPremium ? 7 : 3;
-  const nextDays = reports?.slice(1, forecastDays + 1) || [];
+  // Show all 7 forecast days, but lock days beyond 2 for free users
+  const freeDays = 2;
+  const allForecastDays = reports?.slice(1, 8) || [];
   
   if (isLoading) {
     return (
@@ -859,20 +899,47 @@ function SpotCard({ spot, onRemove, onAddSpot, allSpots, isPremium, onShowPremiu
         </div>
       </div>
       
-      {/* Forecast strip - 3 days for free, 7 days for premium */}
+      {/* Forecast strip - 2 days free, remaining locked for premium */}
       <div className="bg-card border-x border-b border-border/50 rounded-b-2xl p-3">
-        <div className="flex justify-between gap-2">
-          {nextDays.map((report: { waveHeightMin: number; waveHeightMax: number; rating: string }, idx: number) => (
-            <div key={idx} className="flex-1 text-center">
-              <p className="text-[10px] text-muted-foreground uppercase font-medium mb-1">
-                {format(addDays(today, idx + 1), 'EEE')}
-              </p>
-              <WaveIcon height={report.waveHeightMax || 2} rating={report.rating || 'fair'} />
-              <p className="text-xs font-bold text-foreground mt-1">
-                {report.waveHeightMin}-{report.waveHeightMax}
-              </p>
-            </div>
-          ))}
+        <div className="flex justify-between gap-1">
+          {Array.from({ length: 6 }, (_, idx) => {
+            const report = allForecastDays[idx];
+            const isLocked = !isPremium && idx >= freeDays;
+            
+            return (
+              <div
+                key={idx}
+                className={cn(
+                  "flex-1 text-center relative",
+                  isLocked && "cursor-pointer"
+                )}
+                onClick={isLocked ? (e) => { e.stopPropagation(); onShowPremium(); } : undefined}
+                data-testid={isLocked ? `locked-day-${idx}` : `free-day-${idx}`}
+              >
+                <p className="text-[10px] text-muted-foreground uppercase font-medium mb-1">
+                  {format(addDays(today, idx + 1), 'EEE')}
+                </p>
+                {isLocked ? (
+                  <div className="flex flex-col items-center justify-center opacity-40">
+                    <Lock className="h-4 w-4 text-muted-foreground" />
+                    <p className="text-[10px] text-muted-foreground mt-1">--</p>
+                  </div>
+                ) : report ? (
+                  <>
+                    <WaveIcon height={report.waveHeightMax || 2} rating={report.rating || 'fair'} />
+                    <p className="text-xs font-bold text-foreground mt-1">
+                      {report.waveHeightMin}-{report.waveHeightMax}
+                    </p>
+                  </>
+                ) : (
+                  <div className="flex flex-col items-center justify-center">
+                    <div className="h-4 w-6 bg-muted/30 rounded animate-pulse" />
+                    <p className="text-[10px] text-muted-foreground mt-1">--</p>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
         
         {/* Premium upgrade prompt for free users */}

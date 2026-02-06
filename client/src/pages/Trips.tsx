@@ -406,7 +406,7 @@ export default function Trips() {
               <Plane className="w-4 h-4 mr-1" />
               Trips
             </TabsTrigger>
-            <TabsTrigger value="carpool" className="data-[state=active]:bg-purple-500/80 data-[state=active]:text-white dark:data-[state=active]:bg-purple-500/80 dark:data-[state=active]:text-white" data-testid="tab-carpool">
+            <TabsTrigger value="carpool" className="data-[state=active]:bg-emerald-400/90 data-[state=active]:text-emerald-950 dark:data-[state=active]:bg-emerald-400/80 dark:data-[state=active]:text-emerald-950" data-testid="tab-carpool">
               <span className="flex items-center mr-1 gap-0.5"><ThumbsUp className="w-3.5 h-3.5" /><Car className="w-3.5 h-3.5" /></span>
               Rides
             </TabsTrigger>
@@ -831,8 +831,8 @@ export default function Trips() {
           <TabsContent value="carpool" className="flex-1 space-y-4 mt-0 overflow-y-auto">
             <div className="bg-card/90 backdrop-blur-sm rounded-xl p-3 border border-border/50 space-y-3">
               <div className="flex items-center gap-2 mb-1">
-                <div className="w-8 h-8 rounded-full bg-purple-500/20 flex items-center justify-center">
-                  <Car className="w-4 h-4 text-purple-500" />
+                <div className="w-8 h-8 rounded-full bg-emerald-400/20 flex items-center justify-center">
+                  <Car className="w-4 h-4 text-emerald-500" />
                 </div>
                 <div>
                   <h3 className="font-semibold text-sm">Post a Ride</h3>
@@ -920,7 +920,7 @@ export default function Trips() {
               <Button
                 onClick={handlePostRide}
                 disabled={createTrip.isPending || !rideDestination || !rideDate}
-                className="w-full bg-purple-500 hover:bg-purple-600 text-white font-semibold"
+                className="w-full bg-emerald-400 hover:bg-emerald-500 text-emerald-950 font-semibold"
                 data-testid="button-post-ride"
               >
                 {createTrip.isPending ? "Posting..." : rideOffering ? "Offer Ride" : "Request Ride"}

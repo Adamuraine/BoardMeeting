@@ -143,6 +143,59 @@ export async function registerRoutes(
     res.json(posts);
   });
 
+  app.get("/api/feed", async (req, res) => {
+    try {
+      const [postsData, listingsData, tripsData] = await Promise.all([
+        storage.getPosts(),
+        storage.getMarketplaceListings(),
+        storage.getTrips(),
+      ]);
+
+      const feedItems: any[] = [];
+
+      for (const post of postsData) {
+        feedItems.push({
+          type: "post" as const,
+          id: `post_${post.id}`,
+          createdAt: post.createdAt,
+          data: post,
+        });
+      }
+
+      for (const listing of listingsData) {
+        feedItems.push({
+          type: "listing" as const,
+          id: `listing_${listing.id}`,
+          createdAt: listing.createdAt,
+          data: listing,
+        });
+      }
+
+      for (const trip of tripsData) {
+        feedItems.push({
+          type: "trip" as const,
+          id: `trip_${trip.id}`,
+          createdAt: trip.startDate,
+          data: trip,
+        });
+      }
+
+      feedItems.sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        if (dateA !== dateB) return dateB - dateA;
+        const idA = parseInt(a.id.split("_")[1] || "0");
+        const idB = parseInt(b.id.split("_")[1] || "0");
+        return idB - idA;
+      });
+
+      res.json(feedItems);
+    } catch (err) {
+      console.error("Error fetching feed:", err);
+      res.status(500).json({ message: "Failed to fetch feed" });
+    }
+  });
+
   // === PROFILES ===
   app.get(api.profiles.me.path, async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);

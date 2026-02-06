@@ -42,9 +42,8 @@ function ProtectedRoute({ component: Component, requiresProfile = true }: { comp
 
   if (!user) return <Redirect to="/" />;
   
-  // Send new users to profile page to complete their info (not separate onboarding)
   if (!profile && requiresProfile) {
-    return <Redirect to="/profile" />;
+    return <Redirect to="/home" />;
   }
 
   return (
@@ -59,14 +58,6 @@ function ProtectedRoute({ component: Component, requiresProfile = true }: { comp
 
 // Browsable Route - Allows anonymous access, shows bottom nav
 function BrowsableRoute({ component: Component }: { component: React.ComponentType }) {
-  const { user, isLoading: authLoading } = useAuth();
-  const { data: profile, isLoading: profileLoading } = useMyProfile();
-
-  // If logged in user without profile, redirect to profile page to complete setup
-  if (user && !authLoading && !profileLoading && !profile) {
-    return <Redirect to="/profile" />;
-  }
-
   return (
     <div className="pb-16 min-h-screen bg-background">
       <Suspense fallback={<PageLoader />}>
@@ -84,7 +75,7 @@ function Router() {
     <Switch>
       <Route path="/" component={() => {
         const { user } = useAuth();
-        if (user) return <Redirect to="/profile" />;
+        if (user) return <Redirect to="/home" />;
         return <Landing />;
       }} />
       

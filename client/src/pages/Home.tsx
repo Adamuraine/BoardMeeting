@@ -4,10 +4,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "wouter";
-import { Camera, MapPin, ExternalLink, Loader2, Mail, Calendar, Radio, Waves, Zap, TreePine, PartyPopper, Fish, AlertCircle, X, UserPlus, Plane } from "lucide-react";
+import { Camera, MapPin, ExternalLink, Loader2, Mail, Calendar, Radio, Waves, Zap, TreePine, PartyPopper, Fish, AlertCircle, X, UserPlus, Plane, Tag, DollarSign, ShoppingBag, ArrowRight } from "lucide-react";
 import { ShakaIcon } from "@/components/ShakaIcon";
 import { MessageDialog } from "@/components/MessageDialog";
-import type { PostWithUser, Profile, Trip } from "@shared/schema";
+import type { PostWithUser, Profile, Trip, MarketplaceListing } from "@shared/schema";
 import { SafeImage } from "@/components/SafeImage";
 import { useState, useCallback, useEffect } from "react";
 import { apiRequest, queryClient } from "@/lib/queryClient";
@@ -15,8 +15,19 @@ import { useMyProfile } from "@/hooks/use-profiles";
 import { motion, AnimatePresence } from "framer-motion";
 import { format } from "date-fns";
 
+type PostFeedItem = PostWithUser & { location: { name: string } | null };
+type ListingFeedItem = MarketplaceListing & { seller: Profile };
+type TripFeedItem = Trip & { organizer: Profile };
+
+interface FeedItem {
+  type: "post" | "listing" | "trip";
+  id: string;
+  createdAt: string | Date | null;
+  data: PostFeedItem | ListingFeedItem | TripFeedItem;
+}
+
 interface PostCardProps {
-  post: PostWithUser & { location: { name: string } | null };
+  post: PostFeedItem;
   onMessageClick: (user: Profile) => void;
 }
 
@@ -161,75 +172,151 @@ function PostCard({ post, onMessageClick }: PostCardProps) {
   );
 }
 
-function BroadcastTripCard({ trip }: { trip: Trip & { organizer: Profile } }) {
+function GearListingCard({ listing }: { listing: ListingFeedItem }) {
+  const firstImage = listing.imageUrls?.[0];
+  const priceDisplay = listing.listingType === "free" 
+    ? "FREE" 
+    : listing.price 
+      ? `$${(listing.price / 100).toFixed(0)}` 
+      : "Trade";
+
+  const typeLabel = listing.listingType === "free" ? "Free" : listing.listingType === "trade" ? "Trade" : listing.listingType === "both" ? "Sell/Trade" : "For Sale";
+
+  return (
+    <Link href="/marketplace">
+      <Card className="overflow-hidden hover-elevate cursor-pointer" data-testid={`feed-listing-${listing.id}`}>
+        <div className="flex gap-0">
+          {firstImage && (
+            <div className="w-28 h-28 flex-shrink-0 bg-muted">
+              <img 
+                src={firstImage} 
+                alt={listing.title} 
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            </div>
+          )}
+          <CardContent className="p-3 flex-1 min-w-0 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                  <ShoppingBag className="w-2.5 h-2.5 mr-1" />
+                  Gear
+                </Badge>
+                <Badge variant="outline" className="text-[10px] px-1.5 py-0 capitalize">
+                  {typeLabel}
+                </Badge>
+              </div>
+              <p className="font-semibold text-sm truncate">{listing.title}</p>
+              <p className="text-xs text-muted-foreground truncate capitalize">{listing.condition} · {listing.category}</p>
+            </div>
+            <div className="flex items-center justify-between mt-2">
+              <div className="flex items-center gap-2">
+                <Avatar className="h-5 w-5">
+                  <AvatarImage src={listing.seller.imageUrls?.[0]} />
+                  <AvatarFallback className="text-[8px]">{listing.seller.displayName[0]}</AvatarFallback>
+                </Avatar>
+                <span className="text-[10px] text-muted-foreground">{listing.seller.displayName}</span>
+              </div>
+              <span className="font-bold text-sm text-primary">{priceDisplay}</span>
+            </div>
+          </CardContent>
+        </div>
+      </Card>
+    </Link>
+  );
+}
+
+function TripFeedCard({ trip }: { trip: TripFeedItem }) {
   const preferenceLabels: Record<string, Record<string, string>> = {
-    waveType: { steep: "Steep", mellow: "Mellow" },
+    waveType: { steep: "Steep", mellow: "Mellow", point_break: "Point Break", beach_break: "Beach Break", outer_reef: "Reef", beginner_crumbly: "Beginner", long_performance: "Long Perf" },
     rideStyle: { performance: "Perform", chill: "Chill" },
     locationPreference: { remote: "Remote", town: "Town" },
     vibe: { party: "Party", waterTime: "Water" },
   };
 
   return (
-    <Link href={`/profile/${trip.organizer.userId}`}>
-      <Card className="overflow-hidden hover-elevate cursor-pointer" data-testid={`broadcast-trip-${trip.id}`}>
-        <CardContent className="p-4">
-          <div className="flex items-start gap-3">
-            <Avatar className="h-10 w-10 border border-primary/20">
-              <AvatarImage src={trip.organizer.imageUrls?.[0]} />
-              <AvatarFallback>{trip.organizer.displayName[0]}</AvatarFallback>
-            </Avatar>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2 mb-1">
-                <span className="font-semibold text-sm">{trip.organizer.displayName}</span>
-                <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                  <Radio className="w-2.5 h-2.5 mr-1" />
-                  Broadcasting
-                </Badge>
-              </div>
-              <div className="flex items-center gap-1 text-sm text-muted-foreground mb-2">
-                <MapPin className="w-3 h-3" />
-                <span className="font-medium text-foreground">{trip.destination}</span>
-              </div>
-              <div className="flex items-center gap-2 text-xs text-muted-foreground mb-2">
+    <Link href={`/trips/${trip.id}`}>
+      <Card className="overflow-hidden hover-elevate cursor-pointer" data-testid={`feed-trip-${trip.id}`}>
+        {trip.photos?.[0] && (
+          <div className="relative h-36 bg-muted">
+            <img 
+              src={trip.photos[0]} 
+              alt={trip.destination} 
+              className="w-full h-full object-cover"
+              loading="lazy"
+            />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+            <div className="absolute bottom-3 left-3 right-3">
+              <p className="text-white font-bold text-base">{trip.destination}</p>
+              <p className="text-white/80 text-xs flex items-center gap-1">
                 <Calendar className="w-3 h-3" />
-                <span>
-                  {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d")}
-                </span>
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {(trip.waveType || []).map((val) => (
-                  <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
-                    <Waves className="w-2.5 h-2.5 mr-1" />
-                    {preferenceLabels.waveType[val] || val}
-                  </Badge>
-                ))}
-                {(trip.rideStyle || []).map((val) => (
-                  <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
-                    <Zap className="w-2.5 h-2.5 mr-1" />
-                    {preferenceLabels.rideStyle[val] || val}
-                  </Badge>
-                ))}
-                {(trip.locationPreference || []).map((val) => (
-                  <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
-                    <TreePine className="w-2.5 h-2.5 mr-1" />
-                    {preferenceLabels.locationPreference[val] || val}
-                  </Badge>
-                ))}
-                {(trip.vibe || []).map((val) => (
-                  <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
-                    <PartyPopper className="w-2.5 h-2.5 mr-1" />
-                    {preferenceLabels.vibe[val] || val}
-                  </Badge>
-                ))}
-                {trip.extraActivities?.map(activity => (
-                  <Badge key={activity} variant="outline" className="text-[10px] px-1.5 py-0">
-                    <Fish className="w-2.5 h-2.5 mr-1" />
-                    {activity}
-                  </Badge>
-                ))}
-              </div>
+                {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d")}
+              </p>
             </div>
           </div>
+        )}
+        <CardContent className="p-3">
+          {!trip.photos?.[0] && (
+            <div className="mb-2">
+              <div className="flex items-center gap-1 mb-1">
+                <MapPin className="w-3.5 h-3.5 text-primary" />
+                <span className="font-bold text-sm">{trip.destination}</span>
+              </div>
+              <p className="text-xs text-muted-foreground flex items-center gap-1">
+                <Calendar className="w-3 h-3" />
+                {format(new Date(trip.startDate), "MMM d")} - {format(new Date(trip.endDate), "MMM d")}
+              </p>
+            </div>
+          )}
+          <div className="flex items-center gap-2 mb-2">
+            <Avatar className="h-6 w-6 border border-primary/20">
+              <AvatarImage src={trip.organizer.imageUrls?.[0]} />
+              <AvatarFallback className="text-[9px]">{trip.organizer.displayName[0]}</AvatarFallback>
+            </Avatar>
+            <span className="text-xs font-medium">{trip.organizer.displayName}</span>
+            {trip.broadcastEnabled && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                <Radio className="w-2.5 h-2.5 mr-1" />
+                Looking for Buddies
+              </Badge>
+            )}
+            {trip.isVisiting && (
+              <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
+                <Plane className="w-2.5 h-2.5 mr-1" />
+                Visiting
+              </Badge>
+            )}
+          </div>
+          {trip.description && (
+            <p className="text-xs text-muted-foreground line-clamp-2 mb-2">{trip.description}</p>
+          )}
+          <div className="flex flex-wrap gap-1">
+            {(trip.waveType || []).slice(0, 3).map((val) => (
+              <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
+                <Waves className="w-2.5 h-2.5 mr-1" />
+                {preferenceLabels.waveType[val] || val}
+              </Badge>
+            ))}
+            {(trip.rideStyle || []).slice(0, 2).map((val) => (
+              <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
+                <Zap className="w-2.5 h-2.5 mr-1" />
+                {preferenceLabels.rideStyle[val] || val}
+              </Badge>
+            ))}
+            {(trip.vibe || []).slice(0, 2).map((val) => (
+              <Badge key={val} variant="outline" className="text-[10px] px-1.5 py-0">
+                <PartyPopper className="w-2.5 h-2.5 mr-1" />
+                {preferenceLabels.vibe[val] || val}
+              </Badge>
+            ))}
+          </div>
+          {trip.cost != null && trip.cost > 0 && (
+            <div className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
+              <DollarSign className="w-3 h-3" />
+              <span>~${trip.cost} estimated cost</span>
+            </div>
+          )}
         </CardContent>
       </Card>
     </Link>
@@ -246,14 +333,9 @@ interface AlertItem {
 
 export default function Home() {
   const { data: profile } = useMyProfile();
-  const { data: posts, isLoading } = useQuery<(PostWithUser & { location: { name: string } | null })[]>({
-    queryKey: ["/api/posts"],
+  const { data: feed, isLoading } = useQuery<FeedItem[]>({
+    queryKey: ["/api/feed"],
   });
-  const { data: broadcastTrips } = useQuery<(Trip & { organizer: Profile })[]>({
-    queryKey: ["/api/trips/broadcast"],
-  });
-  
-  // Fetch user's trips to check for pending join requests
   const { data: myTrips } = useQuery<Trip[]>({
     queryKey: ["/api/trips/user"],
     enabled: !!profile,
@@ -264,16 +346,17 @@ export default function Home() {
   const [alerts, setAlerts] = useState<AlertItem[]>([]);
   const [dismissedAlerts, setDismissedAlerts] = useState<Set<string>>(new Set());
 
-  // Build alerts from data
+  const broadcastTrips = feed
+    ?.filter((item): item is FeedItem & { data: TripFeedItem } => item.type === "trip" && (item.data as TripFeedItem).broadcastEnabled === true)
+    .map(item => item.data) || [];
+
   useEffect(() => {
     const newAlerts: AlertItem[] = [];
     
-    // Check for new broadcast trips (trips starting soon or recently added)
-    if (broadcastTrips) {
+    if (broadcastTrips.length > 0) {
       const oneWeekFromNow = Date.now() + 7 * 24 * 60 * 60 * 1000;
       broadcastTrips.forEach(trip => {
         const startDate = new Date(trip.startDate).getTime();
-        // Show alerts for trips starting within a week that aren't the user's own
         if (startDate < oneWeekFromNow && startDate > Date.now() && trip.organizerId !== profile?.userId) {
           newAlerts.push({
             id: `new_trip_${trip.id}`,
@@ -287,9 +370,8 @@ export default function Home() {
     }
     
     setAlerts(newAlerts.filter(a => !dismissedAlerts.has(a.id)));
-  }, [broadcastTrips, profile, dismissedAlerts]);
+  }, [broadcastTrips.length, profile, dismissedAlerts]);
 
-  // Fetch pending participants for my trips
   const { data: pendingRequests } = useQuery<any[]>({
     queryKey: ["/api/trips/my-pending-requests"],
     queryFn: async () => {
@@ -343,7 +425,6 @@ export default function Home() {
         </Link>
       </header>
 
-      {/* Alerts Section */}
       <AnimatePresence>
         {(alerts.length > 0 || (pendingRequests && pendingRequests.length > 0)) && (
           <motion.div 
@@ -352,14 +433,13 @@ export default function Home() {
             exit={{ opacity: 0, height: 0 }}
             className="px-4 pt-4 space-y-2"
           >
-            {/* New Trip Alerts */}
             {alerts.map(alert => (
               <motion.div
                 key={alert.id}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="bg-primary/10 border border-primary/30 rounded-lg p-3 flex items-center gap-3"
+                className="bg-primary/10 border border-primary/30 rounded-md p-3 flex items-center gap-3"
               >
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center flex-shrink-0">
                   <Plane className="w-4 h-4 text-primary" />
@@ -373,7 +453,6 @@ export default function Home() {
                 <Button 
                   size="icon" 
                   variant="ghost" 
-                  className="h-6 w-6"
                   onClick={() => dismissAlert(alert.id)}
                   data-testid={`button-dismiss-alert-${alert.id}`}
                 >
@@ -382,14 +461,13 @@ export default function Home() {
               </motion.div>
             ))}
 
-            {/* Pending Join Request Alerts */}
             {pendingRequests?.map(req => (
               <motion.div
                 key={`join_${req.id}`}
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 20 }}
-                className="bg-amber-500/10 border border-amber-500/30 rounded-lg p-3 flex items-center gap-3"
+                className="bg-amber-500/10 border border-amber-500/30 rounded-md p-3 flex items-center gap-3"
               >
                 <div className="w-8 h-8 rounded-full bg-amber-500/20 flex items-center justify-center flex-shrink-0">
                   <UserPlus className="w-4 h-4 text-amber-600" />
@@ -433,29 +511,40 @@ export default function Home() {
         </Link>
       </div>
 
-      {broadcastTrips && broadcastTrips.length > 0 && (
-        <div className="px-4 pt-4">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-2">
-            <Radio className="w-4 h-4" />
-            Surfers Looking for Buddies
-          </h2>
-          <div className="space-y-3">
-            {broadcastTrips.map((trip) => (
-              <BroadcastTripCard key={trip.id} trip={trip} />
-            ))}
-          </div>
-        </div>
-      )}
-
       <div className="space-y-4 p-4">
-        {posts?.map((post) => (
-          <PostCard key={post.id} post={post} onMessageClick={handleMessageClick} />
-        ))}
+        {feed?.map((item) => {
+          if (item.type === "post") {
+            return (
+              <PostCard 
+                key={item.id} 
+                post={item.data as PostFeedItem} 
+                onMessageClick={handleMessageClick} 
+              />
+            );
+          }
+          if (item.type === "listing") {
+            return (
+              <GearListingCard 
+                key={item.id} 
+                listing={item.data as ListingFeedItem} 
+              />
+            );
+          }
+          if (item.type === "trip") {
+            return (
+              <TripFeedCard 
+                key={item.id} 
+                trip={item.data as TripFeedItem} 
+              />
+            );
+          }
+          return null;
+        })}
 
-        {!posts?.length && (
+        {!feed?.length && (
           <div className="text-center py-20 space-y-4">
             <Camera className="h-12 w-12 text-muted-foreground mx-auto opacity-20" />
-            <p className="text-muted-foreground">No surf photos shared yet.</p>
+            <p className="text-muted-foreground">No activity yet. Be the first to share!</p>
           </div>
         )}
       </div>

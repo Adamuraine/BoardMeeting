@@ -1252,6 +1252,33 @@ const STORAGE_KEY = 'boardmeeting_saved_spots';
 
 const SWELL_DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
 
+const COMPASS_DIRECTIONS = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'] as const;
+
+function directionToCompass(dir: string | number | undefined): string | null {
+  if (dir === undefined || dir === null) return null;
+  if (typeof dir === 'number') {
+    return COMPASS_DIRECTIONS[Math.round(dir / 45) % 8];
+  }
+  const upper = String(dir).toUpperCase();
+  if (COMPASS_DIRECTIONS.includes(upper as any)) return upper;
+  return null;
+}
+
+function getMatchingDays(alert: SurfAlert, forecastDays: any[]): { date: string; waveHeight: number }[] {
+  if (!alert.enabled || !forecastDays?.length) return [];
+  return forecastDays
+    .filter(day => {
+      const maxHeight = day.waveHeightMax || 0;
+      if (maxHeight < (alert.minHeight || 0)) return false;
+      if (alert.swellDirections && alert.swellDirections.length > 0) {
+        const compass = directionToCompass(day.windDirection) || directionToCompass(day.swellDirection);
+        if (!compass || !alert.swellDirections.includes(compass)) return false;
+      }
+      return true;
+    })
+    .map(day => ({ date: day.date, waveHeight: day.waveHeightMax || 0 }));
+}
+
 function SurfAlertsSection({ spots, isPremium, onShowPremium }: { 
   spots: SurfSpot[]; 
   isPremium: boolean; 
@@ -1270,6 +1297,39 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
     enabled: isPremium,
   });
 
+  const enabledAlerts = alerts.filter(a => a.enabled);
+  const spotNamesForAlerts = Array.from(new Set(enabledAlerts.map(a => a.spotName)));
+
+  const { data: forecastsBySpot = {} } = useQuery<Record<string, any[]>>({
+    queryKey: ['surf-alert-forecasts', spotNamesForAlerts.join(',')],
+    enabled: isPremium && spotNamesForAlerts.length > 0,
+    queryFn: async () => {
+      const results: Record<string, any[]> = {};
+      await Promise.all(spotNamesForAlerts.map(async (spotName) => {
+        const spot = spots.find(s => s.name === spotName);
+        if (!spot) return;
+        try {
+          const data = await fetchSurfData(spot.lat, spot.lng, spot.name);
+          if (data) results[spotName] = data;
+        } catch {}
+      }));
+      return results;
+    },
+    staleTime: 1000 * 60 * 30,
+  });
+
+  const calendarBlocks: { date: string; spotName: string; waveHeight: number }[] = [];
+  enabledAlerts.forEach(alert => {
+    if (!alert.autoBlock) return;
+    const forecast = forecastsBySpot[alert.spotName] || [];
+    const matches = getMatchingDays(alert, forecast);
+    matches.forEach(m => {
+      if (!calendarBlocks.find(b => b.date === m.date && b.spotName === alert.spotName)) {
+        calendarBlocks.push({ ...m, spotName: alert.spotName });
+      }
+    });
+  });
+
   const createAlert = useMutation({
     mutationFn: async (data: { spotName: string; spotLat: string; spotLng: string; minHeight: number; swellDirections: string[] | null; autoBlock: boolean }) => {
       const res = await apiRequest("POST", "/api/surf-alerts", data);
@@ -1277,6 +1337,7 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] });
+      qc.invalidateQueries({ queryKey: ['/api/surf-alerts/calendar-blocks'] });
       toast({ title: "Alert created", description: "You'll be notified when conditions match" });
       setShowCreateAlert(false);
       setSelectedSpot("");
@@ -1294,7 +1355,10 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
       const res = await apiRequest("PATCH", `/api/surf-alerts/${id}`, { enabled });
       return res.json();
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] });
+      qc.invalidateQueries({ queryKey: ['/api/surf-alerts/calendar-blocks'] });
+    },
   });
 
   const toggleAutoBlock = useMutation({
@@ -1302,7 +1366,10 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
       const res = await apiRequest("PATCH", `/api/surf-alerts/${id}`, { autoBlock });
       return res.json();
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] });
+      qc.invalidateQueries({ queryKey: ['/api/surf-alerts/calendar-blocks'] });
+    },
   });
 
   const deleteAlert = useMutation({
@@ -1311,6 +1378,7 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] });
+      qc.invalidateQueries({ queryKey: ['/api/surf-alerts/calendar-blocks'] });
       toast({ title: "Alert deleted" });
     },
   });
@@ -1343,23 +1411,27 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-foreground">Surf Alerts & Auto Calendar</h3>
+              <h3 className="font-semibold text-foreground">Premium Surf Features</h3>
               <UiBadge variant="secondary" className="text-xs">
                 <Crown className="h-3 w-3 mr-1" />
-                Premium
+                $5/mo
               </UiBadge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
               Go Premium to add surf alerts and put firing surf days in your calendar so you don't miss another swell!
             </p>
-            <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+            <ul className="text-xs text-muted-foreground mt-2 space-y-1.5">
               <li className="flex items-center gap-1.5">
-                <Bell className="h-3 w-3 text-cyan-500" />
-                Set alerts for minimum wave height & swell direction
+                <TrendingUp className="h-3 w-3 text-cyan-500 flex-shrink-0" />
+                Extended 7-day surf forecast
               </li>
               <li className="flex items-center gap-1.5">
-                <CalendarCheck className="h-3 w-3 text-cyan-500" />
-                Auto-block calendar when surf forecast meets your criteria
+                <Bell className="h-3 w-3 text-cyan-500 flex-shrink-0" />
+                Surf alerts for wave height & swell direction
+              </li>
+              <li className="flex items-center gap-1.5">
+                <CalendarCheck className="h-3 w-3 text-cyan-500 flex-shrink-0" />
+                Auto-block your calendar when epic surf is forecasted
               </li>
             </ul>
             <Button 
@@ -1497,52 +1569,119 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
         </div>
       ) : (
         <div className="space-y-2">
-          {alerts.map(alert => (
-            <div 
-              key={alert.id} 
-              className={cn(
-                "flex items-center gap-3 p-3 rounded-lg border",
-                alert.enabled ? "border-border bg-card" : "border-border/50 bg-muted/30 opacity-60"
-              )}
-              data-testid={`surf-alert-${alert.id}`}
-            >
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-sm text-foreground truncate">{alert.spotName}</span>
-                  <UiBadge variant="secondary" className="text-xs">
-                    {alert.minHeight}+ ft
-                  </UiBadge>
-                  {alert.swellDirections && alert.swellDirections.length > 0 && (
-                    <UiBadge variant="outline" className="text-xs">
-                      {alert.swellDirections.join(", ")}
-                    </UiBadge>
-                  )}
-                  {alert.autoBlock && (
-                    <UiBadge variant="outline" className="text-xs gap-1 border-cyan-500/30 text-cyan-700 dark:text-cyan-400">
-                      <CalendarCheck className="h-3 w-3" />
-                      Auto-block
-                    </UiBadge>
-                  )}
+          {alerts.map(alert => {
+            const forecast = forecastsBySpot[alert.spotName] || [];
+            const matchingDays = alert.enabled ? getMatchingDays(alert, forecast) : [];
+            return (
+              <div 
+                key={alert.id} 
+                className={cn(
+                  "p-3 rounded-lg border",
+                  alert.enabled ? "border-border bg-card" : "border-border/50 bg-muted/30 opacity-60"
+                )}
+                data-testid={`surf-alert-${alert.id}`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="font-medium text-sm text-foreground truncate">{alert.spotName}</span>
+                      <UiBadge variant="secondary" className="text-xs">
+                        {alert.minHeight}+ ft
+                      </UiBadge>
+                      {alert.swellDirections && alert.swellDirections.length > 0 && (
+                        <UiBadge variant="outline" className="text-xs">
+                          {alert.swellDirections.join(", ")}
+                        </UiBadge>
+                      )}
+                      {alert.autoBlock && (
+                        <UiBadge variant="outline" className="text-xs gap-1 border-cyan-500/30 text-cyan-700 dark:text-cyan-400">
+                          <CalendarCheck className="h-3 w-3" />
+                          Auto-calendar
+                        </UiBadge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <Switch
+                      checked={alert.enabled ?? true}
+                      onCheckedChange={(enabled) => toggleAlert.mutate({ id: alert.id, enabled })}
+                      data-testid={`switch-alert-${alert.id}`}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-muted-foreground"
+                      onClick={() => deleteAlert.mutate(alert.id)}
+                      data-testid={`button-delete-alert-${alert.id}`}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
+                {alert.enabled && matchingDays.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-1.5 mb-1.5">
+                      <Waves className="h-3 w-3 text-emerald-500" />
+                      <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                        {matchingDays.length} day{matchingDays.length > 1 ? 's' : ''} firing
+                        {alert.autoBlock ? ' - added to calendar' : ''}
+                      </span>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {matchingDays.map(day => (
+                        <UiBadge 
+                          key={day.date} 
+                          variant="outline" 
+                          className={cn(
+                            "text-xs gap-1",
+                            alert.autoBlock 
+                              ? "border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
+                              : ""
+                          )}
+                          data-testid={`badge-firing-day-${day.date}`}
+                        >
+                          {alert.autoBlock && <CalendarCheck className="h-3 w-3" />}
+                          {format(new Date(day.date + 'T12:00:00'), 'EEE M/d')} - {day.waveHeight}ft
+                        </UiBadge>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="flex items-center gap-1.5 flex-shrink-0">
-                <Switch
-                  checked={alert.enabled ?? true}
-                  onCheckedChange={(enabled) => toggleAlert.mutate({ id: alert.id, enabled })}
-                  data-testid={`switch-alert-${alert.id}`}
-                />
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  className="text-muted-foreground"
-                  onClick={() => deleteAlert.mutate(alert.id)}
-                  data-testid={`button-delete-alert-${alert.id}`}
+            );
+          })}
+        </div>
+      )}
+
+      {calendarBlocks.length > 0 && (
+        <div className="mt-3 pt-3 border-t border-border/50" data-testid="calendar-blocks-summary">
+          <div className="flex items-center gap-2 mb-2">
+            <CalendarCheck className="h-4 w-4 text-emerald-500" />
+            <span className="text-sm font-medium text-foreground">
+              Calendar Auto-Blocked
+            </span>
+            <UiBadge variant="secondary" className="text-xs">
+              {calendarBlocks.length} day{calendarBlocks.length > 1 ? 's' : ''}
+            </UiBadge>
+          </div>
+          <p className="text-xs text-muted-foreground mb-2">
+            These days are blocked in your calendar because the surf is firing!
+          </p>
+          <div className="flex flex-wrap gap-1.5">
+            {calendarBlocks
+              .sort((a, b) => a.date.localeCompare(b.date))
+              .map(block => (
+                <UiBadge 
+                  key={`${block.date}-${block.spotName}`}
+                  variant="outline" 
+                  className="text-xs gap-1 border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
+                  data-testid={`badge-calendar-block-${block.date}`}
                 >
-                  <Trash2 className="h-3.5 w-3.5" />
-                </Button>
-              </div>
-            </div>
-          ))}
+                  <Waves className="h-3 w-3" />
+                  {format(new Date(block.date + 'T12:00:00'), 'EEE M/d')} - {block.spotName} ({block.waveHeight}ft)
+                </UiBadge>
+              ))}
+          </div>
         </div>
       )}
     </Card>

@@ -1417,6 +1417,50 @@ Respond with ONLY a JSON array, no markdown or other text.`;
     }
   });
 
+  app.get("/api/surf-alerts/calendar-blocks", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const profile = await storage.getProfile(userId);
+      if (!profile?.isPremium) return res.json([]);
+      const alerts = await storage.getSurfAlerts(userId);
+      const autoBlockAlerts = alerts.filter(a => a.enabled && a.autoBlock);
+      if (autoBlockAlerts.length === 0) return res.json([]);
+
+      const blockedDays: { date: string; spotName: string; waveHeight: number; alertId: number }[] = [];
+      const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+      await Promise.all(autoBlockAlerts.map(async (alert) => {
+        try {
+          const meteoUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${alert.spotLat}&longitude=${alert.spotLng}&daily=wave_height_max,wave_direction_dominant&timezone=auto&forecast_days=7`;
+          const resp = await fetch(meteoUrl);
+          if (!resp.ok) return;
+          const data = await resp.json();
+          if (!data.daily?.time) return;
+          data.daily.time.forEach((date: string, i: number) => {
+            const waveHeightM = data.daily.wave_height_max[i] || 0;
+            const waveHeightFt = Math.round(waveHeightM * 3.28084);
+            if (waveHeightFt < (alert.minHeight || 0)) return;
+            if (alert.swellDirections && alert.swellDirections.length > 0) {
+              const deg = data.daily.wave_direction_dominant[i] || 0;
+              const idx = Math.round(deg / 45) % 8;
+              const dir = directions[idx];
+              if (!alert.swellDirections.includes(dir)) return;
+            }
+            blockedDays.push({ date, spotName: alert.spotName, waveHeight: waveHeightFt, alertId: alert.id });
+          });
+        } catch (err) {
+          console.error(`Error fetching forecast for alert ${alert.id}:`, err);
+        }
+      }));
+
+      res.json(blockedDays.sort((a, b) => a.date.localeCompare(b.date)));
+    } catch (err) {
+      console.error("Error fetching calendar blocks:", err);
+      res.status(500).json({ message: "Failed to fetch calendar blocks" });
+    }
+  });
+
   // === MARKETPLACE ===
   app.get("/api/marketplace", async (req, res) => {
     try {

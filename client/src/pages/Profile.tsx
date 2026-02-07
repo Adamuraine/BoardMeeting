@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Sparkles, Target } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Sparkles, Target, CalendarCheck, Waves } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -92,6 +92,11 @@ export default function Profile() {
   const { data: myTrips = [] } = useQuery<Trip[]>({
     queryKey: ["/api/trips/user", profile?.userId],
     enabled: !!profile?.userId,
+  });
+
+  const { data: calendarBlocks = [] } = useQuery<{ date: string; spotName: string; waveHeight: number; alertId: number }[]>({
+    queryKey: ['/api/surf-alerts/calendar-blocks'],
+    enabled: !!profile?.isPremium,
   });
 
   const updatePhotosMutation = useMutation({
@@ -1169,6 +1174,32 @@ export default function Profile() {
                       {!profile.scheduleType ? "No availability set. Tap the pencil to add when you can surf!" : "No specific times added yet."}
                     </p>
                   )}
+                </div>
+              )}
+
+              {calendarBlocks.length > 0 && (
+                <div className="mt-4 pt-3 border-t border-border/50" data-testid="profile-calendar-blocks">
+                  <div className="flex items-center gap-2 mb-2">
+                    <CalendarCheck className="h-4 w-4 text-emerald-500" />
+                    <span className="text-sm font-medium text-foreground">Auto-Blocked Surf Days</span>
+                    <Badge variant="secondary" className="text-xs">{calendarBlocks.length}</Badge>
+                  </div>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    These days are blocked because the surf is firing at your alert spots!
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {calendarBlocks.map(block => (
+                      <Badge 
+                        key={`${block.date}-${block.spotName}`}
+                        variant="outline" 
+                        className="text-xs gap-1 border-emerald-500/30 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400"
+                        data-testid={`badge-profile-block-${block.date}`}
+                      >
+                        <Waves className="h-3 w-3" />
+                        {format(new Date(block.date + 'T12:00:00'), 'EEE M/d')} - {block.spotName} ({block.waveHeight}ft)
+                      </Badge>
+                    ))}
+                  </div>
                 </div>
               )}
             </div>

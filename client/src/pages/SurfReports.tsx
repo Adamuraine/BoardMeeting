@@ -1418,7 +1418,7 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
               </UiBadge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Go Premium to add surf alerts and put firing surf days in your calendar so you don't miss another swell!
+              Go Premium to add surf alerts, automatically block your calendar when surf is pumping, and access extended surf forecast!
             </p>
             <ul className="text-xs text-muted-foreground mt-2 space-y-1.5">
               <li className="flex items-center gap-1.5">

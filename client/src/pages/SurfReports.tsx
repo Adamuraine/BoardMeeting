@@ -1493,8 +1493,7 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
       ) : alerts.length === 0 && !showCreateAlert ? (
         <div className="text-center py-6">
           <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">No surf alerts yet</p>
-          <p className="text-xs text-muted-foreground mt-1">Create an alert to track conditions at your favorite spots</p>
+          <p className="text-sm text-muted-foreground">Add surf alerts and put firing surf days in your calendar so you don't miss another swell!</p>
         </div>
       ) : (
         <div className="space-y-2">

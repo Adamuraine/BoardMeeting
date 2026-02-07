@@ -260,6 +260,24 @@ export const insertTripItineraryItemSchema = createInsertSchema(tripItineraryIte
 export type InsertTripItineraryItem = z.infer<typeof insertTripItineraryItemSchema>;
 export type TripItineraryItem = typeof tripItineraryItems.$inferSelect;
 
+// === SURF ALERTS (Premium feature) ===
+export const surfAlerts = pgTable("surf_alerts", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  spotName: text("spot_name").notNull(),
+  spotLat: text("spot_lat").notNull(),
+  spotLng: text("spot_lng").notNull(),
+  minHeight: integer("min_height").notNull(), // minimum wave height in feet
+  swellDirections: text("swell_directions").array(), // N, NE, E, SE, S, SW, W, NW - null means any
+  autoBlock: boolean("auto_block").default(false), // auto-block calendar when conditions met
+  enabled: boolean("enabled").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertSurfAlertSchema = createInsertSchema(surfAlerts).omit({ id: true, createdAt: true });
+export type InsertSurfAlert = z.infer<typeof insertSurfAlertSchema>;
+export type SurfAlert = typeof surfAlerts.$inferSelect;
+
 // Request Types
 export type CreateProfileRequest = InsertProfile;
 export type UpdateProfileRequest = Partial<InsertProfile>;

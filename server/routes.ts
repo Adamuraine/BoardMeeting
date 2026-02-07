@@ -1331,6 +1331,92 @@ Respond with ONLY a JSON array, no markdown or other text.`;
     }
   });
 
+  // === SURF ALERTS (Premium Feature) ===
+  app.get("/api/surf-alerts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const alerts = await storage.getSurfAlerts(userId);
+      res.json(alerts);
+    } catch (err) {
+      console.error("Error fetching surf alerts:", err);
+      res.status(500).json({ message: "Failed to fetch surf alerts" });
+    }
+  });
+
+  app.post("/api/surf-alerts", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const profile = await storage.getProfile(userId);
+    if (!profile?.isPremium) {
+      return res.status(403).json({ message: "Premium subscription required for surf alerts" });
+    }
+    const bodySchema = z.object({
+      spotName: z.string().min(1),
+      spotLat: z.string(),
+      spotLng: z.string(),
+      minHeight: z.number().int().min(1).max(50),
+      swellDirections: z.array(z.enum(["N", "NE", "E", "SE", "S", "SW", "W", "NW"])).nullable().optional(),
+      autoBlock: z.boolean().optional(),
+      enabled: z.boolean().optional(),
+    });
+    const parsed = bodySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid surf alert data", errors: parsed.error.errors });
+    }
+    try {
+      const alert = await storage.createSurfAlert({
+        userId,
+        ...parsed.data,
+        swellDirections: parsed.data.swellDirections || null,
+        autoBlock: parsed.data.autoBlock ?? false,
+        enabled: parsed.data.enabled ?? true,
+      });
+      res.status(201).json(alert);
+    } catch (err) {
+      console.error("Error creating surf alert:", err);
+      res.status(500).json({ message: "Failed to create surf alert" });
+    }
+  });
+
+  app.patch("/api/surf-alerts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const alertId = parseInt(req.params.id);
+    if (isNaN(alertId)) return res.status(400).json({ message: "Invalid alert ID" });
+    const updateSchema = z.object({
+      minHeight: z.number().int().min(1).max(50).optional(),
+      swellDirections: z.array(z.enum(["N", "NE", "E", "SE", "S", "SW", "W", "NW"])).nullable().optional(),
+      autoBlock: z.boolean().optional(),
+      enabled: z.boolean().optional(),
+    });
+    const parsed = updateSchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ message: "Invalid update data", errors: parsed.error.errors });
+    }
+    try {
+      const updated = await storage.updateSurfAlert(alertId, userId, parsed.data);
+      res.json(updated);
+    } catch (err) {
+      console.error("Error updating surf alert:", err);
+      res.status(500).json({ message: "Failed to update surf alert" });
+    }
+  });
+
+  app.delete("/api/surf-alerts/:id", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const alertId = parseInt(req.params.id);
+    if (isNaN(alertId)) return res.status(400).json({ message: "Invalid alert ID" });
+    try {
+      await storage.deleteSurfAlert(alertId, userId);
+      res.sendStatus(200);
+    } catch (err) {
+      console.error("Error deleting surf alert:", err);
+      res.status(500).json({ message: "Failed to delete surf alert" });
+    }
+  });
+
   // === MARKETPLACE ===
   app.get("/api/marketplace", async (req, res) => {
     try {

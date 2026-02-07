@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants, marketplaceListings, groupMessages, tripItineraryItems,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants, marketplaceListings, groupMessages, tripItineraryItems, surfAlerts,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport, type InsertSurfReport,
@@ -14,6 +14,7 @@ import {
   type TripParticipant, type InsertTripParticipant,
   type MarketplaceListing, type InsertMarketplaceListing,
   type TripItineraryItem, type InsertTripItineraryItem,
+  type SurfAlert, type InsertSurfAlert,
   users
 } from "@shared/schema";
 import { eq, and, desc, sql, notInArray, inArray, or } from "drizzle-orm";
@@ -129,6 +130,12 @@ export interface IStorage {
   createTripItineraryItem(item: InsertTripItineraryItem): Promise<TripItineraryItem>;
   updateTripItineraryItem(id: number, userId: string, updates: Partial<InsertTripItineraryItem>): Promise<TripItineraryItem>;
   deleteTripItineraryItem(id: number, userId: string): Promise<void>;
+
+  // Surf Alerts
+  getSurfAlerts(userId: string): Promise<SurfAlert[]>;
+  createSurfAlert(alert: InsertSurfAlert): Promise<SurfAlert>;
+  updateSurfAlert(id: number, userId: string, updates: Partial<InsertSurfAlert>): Promise<SurfAlert>;
+  deleteSurfAlert(id: number, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1363,6 +1370,29 @@ export class DatabaseStorage implements IStorage {
   async deleteTripItineraryItem(id: number, userId: string): Promise<void> {
     await db.delete(tripItineraryItems)
       .where(and(eq(tripItineraryItems.id, id), eq(tripItineraryItems.userId, userId)));
+  }
+
+  async getSurfAlerts(userId: string): Promise<SurfAlert[]> {
+    return db.select().from(surfAlerts).where(eq(surfAlerts.userId, userId)).orderBy(desc(surfAlerts.createdAt));
+  }
+
+  async createSurfAlert(alert: InsertSurfAlert): Promise<SurfAlert> {
+    const [created] = await db.insert(surfAlerts).values(alert).returning();
+    return created;
+  }
+
+  async updateSurfAlert(id: number, userId: string, updates: Partial<InsertSurfAlert>): Promise<SurfAlert> {
+    const [updated] = await db.update(surfAlerts)
+      .set(updates)
+      .where(and(eq(surfAlerts.id, id), eq(surfAlerts.userId, userId)))
+      .returning();
+    if (!updated) throw new Error("Surf alert not found or unauthorized");
+    return updated;
+  }
+
+  async deleteSurfAlert(id: number, userId: string): Promise<void> {
+    await db.delete(surfAlerts)
+      .where(and(eq(surfAlerts.id, id), eq(surfAlerts.userId, userId)));
   }
 }
 

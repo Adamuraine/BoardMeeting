@@ -3,13 +3,19 @@ import { Layout } from "@/components/Layout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check, Activity } from "lucide-react";
+import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check, Activity, Bell, BellRing, Trash2, CalendarCheck, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useMyProfile, useUpdateProfile } from "@/hooks/use-profiles";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { apiRequest } from "@/lib/queryClient";
+import { Badge as UiBadge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import type { SurfAlert } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 import { Link } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -1244,6 +1250,306 @@ function SpotPicker({
 
 const STORAGE_KEY = 'boardmeeting_saved_spots';
 
+const SWELL_DIRECTIONS = ["N", "NE", "E", "SE", "S", "SW", "W", "NW"] as const;
+
+function SurfAlertsSection({ spots, isPremium, onShowPremium }: { 
+  spots: SurfSpot[]; 
+  isPremium: boolean; 
+  onShowPremium: () => void;
+}) {
+  const { toast } = useToast();
+  const qc = useQueryClient();
+  const [showCreateAlert, setShowCreateAlert] = useState(false);
+  const [selectedSpot, setSelectedSpot] = useState<string>("");
+  const [minHeight, setMinHeight] = useState(3);
+  const [selectedDirections, setSelectedDirections] = useState<string[]>([]);
+  const [autoBlock, setAutoBlock] = useState(false);
+
+  const { data: alerts = [], isLoading } = useQuery<SurfAlert[]>({
+    queryKey: ['/api/surf-alerts'],
+    enabled: isPremium,
+  });
+
+  const createAlert = useMutation({
+    mutationFn: async (data: { spotName: string; spotLat: string; spotLng: string; minHeight: number; swellDirections: string[] | null; autoBlock: boolean }) => {
+      const res = await apiRequest("POST", "/api/surf-alerts", data);
+      return res.json();
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] });
+      toast({ title: "Alert created", description: "You'll be notified when conditions match" });
+      setShowCreateAlert(false);
+      setSelectedSpot("");
+      setMinHeight(3);
+      setSelectedDirections([]);
+      setAutoBlock(false);
+    },
+    onError: () => {
+      toast({ title: "Failed to create alert", variant: "destructive" });
+    },
+  });
+
+  const toggleAlert = useMutation({
+    mutationFn: async ({ id, enabled }: { id: number; enabled: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/surf-alerts/${id}`, { enabled });
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] }),
+  });
+
+  const toggleAutoBlock = useMutation({
+    mutationFn: async ({ id, autoBlock }: { id: number; autoBlock: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/surf-alerts/${id}`, { autoBlock });
+      return res.json();
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] }),
+  });
+
+  const deleteAlert = useMutation({
+    mutationFn: async (id: number) => {
+      await apiRequest("DELETE", `/api/surf-alerts/${id}`);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['/api/surf-alerts'] });
+      toast({ title: "Alert deleted" });
+    },
+  });
+
+  const handleCreateAlert = () => {
+    const spot = spots.find(s => s.name === selectedSpot);
+    if (!spot) return;
+    createAlert.mutate({
+      spotName: spot.name,
+      spotLat: String(spot.lat),
+      spotLng: String(spot.lng),
+      minHeight,
+      swellDirections: selectedDirections.length > 0 ? selectedDirections : null,
+      autoBlock,
+    });
+  };
+
+  const toggleDirection = (dir: string) => {
+    setSelectedDirections(prev => 
+      prev.includes(dir) ? prev.filter(d => d !== dir) : [...prev, dir]
+    );
+  };
+
+  if (!isPremium) {
+    return (
+      <Card className="p-4" data-testid="surf-alerts-premium-upsell">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
+            <BellRing className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h3 className="font-semibold text-foreground">Surf Alerts & Auto Calendar</h3>
+              <UiBadge variant="secondary" className="text-xs">
+                <Crown className="h-3 w-3 mr-1" />
+                Premium
+              </UiBadge>
+            </div>
+            <p className="text-sm text-muted-foreground mt-1">
+              Get notified when waves hit your target size. Auto-block your calendar when the surf is firing.
+            </p>
+            <ul className="text-xs text-muted-foreground mt-2 space-y-1">
+              <li className="flex items-center gap-1.5">
+                <Bell className="h-3 w-3 text-cyan-500" />
+                Set alerts for minimum wave height & swell direction
+              </li>
+              <li className="flex items-center gap-1.5">
+                <CalendarCheck className="h-3 w-3 text-cyan-500" />
+                Auto-block calendar when surf forecast meets your criteria
+              </li>
+            </ul>
+            <Button 
+              size="sm" 
+              className="mt-3 gap-1.5"
+              onClick={onShowPremium}
+              data-testid="button-upgrade-surf-alerts"
+            >
+              <Crown className="h-3.5 w-3.5" />
+              Upgrade - $5/mo
+            </Button>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="p-4" data-testid="surf-alerts-section">
+      <div className="flex items-center justify-between gap-2 mb-3">
+        <div className="flex items-center gap-2">
+          <BellRing className="h-5 w-5 text-cyan-600 dark:text-cyan-400" />
+          <h3 className="font-semibold text-foreground">Surf Alerts</h3>
+          {alerts.length > 0 && (
+            <UiBadge variant="secondary" className="text-xs">{alerts.length}</UiBadge>
+          )}
+        </div>
+        <Button 
+          size="sm" 
+          variant="outline"
+          className="gap-1.5 rounded-full"
+          onClick={() => setShowCreateAlert(!showCreateAlert)}
+          data-testid="button-create-surf-alert"
+        >
+          <Plus className="h-3.5 w-3.5" />
+          New Alert
+        </Button>
+      </div>
+
+      {showCreateAlert && (
+        <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30 space-y-3" data-testid="surf-alert-create-form">
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Spot</label>
+            <Select value={selectedSpot} onValueChange={setSelectedSpot}>
+              <SelectTrigger data-testid="select-alert-spot">
+                <SelectValue placeholder="Select a surf spot" />
+              </SelectTrigger>
+              <SelectContent>
+                {spots.map(s => (
+                  <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Minimum Wave Height (ft)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="range"
+                min={1}
+                max={25}
+                value={minHeight}
+                onChange={(e) => setMinHeight(parseInt(e.target.value))}
+                className="flex-1 accent-cyan-500"
+                data-testid="input-min-height"
+              />
+              <span className="text-sm font-bold text-foreground w-10 text-center">{minHeight} ft</span>
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground mb-1 block">Swell Direction (optional)</label>
+            <div className="flex flex-wrap gap-1.5">
+              {SWELL_DIRECTIONS.map(dir => (
+                <Button
+                  key={dir}
+                  size="sm"
+                  variant={selectedDirections.includes(dir) ? "default" : "outline"}
+                  className="text-xs rounded-full"
+                  onClick={() => toggleDirection(dir)}
+                  data-testid={`button-direction-${dir}`}
+                >
+                  {dir}
+                </Button>
+              ))}
+            </div>
+            {selectedDirections.length === 0 && (
+              <p className="text-xs text-muted-foreground mt-1">No filter = any direction</p>
+            )}
+          </div>
+
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <CalendarCheck className="h-4 w-4 text-muted-foreground" />
+              <label className="text-sm text-foreground">Auto-block calendar</label>
+            </div>
+            <Switch
+              checked={autoBlock}
+              onCheckedChange={setAutoBlock}
+              data-testid="switch-auto-block"
+            />
+          </div>
+          {autoBlock && (
+            <p className="text-xs text-muted-foreground -mt-1 ml-6">
+              Your availability calendar will show "Surfing" when forecast meets your criteria
+            </p>
+          )}
+
+          <div className="flex gap-2 pt-1">
+            <Button 
+              size="sm" 
+              onClick={handleCreateAlert} 
+              disabled={!selectedSpot || createAlert.isPending}
+              className="gap-1.5"
+              data-testid="button-save-alert"
+            >
+              <Bell className="h-3.5 w-3.5" />
+              {createAlert.isPending ? "Creating..." : "Create Alert"}
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => setShowCreateAlert(false)} data-testid="button-cancel-alert">Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {isLoading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-14 w-full" />
+          <Skeleton className="h-14 w-full" />
+        </div>
+      ) : alerts.length === 0 && !showCreateAlert ? (
+        <div className="text-center py-6">
+          <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+          <p className="text-sm text-muted-foreground">No surf alerts yet</p>
+          <p className="text-xs text-muted-foreground mt-1">Create an alert to track conditions at your favorite spots</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {alerts.map(alert => (
+            <div 
+              key={alert.id} 
+              className={cn(
+                "flex items-center gap-3 p-3 rounded-lg border",
+                alert.enabled ? "border-border bg-card" : "border-border/50 bg-muted/30 opacity-60"
+              )}
+              data-testid={`surf-alert-${alert.id}`}
+            >
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-sm text-foreground truncate">{alert.spotName}</span>
+                  <UiBadge variant="secondary" className="text-xs">
+                    {alert.minHeight}+ ft
+                  </UiBadge>
+                  {alert.swellDirections && alert.swellDirections.length > 0 && (
+                    <UiBadge variant="outline" className="text-xs">
+                      {alert.swellDirections.join(", ")}
+                    </UiBadge>
+                  )}
+                  {alert.autoBlock && (
+                    <UiBadge variant="outline" className="text-xs gap-1 border-cyan-500/30 text-cyan-700 dark:text-cyan-400">
+                      <CalendarCheck className="h-3 w-3" />
+                      Auto-block
+                    </UiBadge>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-1.5 flex-shrink-0">
+                <Switch
+                  checked={alert.enabled ?? true}
+                  onCheckedChange={(enabled) => toggleAlert.mutate({ id: alert.id, enabled })}
+                  data-testid={`switch-alert-${alert.id}`}
+                />
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="text-muted-foreground"
+                  onClick={() => deleteAlert.mutate(alert.id)}
+                  data-testid={`button-delete-alert-${alert.id}`}
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function SurfReports() {
   const [selectedLocation, setSelectedLocation] = useState<any>(null);
   const [showAddSpots, setShowAddSpots] = useState(false);
@@ -1403,21 +1709,28 @@ export default function SurfReports() {
                 </Button>
               </div>
             ) : (
-              userSpots.map((spot) => (
-                <SpotCard 
-                  key={spot.name}
-                  spot={spot}
-                  allSpots={WORLDWIDE_SPOTS}
-                  isPremium={isPremium ?? false}
-                  onShowPremium={() => setShowPremiumModal(true)}
-                  onRemove={() => setAddedSpotsWithSave(prev => prev.filter(s => s !== spot.name))}
-                  onAddSpot={(spotName) => {
-                    if (!addedSpots.includes(spotName)) {
-                      setAddedSpotsWithSave(prev => [...prev, spotName]);
-                    }
-                  }}
+              <>
+                {userSpots.map((spot) => (
+                  <SpotCard 
+                    key={spot.name}
+                    spot={spot}
+                    allSpots={WORLDWIDE_SPOTS}
+                    isPremium={isPremium ?? false}
+                    onShowPremium={() => setShowPremiumModal(true)}
+                    onRemove={() => setAddedSpotsWithSave(prev => prev.filter(s => s !== spot.name))}
+                    onAddSpot={(spotName) => {
+                      if (!addedSpots.includes(spotName)) {
+                        setAddedSpotsWithSave(prev => [...prev, spotName]);
+                      }
+                    }}
+                  />
+                ))}
+                <SurfAlertsSection 
+                  spots={userSpots} 
+                  isPremium={isPremium ?? false} 
+                  onShowPremium={() => setShowPremiumModal(true)} 
                 />
-              ))
+              </>
             )}
           </main>
         ) : activeTab === "wind" ? (

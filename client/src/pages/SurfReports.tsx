@@ -1413,14 +1413,14 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
           </div>
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 className="font-semibold text-foreground">Premium Surf Features</h3>
+              <h3 className="font-semibold text-foreground"><span className="bg-amber-200/60 dark:bg-amber-700/40 px-1.5 py-0.5 rounded">Premium</span> Surf Features</h3>
               <UiBadge variant="secondary" className="text-xs">
                 <Crown className="h-3 w-3 mr-1" />
                 $5/mo
               </UiBadge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Go Premium to add surf alerts, automatically block your calendar when surf is pumping, and access extended surf forecast!
+              Go <span className="bg-amber-200/60 dark:bg-amber-700/40 px-1 py-0.5 rounded font-medium text-foreground">Premium</span> to add surf alerts, automatically block your calendar when surf is pumping, and access extended surf forecast!
             </p>
             <ul className="text-xs text-muted-foreground mt-2 space-y-1.5">
               <li className="flex items-center gap-1.5">
@@ -1591,7 +1591,7 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
       ) : alerts.length === 0 && !showCreateAlert ? (
         <div className="text-center py-6">
           <Bell className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
-          <p className="text-sm text-muted-foreground">Go Premium to add surf alerts, automatically block your calendar when surf is pumping, and access extended surf forecast!</p>
+          <p className="text-sm text-muted-foreground">Go <span className="bg-amber-200/60 dark:bg-amber-700/40 px-1 py-0.5 rounded font-medium text-foreground">Premium</span> to add surf alerts, automatically block your calendar when surf is pumping, and access extended surf forecast!</p>
         </div>
       ) : (
         <div className="space-y-2">
@@ -2039,7 +2039,7 @@ function LocationDetail({ location, open, onOpenChange }: { location: any, open:
                         {isLocked ? (
                           <div className="flex items-center text-muted-foreground text-sm">
                             <Lock className="w-4 h-4 mr-2" />
-                            Premium Only
+                            <span className="bg-amber-200/60 dark:bg-amber-700/40 px-1 py-0.5 rounded font-medium">Premium</span> Only
                           </div>
                         ) : (
                           <div className="flex items-center gap-4">

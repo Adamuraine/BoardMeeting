@@ -9,8 +9,9 @@ Board Meeting is a social mobile-first web application for surfers to connect wi
 Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (February 2026)
-- Surf Alerts (Premium): Users can create alerts per spot with minimum wave height and swell direction filters, toggle on/off, and auto-block calendar when conditions match
+- Surf Alerts (Premium-only): Users can create alerts per spot with minimum wave height and swell direction filters, toggle on/off, and auto-block calendar when conditions match. Server enforces premium check on creation. All 600+ worldwide spots available via searchable dropdown.
 - Auto Calendar Block (Premium): When enabled on a surf alert, user's availability calendar auto-blocks when forecast meets their criteria; shows blocked days in both surf report page and profile page
+- Calendar Export (.ics): "Add to Apple / Google Calendar" button downloads .ics file with surf day events; available on both Surf Report and Profile pages
 - Surf Alerts & Auto Calendar advertised on surf report page with premium upsell for free users ($5/mo pricing)
 - AI-powered surf guide and photographer finder: uses OpenAI to generate location-specific recommendations with search/social links
 - Trip checklist: Mexico-specific links (immigration docs, FMM permit, CBX Cross Border, Volaris, VivaAerobus, Aeromexico) auto-show for Mexico trips

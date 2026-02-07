@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Sparkles, Target, CalendarCheck, Waves } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Sparkles, Target, CalendarCheck, Waves, Download } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -1200,6 +1200,18 @@ export default function Profile() {
                       </Badge>
                     ))}
                   </div>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="mt-3 gap-1.5"
+                    onClick={() => {
+                      window.open("/api/surf-alerts/calendar.ics", "_blank");
+                    }}
+                    data-testid="button-profile-add-to-calendar"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Add to Apple / Google Calendar
+                  </Button>
                 </div>
               )}
             </div>

@@ -1461,6 +1461,65 @@ Respond with ONLY a JSON array, no markdown or other text.`;
     }
   });
 
+  app.get("/api/surf-alerts/calendar.ics", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    try {
+      const profile = await storage.getProfile(userId);
+      if (!profile?.isPremium) return res.status(403).json({ message: "Premium required" });
+      const alerts = await storage.getSurfAlerts(userId);
+      const autoBlockAlerts = alerts.filter(a => a.enabled && a.autoBlock);
+      if (autoBlockAlerts.length === 0) {
+        res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+        res.setHeader("Content-Disposition", 'attachment; filename="surf-days.ics"');
+        return res.send("BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Board Meeting//Surf Alerts//EN\r\nEND:VCALENDAR\r\n");
+      }
+
+      const events: string[] = [];
+      const directions = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+
+      await Promise.all(autoBlockAlerts.map(async (alert) => {
+        try {
+          const meteoUrl = `https://marine-api.open-meteo.com/v1/marine?latitude=${alert.spotLat}&longitude=${alert.spotLng}&daily=wave_height_max,wave_direction_dominant&timezone=auto&forecast_days=7`;
+          const resp = await fetch(meteoUrl);
+          if (!resp.ok) return;
+          const data = await resp.json();
+          if (!data.daily?.time) return;
+          data.daily.time.forEach((date: string, i: number) => {
+            const waveHeightM = data.daily.wave_height_max[i] || 0;
+            const waveHeightFt = Math.round(waveHeightM * 3.28084);
+            if (waveHeightFt < (alert.minHeight || 0)) return;
+            if (alert.swellDirections && alert.swellDirections.length > 0) {
+              const deg = data.daily.wave_direction_dominant[i] || 0;
+              const idx = Math.round(deg / 45) % 8;
+              const dir = directions[idx];
+              if (!alert.swellDirections.includes(dir)) return;
+            }
+            const dateStr = date.replace(/-/g, '');
+            const uid = `surf-${alert.id}-${date}@boardmeeting`;
+            const [y, m, d] = date.split('-').map(Number);
+            const nextDate = new Date(Date.UTC(y, m - 1, d + 1));
+            const endStr = nextDate.toISOString().split('T')[0].replace(/-/g, '');
+            const spotEscaped = alert.spotName.replace(/[,;\\]/g, (c) => '\\' + c);
+            events.push(
+              `BEGIN:VEVENT\r\nUID:${uid}\r\nDTSTAMP:${new Date().toISOString().replace(/[-:]/g, '').split('.')[0]}Z\r\nDTSTART;VALUE=DATE:${dateStr}\r\nDTEND;VALUE=DATE:${endStr}\r\nSUMMARY:Surf Day - ${spotEscaped} (${waveHeightFt}ft)\r\nDESCRIPTION:Waves ${waveHeightFt}ft+ at ${spotEscaped}. Conditions meet your surf alert criteria!\r\nEND:VEVENT`
+            );
+          });
+        } catch (err) {
+          console.error(`Error fetching forecast for alert ${alert.id}:`, err);
+        }
+      }));
+
+      const ics = `BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//Board Meeting//Surf Alerts//EN\r\nCALSCALE:GREGORIAN\r\nMETHOD:PUBLISH\r\nX-WR-CALNAME:Board Meeting Surf Days\r\n${events.join("\r\n")}\r\nEND:VCALENDAR\r\n`;
+      res.setHeader("Content-Type", "text/calendar; charset=utf-8");
+      res.setHeader("Content-Disposition", 'attachment; filename="surf-days.ics"');
+      res.send(ics);
+    } catch (err) {
+      console.error("Error generating calendar file:", err);
+      res.status(500).json({ message: "Failed to generate calendar file" });
+    }
+  });
+
   // === MARKETPLACE ===
   app.get("/api/marketplace", async (req, res) => {
     try {

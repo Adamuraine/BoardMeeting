@@ -3,7 +3,7 @@ import { Layout } from "@/components/Layout";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useState, useEffect, useRef, useCallback } from "react";
-import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check, Activity, Bell, BellRing, Trash2, CalendarCheck, Crown } from "lucide-react";
+import { MapPin, Wind, TrendingUp, Lock, Calendar, Camera, ExternalLink, Search, Plus, Star, Waves, Compass, Thermometer, X, ChevronDown, Globe, Check, Activity, Bell, BellRing, Trash2, CalendarCheck, Crown, Download } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, addDays } from "date-fns";
 import { PremiumModal } from "@/components/PremiumModal";
@@ -1291,6 +1291,7 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
   const [minHeight, setMinHeight] = useState(3);
   const [selectedDirections, setSelectedDirections] = useState<string[]>([]);
   const [autoBlock, setAutoBlock] = useState(false);
+  const [spotSearch, setSpotSearch] = useState("");
 
   const { data: alerts = [], isLoading } = useQuery<SurfAlert[]>({
     queryKey: ['/api/surf-alerts'],
@@ -1341,6 +1342,7 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
       toast({ title: "Alert created", description: "You'll be notified when conditions match" });
       setShowCreateAlert(false);
       setSelectedSpot("");
+      setSpotSearch("");
       setMinHeight(3);
       setSelectedDirections([]);
       setAutoBlock(false);
@@ -1475,16 +1477,40 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
         <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30 space-y-3" data-testid="surf-alert-create-form">
           <div>
             <label className="text-xs font-medium text-muted-foreground mb-1 block">Spot</label>
-            <Select value={selectedSpot} onValueChange={setSelectedSpot}>
-              <SelectTrigger data-testid="select-alert-spot">
-                <SelectValue placeholder="Select a surf spot" />
-              </SelectTrigger>
-              <SelectContent>
-                {spots.map(s => (
-                  <SelectItem key={s.name} value={s.name}>{s.name}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <input
+              type="text"
+              placeholder="Search surf spots..."
+              value={selectedSpot || spotSearch}
+              onChange={(e) => {
+                setSpotSearch(e.target.value);
+                setSelectedSpot("");
+              }}
+              onFocus={() => { if (selectedSpot) { setSpotSearch(selectedSpot); setSelectedSpot(""); } }}
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              data-testid="input-alert-spot-search"
+            />
+            {spotSearch && !selectedSpot && (
+              <div className="mt-1 max-h-40 overflow-y-auto rounded-md border border-border bg-popover shadow-md">
+                {spots
+                  .filter(s => s.name.toLowerCase().includes(spotSearch.toLowerCase()))
+                  .slice(0, 50)
+                  .map(s => (
+                    <button
+                      key={s.name}
+                      type="button"
+                      className="w-full text-left px-3 py-2 text-sm hover-elevate cursor-pointer"
+                      onClick={() => { setSelectedSpot(s.name); setSpotSearch(""); }}
+                      data-testid={`option-spot-${s.name}`}
+                    >
+                      {s.name}
+                      <span className="text-xs text-muted-foreground ml-2">{s.state}, {s.country}</span>
+                    </button>
+                  ))}
+                {spots.filter(s => s.name.toLowerCase().includes(spotSearch.toLowerCase())).length === 0 && (
+                  <p className="px-3 py-2 text-sm text-muted-foreground">No spots found</p>
+                )}
+              </div>
+            )}
           </div>
 
           <div>
@@ -1682,6 +1708,18 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
                 </UiBadge>
               ))}
           </div>
+          <Button
+            size="sm"
+            variant="outline"
+            className="mt-3 gap-1.5"
+            onClick={() => {
+              window.open("/api/surf-alerts/calendar.ics", "_blank");
+            }}
+            data-testid="button-add-to-calendar"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Add to Apple / Google Calendar
+          </Button>
         </div>
       )}
     </Card>
@@ -1864,7 +1902,7 @@ export default function SurfReports() {
                   />
                 ))}
                 <SurfAlertsSection 
-                  spots={userSpots} 
+                  spots={WORLDWIDE_SPOTS} 
                   isPremium={isPremium ?? false} 
                   onShowPremium={() => setShowPremiumModal(true)} 
                 />

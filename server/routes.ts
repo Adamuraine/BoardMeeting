@@ -994,6 +994,81 @@ export async function registerRoutes(
     res.status(201).json(message);
   });
 
+  // === TRIP ITINERARY ITEMS ===
+
+  app.get("/api/trips/:id/itinerary", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
+
+    const isMember = await storage.isUserInTrip(tripId, userId);
+    if (!isMember) return res.status(403).json({ message: "Only trip participants can view the itinerary" });
+
+    const items = await storage.getTripItineraryItems(tripId);
+    res.json(items);
+  });
+
+  app.post("/api/trips/:id/itinerary", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    if (isNaN(tripId)) return res.sendStatus(400);
+
+    const isMember = await storage.isUserInTrip(tripId, userId);
+    if (!isMember) return res.status(403).json({ message: "Only trip participants can add itinerary items" });
+
+    const { category, title, details, date, time, referenceNumber, bookingUrl, notes, isBooked } = req.body;
+    if (!category || !title) return res.status(400).json({ message: "Category and title are required" });
+
+    const item = await storage.createTripItineraryItem({
+      tripId,
+      userId,
+      category,
+      title,
+      details: details || null,
+      date: date || null,
+      time: time || null,
+      referenceNumber: referenceNumber || null,
+      bookingUrl: bookingUrl || null,
+      notes: notes || null,
+      isBooked: isBooked || false,
+    });
+    res.status(201).json(item);
+  });
+
+  app.patch("/api/trips/:id/itinerary/:itemId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    const itemId = parseInt(req.params.itemId);
+    if (isNaN(tripId) || isNaN(itemId)) return res.sendStatus(400);
+
+    const isMember = await storage.isUserInTrip(tripId, userId);
+    if (!isMember) return res.status(403).json({ message: "Only trip participants can edit itinerary items" });
+
+    try {
+      const updated = await storage.updateTripItineraryItem(itemId, userId, req.body);
+      res.json(updated);
+    } catch (err) {
+      res.status(404).json({ message: "Item not found or you can only edit your own items" });
+    }
+  });
+
+  app.delete("/api/trips/:id/itinerary/:itemId", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const userId = getUserId(req);
+    const tripId = parseInt(req.params.id);
+    const itemId = parseInt(req.params.itemId);
+    if (isNaN(tripId) || isNaN(itemId)) return res.sendStatus(400);
+
+    const isMember = await storage.isUserInTrip(tripId, userId);
+    if (!isMember) return res.status(403).json({ message: "Only trip participants can delete itinerary items" });
+
+    await storage.deleteTripItineraryItem(itemId, userId);
+    res.json({ success: true });
+  });
+
   // === SETTINGS & ACCOUNT MANAGEMENT ===
   
   // Clear all chat history for user

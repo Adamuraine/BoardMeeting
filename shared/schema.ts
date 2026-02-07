@@ -238,6 +238,27 @@ export type InsertFeedback = z.infer<typeof insertFeedbackSchema>;
 export type MarketplaceListing = typeof marketplaceListings.$inferSelect;
 export type InsertMarketplaceListing = z.infer<typeof insertMarketplaceListingSchema>;
 
+// === TRIP ITINERARY ITEMS (Checklist for trip coordination) ===
+export const tripItineraryItems = pgTable("trip_itinerary_items", {
+  id: serial("id").primaryKey(),
+  tripId: integer("trip_id").notNull().references(() => trips.id),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  category: text("category").notNull(), // flights, car_rental, accommodation, chef, surfboards, photographer, guide, other
+  title: text("title").notNull(),
+  details: text("details"),
+  date: text("date"),
+  time: text("time"),
+  referenceNumber: text("reference_number"),
+  bookingUrl: text("booking_url"),
+  notes: text("notes"),
+  isBooked: boolean("is_booked").default(false),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertTripItineraryItemSchema = createInsertSchema(tripItineraryItems).omit({ id: true, createdAt: true });
+export type InsertTripItineraryItem = z.infer<typeof insertTripItineraryItemSchema>;
+export type TripItineraryItem = typeof tripItineraryItems.$inferSelect;
+
 // Request Types
 export type CreateProfileRequest = InsertProfile;
 export type UpdateProfileRequest = Partial<InsertProfile>;

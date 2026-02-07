@@ -9,6 +9,8 @@ Board Meeting is a social mobile-first web application for surfers to connect wi
 Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (February 2026)
+- Trip Itinerary Checklist: 8 categories (flights, car rental, house/hostel, chef, surfboards, photographer, guide, other) with booking links, inline details (date, time, reference number), only visible to trip participants
+- New user onboarding: first login redirects to Profile, any edit marks as registered, subsequent logins go to Home
 - Premium features now clearly labeled with $5/mo pricing everywhere they appear
 - Buddy swipe limit reduced from 10 to 5 per day for free users (unlimited for premium)
 - Added gender and age filters to buddy swipes (premium-only feature)

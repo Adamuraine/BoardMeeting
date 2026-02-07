@@ -1,6 +1,6 @@
 import { db } from "./db";
 import { 
-  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants, marketplaceListings, groupMessages,
+  profiles, swipes, locations, surfReports, trips, posts, favoriteSpots, postLikes, messages, feedback, tripParticipants, marketplaceListings, groupMessages, tripItineraryItems,
   type Profile, type InsertProfile, type UpdateProfileRequest,
   type Swipe, type InsertSwipe,
   type Location, type SurfReport, type InsertSurfReport,
@@ -13,6 +13,7 @@ import {
   type Feedback,
   type TripParticipant, type InsertTripParticipant,
   type MarketplaceListing, type InsertMarketplaceListing,
+  type TripItineraryItem, type InsertTripItineraryItem,
   users
 } from "@shared/schema";
 import { eq, and, desc, sql, notInArray, inArray, or } from "drizzle-orm";
@@ -122,6 +123,12 @@ export interface IStorage {
   createMarketplaceListing(listing: InsertMarketplaceListing): Promise<MarketplaceListing>;
   updateMarketplaceListing(id: number, userId: string, updates: Partial<InsertMarketplaceListing>): Promise<MarketplaceListing>;
   deleteMarketplaceListing(id: number, userId: string): Promise<void>;
+
+  // Trip Itinerary Items
+  getTripItineraryItems(tripId: number): Promise<(TripItineraryItem & { user: Profile })[]>;
+  createTripItineraryItem(item: InsertTripItineraryItem): Promise<TripItineraryItem>;
+  updateTripItineraryItem(id: number, userId: string, updates: Partial<InsertTripItineraryItem>): Promise<TripItineraryItem>;
+  deleteTripItineraryItem(id: number, userId: string): Promise<void>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -1325,6 +1332,37 @@ export class DatabaseStorage implements IStorage {
     });
     
     return results;
+  }
+
+  async getTripItineraryItems(tripId: number): Promise<(TripItineraryItem & { user: Profile })[]> {
+    const rows = await db.select({
+      item: tripItineraryItems,
+      user: profiles,
+    })
+    .from(tripItineraryItems)
+    .innerJoin(profiles, eq(tripItineraryItems.userId, profiles.userId))
+    .where(eq(tripItineraryItems.tripId, tripId))
+    .orderBy(desc(tripItineraryItems.createdAt));
+    return rows.map(r => ({ ...r.item, user: r.user }));
+  }
+
+  async createTripItineraryItem(item: InsertTripItineraryItem): Promise<TripItineraryItem> {
+    const [created] = await db.insert(tripItineraryItems).values(item).returning();
+    return created;
+  }
+
+  async updateTripItineraryItem(id: number, userId: string, updates: Partial<InsertTripItineraryItem>): Promise<TripItineraryItem> {
+    const [updated] = await db.update(tripItineraryItems)
+      .set(updates)
+      .where(and(eq(tripItineraryItems.id, id), eq(tripItineraryItems.userId, userId)))
+      .returning();
+    if (!updated) throw new Error("Itinerary item not found or unauthorized");
+    return updated;
+  }
+
+  async deleteTripItineraryItem(id: number, userId: string): Promise<void> {
+    await db.delete(tripItineraryItems)
+      .where(and(eq(tripItineraryItems.id, id), eq(tripItineraryItems.userId, userId)));
   }
 }
 

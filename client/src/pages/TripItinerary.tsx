@@ -7,10 +7,11 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus, UserPlus, Check, XCircle, Clock, MessageCircle } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus, UserPlus, Check, XCircle, Clock, MessageCircle, Plane, Compass, ChevronDown, ChevronRight, Plus, ExternalLink, Trash2, MoreHorizontal, Square, CheckSquare } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,17 @@ const ACTIVITY_OPTIONS = [
   { id: "spearfishing", label: "Spear", icon: Fish },
 ];
 
+const ITINERARY_CATEGORIES = [
+  { id: "flights", label: "Flights", icon: Plane },
+  { id: "car_rental", label: "Car Rental", icon: Car },
+  { id: "accommodation", label: "House/Hostel", icon: Home },
+  { id: "chef", label: "Chef", icon: UtensilsCrossed },
+  { id: "surfboards", label: "Surfboards", icon: Waves },
+  { id: "photographer", label: "Surf Photographer", icon: Camera },
+  { id: "guide", label: "Surf Guide", icon: Compass },
+  { id: "other", label: "Other", icon: MoreHorizontal },
+];
+
 export default function TripItinerary({ params }: TripItineraryProps) {
   const tripId = params?.id;
   const [, setLocation] = useLocation();
@@ -78,6 +90,11 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   const boardRentalRef = useRef<HTMLInputElement>(null);
   const airfareRef = useRef<HTMLInputElement>(null);
   const photographerRef = useRef<HTMLInputElement>(null);
+
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
+  const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
+  const [addItemCategory, setAddItemCategory] = useState("");
+  const [newItemData, setNewItemData] = useState({ title: "", details: "", date: "", time: "", referenceNumber: "", bookingUrl: "", notes: "" });
 
   const { data: trip, isLoading } = useQuery<Trip & { organizer: Profile }>({
     queryKey: ["/api/trips", tripId],
@@ -106,6 +123,16 @@ export default function TripItinerary({ params }: TripItineraryProps) {
     queryFn: async () => {
       const res = await fetch(`/api/trips/${tripId}/my-status`, { credentials: "include" });
       if (!res.ok) return null;
+      return res.json();
+    },
+    enabled: !!tripId && !!profile,
+  });
+
+  const { data: itineraryItems = [] } = useQuery<any[]>({
+    queryKey: ["/api/trips", tripId, "itinerary"],
+    queryFn: async () => {
+      const res = await fetch(`/api/trips/${tripId}/itinerary`, { credentials: "include" });
+      if (!res.ok) return [];
       return res.json();
     },
     enabled: !!tripId && !!profile,
@@ -220,6 +247,119 @@ export default function TripItinerary({ params }: TripItineraryProps) {
 
   const toggleBroadcast = (enabled: boolean) => {
     updateTripMutation.mutate({ broadcastEnabled: enabled });
+  };
+
+  const addItineraryItemMutation = useMutation({
+    mutationFn: async (data: any) => {
+      const res = await apiRequest("POST", `/api/trips/${tripId}/itinerary`, data);
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
+      setAddItemDialogOpen(false);
+      setNewItemData({ title: "", details: "", date: "", time: "", referenceNumber: "", bookingUrl: "", notes: "" });
+      setAddItemCategory("");
+      toast({ title: "Item added", description: "Checklist item has been added." });
+    },
+  });
+
+  const toggleItineraryBookedMutation = useMutation({
+    mutationFn: async ({ itemId, isBooked }: { itemId: number; isBooked: boolean }) => {
+      const res = await apiRequest("PATCH", `/api/trips/${tripId}/itinerary/${itemId}`, { isBooked });
+      return res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
+    },
+  });
+
+  const deleteItineraryItemMutation = useMutation({
+    mutationFn: async (itemId: number) => {
+      await apiRequest("DELETE", `/api/trips/${tripId}/itinerary/${itemId}`);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/trips", tripId, "itinerary"] });
+      toast({ title: "Item removed", description: "Checklist item has been removed." });
+    },
+  });
+
+  const toggleCategory = (catId: string) => {
+    setExpandedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId);
+      else next.add(catId);
+      return next;
+    });
+  };
+
+  const openAddItemDialog = (categoryId: string) => {
+    setAddItemCategory(categoryId);
+    setNewItemData({ title: "", details: "", date: "", time: "", referenceNumber: "", bookingUrl: "", notes: "" });
+    setAddItemDialogOpen(true);
+  };
+
+  const submitNewItem = () => {
+    if (!newItemData.title.trim()) return;
+    addItineraryItemMutation.mutate({
+      category: addItemCategory,
+      title: newItemData.title.trim(),
+      details: newItemData.details.trim() || undefined,
+      date: newItemData.date || undefined,
+      time: newItemData.time || undefined,
+      referenceNumber: newItemData.referenceNumber.trim() || undefined,
+      bookingUrl: newItemData.bookingUrl.trim() || undefined,
+      notes: newItemData.notes.trim() || undefined,
+    });
+  };
+
+  const getBookingLinks = (categoryId: string) => {
+    const dest = trip?.destination || "";
+    const sd = trip?.startDate || "";
+    const ed = trip?.endDate || "";
+    if (!dest) return [];
+    const loc = encodeURIComponent(dest);
+    const skySd = sd.replace(/-/g, "");
+    const skyEd = ed.replace(/-/g, "");
+    switch (categoryId) {
+      case "flights":
+        return [
+          { name: "Google Flights", url: `https://www.google.com/travel/flights?q=flights+to+${loc}&d1=${sd}&d2=${ed}` },
+          { name: "Skyscanner", url: `https://www.skyscanner.com/transport/flights/anywhere/${loc}/${skySd}/${skyEd}/` },
+          { name: "Kayak", url: `https://www.kayak.com/flights?search=1&destination=${loc}&depart=${sd}&return=${ed}` },
+        ];
+      case "car_rental":
+        return [
+          { name: "Turo", url: `https://turo.com/search?location=${loc}&startDate=${sd}&endDate=${ed}` },
+          { name: "Rental Cars", url: `https://www.rentalcars.com/search-results?location=${loc}&pick-up=${sd}&drop-off=${ed}` },
+          { name: "Kayak Cars", url: `https://www.kayak.com/cars/${loc}/${sd}/${ed}` },
+        ];
+      case "accommodation":
+        return [
+          { name: "Airbnb", url: `https://www.airbnb.com/s/${loc}/homes?checkin=${sd}&checkout=${ed}&query=${loc}` },
+          { name: "Booking.com", url: `https://www.booking.com/searchresults.html?ss=${loc}&checkin=${sd}&checkout=${ed}` },
+          { name: "Hostelworld", url: `https://www.hostelworld.com/st/hostels/${loc}/?DateRange=${sd},${ed}` },
+        ];
+      case "guide":
+        return [
+          { name: "Google Search", url: `https://www.google.com/search?q=surf+guide+${loc}+lessons+tours` },
+          { name: "TripAdvisor", url: `https://www.tripadvisor.com/Search?q=surf+guide+${loc}` },
+          { name: "GetYourGuide", url: `https://www.getyourguide.com/s/?q=surf+${loc}` },
+        ];
+      case "chef":
+        return [
+          { name: "Google Search", url: `https://www.google.com/search?q=private+chef+${loc}` },
+        ];
+      case "surfboards":
+        return [
+          { name: "Google Search", url: `https://www.google.com/search?q=surfboard+rental+${loc}` },
+        ];
+      case "photographer":
+        return [
+          { name: "Google Search", url: `https://www.google.com/search?q=surf+photographer+${loc}` },
+        ];
+      default:
+        return [];
+    }
   };
 
   if (isLoading) {
@@ -585,6 +725,161 @@ export default function TripItinerary({ params }: TripItineraryProps) {
               )}
             </CardContent>
           </Card>
+
+          {(isOrganizer || myJoinStatus?.status === "approved") && (
+            <Card className="mb-6" data-testid="card-itinerary-checklist">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <CheckSquare className="w-5 h-5 text-primary" />
+                  Trip Checklist
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-1">
+                {ITINERARY_CATEGORIES.map((cat) => {
+                  const catItems = (itineraryItems || []).filter((item: any) => item.category === cat.id);
+                  const bookedCount = catItems.filter((item: any) => item.isBooked).length;
+                  const isExpanded = expandedCategories.has(cat.id);
+                  const CatIcon = cat.icon;
+                  const bookingLinks = getBookingLinks(cat.id);
+
+                  return (
+                    <div key={cat.id} className="border rounded-lg" data-testid={`itinerary-category-${cat.id}`}>
+                      <button
+                        onClick={() => toggleCategory(cat.id)}
+                        className="w-full flex items-center justify-between gap-2 p-3 hover-elevate rounded-lg"
+                        data-testid={`button-toggle-category-${cat.id}`}
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <CatIcon className="w-4 h-4 text-muted-foreground" />
+                          <span className="text-sm font-medium">{cat.label}</span>
+                          {catItems.length > 0 && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {bookedCount}/{catItems.length}
+                            </Badge>
+                          )}
+                        </div>
+                        {isExpanded ? (
+                          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                        ) : (
+                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                        )}
+                      </button>
+
+                      {isExpanded && (
+                        <div className="px-3 pb-3 space-y-2">
+                          {catItems.map((item: any) => (
+                            <div key={item.id} className="flex items-start gap-2 bg-secondary/30 rounded-lg p-2.5" data-testid={`itinerary-item-${item.id}`}>
+                              <button
+                                onClick={() => toggleItineraryBookedMutation.mutate({ itemId: item.id, isBooked: !item.isBooked })}
+                                className="mt-0.5 shrink-0"
+                                data-testid={`button-toggle-booked-${item.id}`}
+                              >
+                                {item.isBooked ? (
+                                  <CheckSquare className="w-5 h-5 text-green-500" />
+                                ) : (
+                                  <Square className="w-5 h-5 text-muted-foreground" />
+                                )}
+                              </button>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center gap-2 mb-1">
+                                  <Avatar className="w-5 h-5">
+                                    <AvatarImage src={item.user?.imageUrls?.[0]} />
+                                    <AvatarFallback className="text-[8px]">{item.user?.displayName?.[0]}</AvatarFallback>
+                                  </Avatar>
+                                  <span className="text-xs text-muted-foreground truncate">{item.user?.displayName}</span>
+                                </div>
+                                <p className={cn("text-sm font-medium", item.isBooked && "line-through text-muted-foreground")} data-testid={`text-item-title-${item.id}`}>
+                                  {item.title}
+                                </p>
+                                {item.details && (
+                                  <p className="text-xs text-muted-foreground mt-0.5">{item.details}</p>
+                                )}
+                                <div className="flex flex-wrap gap-2 mt-1">
+                                  {item.date && (
+                                    <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5">
+                                      <Calendar className="w-3 h-3" />{item.date}
+                                    </span>
+                                  )}
+                                  {item.time && (
+                                    <span className="text-[10px] text-muted-foreground inline-flex items-center gap-0.5">
+                                      <Clock className="w-3 h-3" />{item.time}
+                                    </span>
+                                  )}
+                                  {item.referenceNumber && (
+                                    <span className="text-[10px] text-muted-foreground" data-testid={`text-ref-${item.id}`}>
+                                      Ref: {item.referenceNumber}
+                                    </span>
+                                  )}
+                                </div>
+                                {item.notes && (
+                                  <p className="text-xs text-muted-foreground/70 mt-1 italic">{item.notes}</p>
+                                )}
+                                {item.bookingUrl && (
+                                  <a
+                                    href={item.bookingUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-xs text-primary inline-flex items-center gap-1 mt-1"
+                                    data-testid={`link-booking-${item.id}`}
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    Booking Link
+                                  </a>
+                                )}
+                              </div>
+                              {profile?.userId === item.userId && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  onClick={() => deleteItineraryItemMutation.mutate(item.id)}
+                                  disabled={deleteItineraryItemMutation.isPending}
+                                  data-testid={`button-delete-item-${item.id}`}
+                                >
+                                  <Trash2 className="w-4 h-4 text-destructive" />
+                                </Button>
+                              )}
+                            </div>
+                          ))}
+
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full"
+                            onClick={() => openAddItemDialog(cat.id)}
+                            data-testid={`button-add-item-${cat.id}`}
+                          >
+                            <Plus className="w-4 h-4 mr-1" />
+                            Add {cat.label}
+                          </Button>
+
+                          {bookingLinks.length > 0 && (
+                            <div className="rounded-lg bg-gradient-to-r from-indigo-500/10 to-purple-500/10 dark:from-indigo-500/20 dark:to-purple-500/20 p-2.5 space-y-1.5">
+                              <p className="text-[10px] text-muted-foreground font-medium">Quick Search</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {bookingLinks.map((link) => (
+                                  <a
+                                    key={link.name}
+                                    href={link.url}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-background/80 text-[11px] font-medium hover-elevate"
+                                    data-testid={`link-booking-${cat.id}-${link.name.toLowerCase().replace(/[\s.]/g, "-")}`}
+                                  >
+                                    <ExternalLink className="w-3 h-3" />
+                                    {link.name}
+                                  </a>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </CardContent>
+            </Card>
+          )}
 
           <div className="space-y-6">
             <Card>
@@ -983,6 +1278,95 @@ export default function TripItinerary({ params }: TripItineraryProps) {
           </div>
         </div>
       </div>
+
+      {/* Add Itinerary Item Dialog */}
+      <Dialog open={addItemDialogOpen} onOpenChange={setAddItemDialogOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Plus className="w-5 h-5 text-primary" />
+              Add {ITINERARY_CATEGORIES.find(c => c.id === addItemCategory)?.label || "Item"}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Title</Label>
+              <Input
+                value={newItemData.title}
+                onChange={(e) => setNewItemData(prev => ({ ...prev, title: e.target.value }))}
+                placeholder="e.g., Flight to Bali"
+                data-testid="input-item-title"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Details</Label>
+              <Input
+                value={newItemData.details}
+                onChange={(e) => setNewItemData(prev => ({ ...prev, details: e.target.value }))}
+                placeholder="e.g., United Airlines UA123"
+                data-testid="input-item-details"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Date</Label>
+                <Input
+                  type="date"
+                  value={newItemData.date}
+                  onChange={(e) => setNewItemData(prev => ({ ...prev, date: e.target.value }))}
+                  data-testid="input-item-date"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Time</Label>
+                <Input
+                  type="time"
+                  value={newItemData.time}
+                  onChange={(e) => setNewItemData(prev => ({ ...prev, time: e.target.value }))}
+                  data-testid="input-item-time"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Reference Number</Label>
+              <Input
+                value={newItemData.referenceNumber}
+                onChange={(e) => setNewItemData(prev => ({ ...prev, referenceNumber: e.target.value }))}
+                placeholder="e.g., CONF-12345"
+                data-testid="input-item-reference"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Booking URL</Label>
+              <Input
+                value={newItemData.bookingUrl}
+                onChange={(e) => setNewItemData(prev => ({ ...prev, bookingUrl: e.target.value }))}
+                placeholder="https://..."
+                data-testid="input-item-booking-url"
+              />
+            </div>
+            <div className="space-y-1">
+              <Label className="text-xs text-muted-foreground">Notes</Label>
+              <Textarea
+                value={newItemData.notes}
+                onChange={(e) => setNewItemData(prev => ({ ...prev, notes: e.target.value }))}
+                placeholder="Any additional notes..."
+                className="resize-none"
+                rows={2}
+                data-testid="input-item-notes"
+              />
+            </div>
+            <Button
+              onClick={submitNewItem}
+              disabled={!newItemData.title.trim() || addItineraryItemMutation.isPending}
+              className="w-full"
+              data-testid="button-submit-item"
+            >
+              {addItineraryItemMutation.isPending ? "Adding..." : "Add Item"}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Edit Expenses Dialog */}
       <Dialog open={expenseDialogOpen} onOpenChange={setExpenseDialogOpen}>

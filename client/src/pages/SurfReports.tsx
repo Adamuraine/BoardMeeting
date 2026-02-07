@@ -1350,7 +1350,7 @@ function SurfAlertsSection({ spots, isPremium, onShowPremium }: {
               </UiBadge>
             </div>
             <p className="text-sm text-muted-foreground mt-1">
-              Get notified when waves hit your target size. Auto-block your calendar when the surf is firing.
+              Go Premium to add surf alerts and put firing surf days in your calendar so you don't miss another swell!
             </p>
             <ul className="text-xs text-muted-foreground mt-2 space-y-1">
               <li className="flex items-center gap-1.5">

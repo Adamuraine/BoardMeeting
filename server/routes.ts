@@ -13,6 +13,7 @@ import { eq, or, desc } from "drizzle-orm";
 import { messages } from "@shared/schema";
 import { fetchStormglassForecast } from "./stormglassService";
 import { getSpitcastForecastByCoords, getSpitcastForecastByName, getSpitcastSpots } from "./spitcastService";
+import OpenAI from "openai";
 
 // Track API usage to stay within 50 requests/day limit
 let dailyRequestCount = 0;
@@ -1237,6 +1238,77 @@ export async function registerRoutes(
     } catch (err) {
       console.error("Error deleting account:", err);
       res.status(500).json({ message: "Failed to delete account" });
+    }
+  });
+
+  // === AI SURF FINDER ===
+  app.post("/api/ai/find-surf-services", async (req, res) => {
+    if (!req.isAuthenticated()) return res.sendStatus(401);
+    const { location, category } = req.body;
+    if (!location || !category) {
+      return res.status(400).json({ message: "Location and category are required" });
+    }
+    if (!["guide", "photographer"].includes(category)) {
+      return res.status(400).json({ message: "Category must be 'guide' or 'photographer'" });
+    }
+    try {
+      const openai = new OpenAI({
+        apiKey: process.env.AI_INTEGRATIONS_OPENAI_API_KEY,
+        baseURL: process.env.AI_INTEGRATIONS_OPENAI_BASE_URL,
+      });
+
+      const categoryLabel = category === "guide" ? "surf guide" : "surf photographer";
+      const prompt = `You are an expert surf travel assistant. Find real ${categoryLabel}s in or near "${location}".
+
+For each recommendation, provide:
+- name: Their business or personal name
+- description: A brief description of their services (1-2 sentences)
+- searchUrl: A Google search URL to find them (use their name + location)
+- socialMedia: An Instagram search URL or hashtag URL to find them
+- specialty: What makes them stand out (e.g., "Specializes in big wave photography" or "Local reef breaks expert")
+
+Return exactly 5 recommendations as a JSON array. Focus on:
+${category === "guide" ? `- Local surf instructors and guides who know the breaks
+- Surf camps and schools in the area
+- Independent guides with local knowledge
+- Tour operators offering surf-specific trips
+- Community-recommended surf mentors` : `- Professional surf photographers known in the area
+- Water photographers who shoot from the lineup
+- Drone surf photographers
+- Social media surf content creators covering the area
+- Freelance photographers available for surf sessions`}
+
+Important: Use real-sounding names appropriate for the location. Include both established businesses and independent operators.
+Respond with ONLY a JSON array, no markdown or other text.`;
+
+      const response = await openai.chat.completions.create({
+        model: "gpt-5-nano",
+        messages: [{ role: "user", content: prompt }],
+        max_completion_tokens: 2048,
+      });
+
+      const content = response.choices[0]?.message?.content || "[]";
+      let recommendations: Array<{ name: string; description: string; searchUrl: string; socialMedia: string; specialty: string }> = [];
+      try {
+        const cleaned = content.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+        const parsed = JSON.parse(cleaned);
+        const recommendationSchema = z.array(z.object({
+          name: z.string(),
+          description: z.string(),
+          searchUrl: z.string(),
+          socialMedia: z.string(),
+          specialty: z.string(),
+        }));
+        const validated = recommendationSchema.safeParse(parsed);
+        recommendations = validated.success ? validated.data : [];
+      } catch {
+        recommendations = [];
+      }
+
+      res.json({ recommendations, location, category });
+    } catch (err) {
+      console.error("AI surf finder error:", err);
+      res.status(500).json({ message: "Failed to find recommendations" });
     }
   });
 

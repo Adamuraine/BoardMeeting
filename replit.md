@@ -9,6 +9,9 @@ Board Meeting is a social mobile-first web application for surfers to connect wi
 Preferred communication style: Simple, everyday language.
 
 ## Recent Updates (February 2026)
+- AI-powered surf guide and photographer finder: uses OpenAI to generate location-specific recommendations with search/social links
+- Trip checklist: Mexico-specific links (immigration docs, FMM permit, CBX Cross Border, Volaris, VivaAerobus, Aeromexico) auto-show for Mexico trips
+- Trip checklist: Social media (Instagram, Facebook) and surf forum (Reddit, Surfline) search links for guides and photographers
 - Trip Itinerary Checklist: 8 categories (flights, car rental, house/hostel, chef, surfboards, photographer, guide, other) with booking links, inline details (date, time, reference number), only visible to trip participants
 - New user onboarding: first login redirects to Profile, any edit marks as registered, subsequent logins go to Home
 - Premium features now clearly labeled with $5/mo pricing everywhere they appear

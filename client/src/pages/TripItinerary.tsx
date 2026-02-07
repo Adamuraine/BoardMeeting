@@ -11,7 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
-import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus, UserPlus, Check, XCircle, Clock, MessageCircle, Plane, Compass, ChevronDown, ChevronRight, Plus, ExternalLink, Trash2, MoreHorizontal, Square, CheckSquare } from "lucide-react";
+import { ArrowLeft, MapPin, Calendar, Waves, Zap, TreePine, PartyPopper, Droplets, Fish, Crown, Radio, DollarSign, Home, Car, Anchor, UtensilsCrossed, Sailboat, Users, Pencil, Camera, X, ImagePlus, UserPlus, Check, XCircle, Clock, MessageCircle, Plane, Compass, ChevronDown, ChevronRight, Plus, ExternalLink, Trash2, MoreHorizontal, Square, CheckSquare, Sparkles, Loader2, Globe } from "lucide-react";
 import { format } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { cn } from "@/lib/utils";
@@ -95,6 +95,8 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   const [addItemDialogOpen, setAddItemDialogOpen] = useState(false);
   const [addItemCategory, setAddItemCategory] = useState("");
   const [newItemData, setNewItemData] = useState({ title: "", details: "", date: "", time: "", referenceNumber: "", bookingUrl: "", notes: "" });
+  const [aiRecommendations, setAiRecommendations] = useState<Record<string, any[]>>({});
+  const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
 
   const { data: trip, isLoading } = useQuery<Trip & { organizer: Profile }>({
     queryKey: ["/api/trips", tripId],
@@ -312,6 +314,38 @@ export default function TripItinerary({ params }: TripItineraryProps) {
     });
   };
 
+  const findWithAI = async (category: string) => {
+    const dest = trip?.destination;
+    if (!dest) return;
+    setAiLoading(prev => ({ ...prev, [category]: true }));
+    try {
+      const res = await apiRequest("POST", "/api/ai/find-surf-services", { location: dest, category });
+      const data = await res.json();
+      setAiRecommendations(prev => ({ ...prev, [category]: data.recommendations || [] }));
+    } catch {
+      toast({ title: "Could not load AI suggestions", variant: "destructive" });
+    } finally {
+      setAiLoading(prev => ({ ...prev, [category]: false }));
+    }
+  };
+
+  const isMexicoTrip = (dest: string) => {
+    const lower = dest.toLowerCase();
+    return lower.includes("mexico") || lower.includes("méxico") || lower.includes("baja") ||
+      lower.includes("puerto escondido") || lower.includes("sayulita") || lower.includes("cabo") ||
+      lower.includes("los cabos") || lower.includes("cancun") || lower.includes("cancún") ||
+      lower.includes("playa del carmen") || lower.includes("tulum") || lower.includes("oaxaca") ||
+      lower.includes("nayarit") || lower.includes("jalisco") || lower.includes("guerrero") ||
+      lower.includes("mazatlan") || lower.includes("mazatlán") || lower.includes("ensenada") ||
+      lower.includes("rosarito") || lower.includes("tijuana");
+  };
+
+  const isBajaMexicoTrip = (dest: string) => {
+    const lower = dest.toLowerCase();
+    return lower.includes("baja") || lower.includes("ensenada") ||
+      lower.includes("rosarito") || lower.includes("tijuana");
+  };
+
   const getBookingLinks = (categoryId: string) => {
     const dest = trip?.destination || "";
     const sd = trip?.startDate || "";
@@ -320,13 +354,29 @@ export default function TripItinerary({ params }: TripItineraryProps) {
     const loc = encodeURIComponent(dest);
     const skySd = sd.replace(/-/g, "");
     const skyEd = ed.replace(/-/g, "");
+    const mexico = isMexicoTrip(dest);
+    const bajaMexico = isBajaMexicoTrip(dest);
     switch (categoryId) {
-      case "flights":
-        return [
+      case "flights": {
+        const links = [
           { name: "Google Flights", url: `https://www.google.com/travel/flights?q=flights+to+${loc}&d1=${sd}&d2=${ed}` },
           { name: "Skyscanner", url: `https://www.skyscanner.com/transport/flights/anywhere/${loc}/${skySd}/${skyEd}/` },
           { name: "Kayak", url: `https://www.kayak.com/flights?search=1&destination=${loc}&depart=${sd}&return=${ed}` },
         ];
+        if (mexico) {
+          links.push(
+            { name: "Volaris", url: `https://www.volaris.com/en` },
+            { name: "VivaAerobus", url: `https://www.vivaaerobus.com/en` },
+            { name: "Aeromexico", url: `https://www.aeromexico.com/en-us` },
+          );
+          if (bajaMexico) {
+            links.push(
+              { name: "CBX Cross Border", url: "https://www.crossborderxpress.com/" },
+            );
+          }
+        }
+        return links;
+      }
       case "car_rental":
         return [
           { name: "Turo", url: `https://turo.com/search?location=${loc}&startDate=${sd}&endDate=${ed}` },
@@ -344,6 +394,10 @@ export default function TripItinerary({ params }: TripItineraryProps) {
           { name: "Google Search", url: `https://www.google.com/search?q=surf+guide+${loc}+lessons+tours` },
           { name: "TripAdvisor", url: `https://www.tripadvisor.com/Search?q=surf+guide+${loc}` },
           { name: "GetYourGuide", url: `https://www.getyourguide.com/s/?q=surf+${loc}` },
+          { name: "Instagram", url: `https://www.instagram.com/explore/tags/surfguide${dest.replace(/[^a-zA-Z\s]/g, "").replace(/\s+/g, "").toLowerCase()}/` },
+          { name: "Facebook", url: `https://www.facebook.com/search/pages/?q=surf+guide+${dest.replace(/\s/g, "+")}` },
+          { name: "Reddit Surf", url: `https://www.reddit.com/r/surfing/search/?q=surf+guide+${loc}` },
+          { name: "Surfline Forums", url: `https://www.surfline.com/search?q=surf+guide+${dest.replace(/\s/g, "+")}` },
         ];
       case "chef":
         return [
@@ -356,7 +410,27 @@ export default function TripItinerary({ params }: TripItineraryProps) {
       case "photographer":
         return [
           { name: "Google Search", url: `https://www.google.com/search?q=surf+photographer+${loc}` },
+          { name: "Instagram", url: `https://www.instagram.com/explore/tags/surfphotography${dest.replace(/[^a-zA-Z\s]/g, "").replace(/\s+/g, "").toLowerCase()}/` },
+          { name: "Facebook", url: `https://www.facebook.com/search/pages/?q=surf+photographer+${dest.replace(/\s/g, "+")}` },
+          { name: "Reddit Surf", url: `https://www.reddit.com/r/surfing/search/?q=surf+photographer+${loc}` },
+          { name: "Surfline Forums", url: `https://www.surfline.com/search?q=surf+photographer+${dest.replace(/\s/g, "+")}` },
         ];
+      case "other": {
+        const links: { name: string; url: string }[] = [];
+        if (mexico) {
+          links.push(
+            { name: "Mexico Travel Docs", url: "https://www.inm.gob.mx/gobmx/word/index.php/paises-requieren-visa-702/" },
+            { name: "Mexico Entry Requirements", url: "https://www.google.com/search?q=mexico+travel+entry+requirements+visa+FMM+immigration" },
+            { name: "Mexico FMM Permit", url: "https://www.banjercito.com.mx/registroE.html" },
+          );
+          if (bajaMexico) {
+            links.push(
+              { name: "CBX Cross Border", url: "https://www.crossborderxpress.com/" },
+            );
+          }
+        }
+        return links;
+      }
       default:
         return [];
     }
@@ -870,6 +944,58 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                                   </a>
                                 ))}
                               </div>
+                            </div>
+                          )}
+
+                          {(cat.id === "guide" || cat.id === "photographer") && (
+                            <div className="space-y-2" data-testid={`ai-finder-${cat.id}`}>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 dark:from-violet-500/20 dark:to-fuchsia-500/20 border-violet-300/30 dark:border-violet-500/30"
+                                onClick={() => findWithAI(cat.id)}
+                                disabled={aiLoading[cat.id]}
+                                data-testid={`button-ai-find-${cat.id}`}
+                              >
+                                {aiLoading[cat.id] ? (
+                                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                                ) : (
+                                  <Sparkles className="w-4 h-4 mr-1.5" />
+                                )}
+                                {aiLoading[cat.id] ? "Searching..." : `Find ${cat.label}s with AI`}
+                              </Button>
+
+                              {aiRecommendations[cat.id] && aiRecommendations[cat.id].length > 0 && (
+                                <div className="rounded-lg bg-gradient-to-r from-violet-500/10 to-fuchsia-500/10 dark:from-violet-500/20 dark:to-fuchsia-500/20 p-2.5 space-y-2">
+                                  <p className="text-[10px] text-muted-foreground font-medium flex items-center gap-1">
+                                    <Sparkles className="w-3 h-3" />
+                                    AI Recommendations for {trip?.destination}
+                                  </p>
+                                  {aiRecommendations[cat.id].map((rec: any, idx: number) => (
+                                    <div key={idx} className="bg-background/80 rounded-md p-2 space-y-1" data-testid={`ai-rec-${cat.id}-${idx}`}>
+                                      <div className="flex items-start justify-between gap-2">
+                                        <p className="text-xs font-semibold">{rec.name}</p>
+                                        <div className="flex gap-1 flex-shrink-0">
+                                          {rec.searchUrl && (
+                                            <a href={rec.searchUrl} target="_blank" rel="noopener noreferrer" className="text-muted-foreground" data-testid={`link-ai-search-${idx}`}>
+                                              <Globe className="w-3.5 h-3.5" />
+                                            </a>
+                                          )}
+                                          {rec.socialMedia && (
+                                            <a href={rec.socialMedia} target="_blank" rel="noopener noreferrer" className="text-muted-foreground" data-testid={`link-ai-social-${idx}`}>
+                                              <Camera className="w-3.5 h-3.5" />
+                                            </a>
+                                          )}
+                                        </div>
+                                      </div>
+                                      <p className="text-[11px] text-muted-foreground">{rec.description}</p>
+                                      {rec.specialty && (
+                                        <Badge variant="secondary" className="text-[10px]">{rec.specialty}</Badge>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>

@@ -2,7 +2,7 @@ import { useMyProfile, useUpdateProfile, useManageSubscription } from "@/hooks/u
 import { useAuth } from "@/hooks/use-auth";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
-import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Sparkles, Target, CalendarCheck, Waves, Download } from "lucide-react";
+import { Crown, LogOut, Camera, TrendingUp, X, Plus, Users, Lock, Globe, GripVertical, Star, MapPin, Calendar, MessageCircle, Settings, Trash2, RefreshCw, UserX, AlertTriangle, Send, MessageSquare, Plane, Sailboat, Footprints, Beer, Umbrella, Anchor, Fish, Leaf, ExternalLink, Pencil, Check, Clock, Briefcase, GraduationCap, Coffee, Laptop, Sparkles, Target, CalendarCheck, Waves, Download } from "lucide-react";
 import { SiYoutube } from "react-icons/si";
 import { PremiumModal } from "@/components/PremiumModal";
 import { useState, useRef, useEffect, useCallback } from "react";
@@ -1046,6 +1046,7 @@ export default function Profile() {
                     <div className="flex flex-wrap gap-2">
                       {[
                         { id: "work", icon: Briefcase, label: "I Work" },
+                        { id: "flexible", icon: Laptop, label: "Flexible / Remote" },
                         { id: "school", icon: GraduationCap, label: "I'm in School" },
                         { id: "none", icon: Coffee, label: "I Don't Work" },
                       ].map(({ id, icon: Icon, label }) => (
@@ -1145,10 +1146,12 @@ export default function Profile() {
                   {profile.scheduleType ? (
                     <div className="flex items-center gap-2">
                       {profile.scheduleType === "work" && <Briefcase className="h-4 w-4 text-muted-foreground" />}
+                      {profile.scheduleType === "flexible" && <Laptop className="h-4 w-4 text-muted-foreground" />}
                       {profile.scheduleType === "school" && <GraduationCap className="h-4 w-4 text-muted-foreground" />}
                       {profile.scheduleType === "none" && <Coffee className="h-4 w-4 text-muted-foreground" />}
                       <span className="text-foreground/80">
                         {profile.scheduleType === "work" && "I work"}
+                        {profile.scheduleType === "flexible" && "Flexible / Remote work"}
                         {profile.scheduleType === "school" && "I'm in school"}
                         {profile.scheduleType === "none" && "I don't work"}
                       </span>
@@ -1156,18 +1159,24 @@ export default function Profile() {
                   ) : null}
                   
                   {profile.availability && profile.availability.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {profile.availability.map((slotStr, index) => {
-                        try {
-                          const slot = JSON.parse(slotStr);
-                          return (
-                            <Badge key={index} variant="secondary" className="gap-1" data-testid={`badge-availability-${index}`}>
-                              <Clock className="h-3 w-3" />
-                              {slot.day.charAt(0).toUpperCase() + slot.day.slice(1)} {slot.startTime}-{slot.endTime}
-                            </Badge>
-                          );
-                        } catch { return null; }
-                      })}
+                    <div>
+                      <p className="text-sm font-medium text-foreground mb-2 flex items-center gap-1.5">
+                        <Waves className="h-4 w-4 text-primary" />
+                        I'm free to surf:
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {profile.availability.map((slotStr, index) => {
+                          try {
+                            const slot = JSON.parse(slotStr);
+                            return (
+                              <Badge key={index} variant="secondary" className="gap-1" data-testid={`badge-availability-${index}`}>
+                                <Clock className="h-3 w-3" />
+                                {slot.day.charAt(0).toUpperCase() + slot.day.slice(1)} {slot.startTime}-{slot.endTime}
+                              </Badge>
+                            );
+                          } catch { return null; }
+                        })}
+                      </div>
                     </div>
                   ) : (
                     <p className="text-muted-foreground text-sm">

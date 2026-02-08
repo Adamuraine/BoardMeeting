@@ -888,18 +888,18 @@ export async function registerRoutes(
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     const postId = parseInt(req.params.id);
-    const liked = await storage.togglePostLike(postId, userId);
-    const count = await storage.getPostLikesCount(postId);
-    res.json({ liked, count });
+    const count = await storage.addPostShaka(postId, userId);
+    const myCount = await storage.getUserShakaCount(postId, userId);
+    res.json({ count, myCount });
   });
 
   app.get("/api/posts/:id/like", async (req, res) => {
     if (!req.isAuthenticated()) return res.sendStatus(401);
     const userId = getUserId(req);
     const postId = parseInt(req.params.id);
-    const liked = await storage.hasUserLikedPost(postId, userId);
     const count = await storage.getPostLikesCount(postId);
-    res.json({ liked, count });
+    const myCount = await storage.getUserShakaCount(postId, userId);
+    res.json({ count, myCount });
   });
 
   // === MESSAGES ===

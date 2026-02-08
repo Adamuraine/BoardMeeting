@@ -57,9 +57,9 @@ export interface IStorage {
   getPostsByLocation(locationId: number): Promise<(Post & { user: Profile })[]>;
 
   // Post Likes (Shaka)
-  togglePostLike(postId: number, userId: string): Promise<boolean>;
+  addPostShaka(postId: number, userId: string): Promise<number>;
   getPostLikesCount(postId: number): Promise<number>;
-  hasUserLikedPost(postId: number, userId: string): Promise<boolean>;
+  getUserShakaCount(postId: number, userId: string): Promise<number>;
 
   // Premium
   setPremium(userId: string, status: boolean): Promise<void>;
@@ -619,18 +619,9 @@ export class DatabaseStorage implements IStorage {
       .where(eq(profiles.userId, userId));
   }
 
-  async togglePostLike(postId: number, userId: string): Promise<boolean> {
-    const [existing] = await db.select()
-      .from(postLikes)
-      .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
-    
-    if (existing) {
-      await db.delete(postLikes).where(eq(postLikes.id, existing.id));
-      return false;
-    } else {
-      await db.insert(postLikes).values({ postId, userId });
-      return true;
-    }
+  async addPostShaka(postId: number, userId: string): Promise<number> {
+    await db.insert(postLikes).values({ postId, userId });
+    return this.getPostLikesCount(postId);
   }
 
   async getPostLikesCount(postId: number): Promise<number> {
@@ -641,11 +632,12 @@ export class DatabaseStorage implements IStorage {
     return Number(result.count);
   }
 
-  async hasUserLikedPost(postId: number, userId: string): Promise<boolean> {
-    const [existing] = await db.select()
+  async getUserShakaCount(postId: number, userId: string): Promise<number> {
+    const [result] = await db
+      .select({ count: sql<number>`count(*)` })
       .from(postLikes)
       .where(and(eq(postLikes.postId, postId), eq(postLikes.userId, userId)));
-    return !!existing;
+    return Number(result.count);
   }
 
   async getConversations(userId: string): Promise<{ buddy: Profile; lastMessage: Message; unreadCount: number }[]> {

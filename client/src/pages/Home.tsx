@@ -33,11 +33,11 @@ interface PostCardProps {
 
 function PostCard({ post, onMessageClick }: PostCardProps) {
   const [showShaka, setShowShaka] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
+  const [myCount, setMyCount] = useState(0);
   const [lastTap, setLastTap] = useState(0);
 
-  const { data: likeData } = useQuery<{ liked: boolean; count: number }>({
+  const { data: likeData } = useQuery<{ count: number; myCount: number }>({
     queryKey: ["/api/posts", post.id, "like"],
     queryFn: async () => {
       const res = await fetch(`/api/posts/${post.id}/like`);
@@ -50,36 +50,33 @@ function PostCard({ post, onMessageClick }: PostCardProps) {
       const res = await apiRequest("POST", `/api/posts/${post.id}/like`);
       return res.json();
     },
-    onSuccess: (data: { liked: boolean; count: number }) => {
-      setIsLiked(data.liked);
+    onSuccess: (data: { count: number; myCount: number }) => {
       setLikeCount(data.count);
+      setMyCount(data.myCount);
       queryClient.invalidateQueries({ queryKey: ["/api/posts", post.id, "like"] });
     },
   });
 
-  const currentLiked = likeData?.liked ?? isLiked;
   const currentCount = likeData?.count ?? likeCount;
+  const currentMyCount = likeData?.myCount ?? myCount;
+  const hasLiked = currentMyCount > 0;
 
   const handleDoubleTap = useCallback(() => {
     const now = Date.now();
     const DOUBLE_TAP_DELAY = 300;
     
     if (now - lastTap < DOUBLE_TAP_DELAY) {
-      if (!currentLiked) {
-        likeMutation.mutate();
-      }
+      likeMutation.mutate();
       setShowShaka(true);
       setTimeout(() => setShowShaka(false), 1000);
     }
     setLastTap(now);
-  }, [lastTap, currentLiked, likeMutation]);
+  }, [lastTap, likeMutation]);
 
   const handleLikeClick = () => {
     likeMutation.mutate();
-    if (!currentLiked) {
-      setShowShaka(true);
-      setTimeout(() => setShowShaka(false), 1000);
-    }
+    setShowShaka(true);
+    setTimeout(() => setShowShaka(false), 1000);
   };
 
   return (
@@ -155,9 +152,9 @@ function PostCard({ post, onMessageClick }: PostCardProps) {
               className="flex items-center gap-1.5 px-2 py-1.5 rounded-full hover:bg-secondary/50 transition-colors"
               data-testid={`button-like-post-${post.id}`}
             >
-              <ShakaIcon className={`h-5 w-5 ${currentLiked ? 'text-primary' : 'text-muted-foreground'}`} filled={currentLiked} />
+              <ShakaIcon className={`h-5 w-5 ${hasLiked ? 'text-primary' : 'text-muted-foreground'}`} filled={hasLiked} />
               {currentCount > 0 && (
-                <span className={`text-sm font-medium ${currentLiked ? 'text-primary' : 'text-muted-foreground'}`}>
+                <span className={`text-sm font-medium ${hasLiked ? 'text-primary' : 'text-muted-foreground'}`}>
                   {currentCount}
                 </span>
               )}

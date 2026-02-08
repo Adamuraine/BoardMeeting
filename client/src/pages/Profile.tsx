@@ -61,7 +61,7 @@ export default function Profile() {
   const [customGoal, setCustomGoal] = useState("");
   const [editingTripInterests, setEditingTripInterests] = useState(false);
   const [tripInterestsList, setTripInterestsList] = useState<string[]>([]);
-  const [availabilitySlots, setAvailabilitySlots] = useState<Array<{day: string, startTime: string, endTime: string}>>([]);
+  const [availabilitySlots, setAvailabilitySlots] = useState<Array<{day: string, startTime: string, endTime: string, allDay?: boolean}>>([]);
 
   // Predefined surf tricks for dropdown
   const PREDEFINED_TRICKS = [
@@ -1070,41 +1070,61 @@ export default function Profile() {
                     <p className="text-sm text-muted-foreground mb-3">When can you surf?</p>
                     <div className="space-y-2">
                       {availabilitySlots.map((slot, index) => (
-                        <div key={index} className="flex items-center gap-2 p-3 bg-secondary/30 rounded-lg border border-border/50">
-                          <select
-                            value={slot.day}
-                            onChange={(e) => updateAvailabilitySlot(index, "day", e.target.value)}
-                            className="bg-background border border-border rounded px-2 py-1 text-sm flex-1"
-                            data-testid={`select-day-${index}`}
-                          >
-                            {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map(day => (
-                              <option key={day} value={day}>{day.charAt(0).toUpperCase() + day.slice(1)}</option>
-                            ))}
-                          </select>
-                          <input
-                            type="time"
-                            value={slot.startTime}
-                            onChange={(e) => updateAvailabilitySlot(index, "startTime", e.target.value)}
-                            className="bg-background border border-border rounded px-2 py-1 text-sm"
-                            data-testid={`input-start-time-${index}`}
-                          />
-                          <span className="text-muted-foreground text-sm">to</span>
-                          <input
-                            type="time"
-                            value={slot.endTime}
-                            onChange={(e) => updateAvailabilitySlot(index, "endTime", e.target.value)}
-                            className="bg-background border border-border rounded px-2 py-1 text-sm"
-                            data-testid={`input-end-time-${index}`}
-                          />
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            onClick={() => removeAvailabilitySlot(index)}
-                            className="flex-shrink-0 text-muted-foreground"
-                            data-testid={`button-remove-slot-${index}`}
-                          >
-                            <X className="h-4 w-4" />
-                          </Button>
+                        <div key={index} className="flex flex-col gap-2 p-3 bg-secondary/30 rounded-lg border border-border/50">
+                          <div className="flex items-center gap-2">
+                            <select
+                              value={slot.day}
+                              onChange={(e) => updateAvailabilitySlot(index, "day", e.target.value)}
+                              className="bg-background border border-border rounded px-2 py-1 text-sm flex-1"
+                              data-testid={`select-day-${index}`}
+                            >
+                              {["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"].map(day => (
+                                <option key={day} value={day}>{day.charAt(0).toUpperCase() + day.slice(1)}</option>
+                              ))}
+                            </select>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant={slot.allDay ? "default" : "outline"}
+                              className="gap-1 flex-shrink-0 text-xs"
+                              onClick={() => {
+                                const updated = [...availabilitySlots];
+                                updated[index] = { ...updated[index], allDay: !slot.allDay, startTime: "06:00", endTime: "09:00" };
+                                setAvailabilitySlots(updated);
+                              }}
+                              data-testid={`button-allday-${index}`}
+                            >
+                              All Day
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              onClick={() => removeAvailabilitySlot(index)}
+                              className="flex-shrink-0 text-muted-foreground"
+                              data-testid={`button-remove-slot-${index}`}
+                            >
+                              <X className="h-4 w-4" />
+                            </Button>
+                          </div>
+                          {!slot.allDay && (
+                            <div className="flex items-center gap-2 pl-1">
+                              <input
+                                type="time"
+                                value={slot.startTime}
+                                onChange={(e) => updateAvailabilitySlot(index, "startTime", e.target.value)}
+                                className="bg-background border border-border rounded px-2 py-1 text-sm"
+                                data-testid={`input-start-time-${index}`}
+                              />
+                              <span className="text-muted-foreground text-sm">to</span>
+                              <input
+                                type="time"
+                                value={slot.endTime}
+                                onChange={(e) => updateAvailabilitySlot(index, "endTime", e.target.value)}
+                                className="bg-background border border-border rounded px-2 py-1 text-sm"
+                                data-testid={`input-end-time-${index}`}
+                              />
+                            </div>
+                          )}
                         </div>
                       ))}
                       <Button
@@ -1171,7 +1191,7 @@ export default function Profile() {
                             return (
                               <Badge key={index} variant="secondary" className="gap-1" data-testid={`badge-availability-${index}`}>
                                 <Clock className="h-3 w-3" />
-                                {slot.day.charAt(0).toUpperCase() + slot.day.slice(1)} {slot.startTime}-{slot.endTime}
+                                {slot.day.charAt(0).toUpperCase() + slot.day.slice(1)} {slot.allDay ? "All Day" : `${slot.startTime}-${slot.endTime}`}
                               </Badge>
                             );
                           } catch { return null; }

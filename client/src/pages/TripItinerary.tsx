@@ -98,6 +98,33 @@ export default function TripItinerary({ params }: TripItineraryProps) {
   const [aiRecommendations, setAiRecommendations] = useState<Record<string, any[]>>({});
   const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
 
+  const checkedStorageKey = `trip-checklist-${tripId}-${profile?.userId}`;
+  const [checkedCategories, setCheckedCategories] = useState<Set<string>>(() => {
+    try {
+      const saved = localStorage.getItem(`trip-checklist-${tripId}`);
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch { return new Set(); }
+  });
+
+  useEffect(() => {
+    if (tripId && profile?.userId) {
+      try {
+        const saved = localStorage.getItem(checkedStorageKey);
+        if (saved) setCheckedCategories(new Set(JSON.parse(saved)));
+      } catch {}
+    }
+  }, [tripId, profile?.userId, checkedStorageKey]);
+
+  const toggleCategoryChecked = (catId: string) => {
+    setCheckedCategories(prev => {
+      const next = new Set(prev);
+      if (next.has(catId)) next.delete(catId);
+      else next.add(catId);
+      localStorage.setItem(checkedStorageKey, JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
   const { data: trip, isLoading } = useQuery<Trip & { organizer: Profile }>({
     queryKey: ["/api/trips", tripId],
     queryFn: async () => {
@@ -816,28 +843,43 @@ export default function TripItinerary({ params }: TripItineraryProps) {
                   const CatIcon = cat.icon;
                   const bookingLinks = getBookingLinks(cat.id);
 
+                  const isCategoryDone = checkedCategories.has(cat.id) || (catItems.length > 0 && bookedCount === catItems.length);
+
                   return (
-                    <div key={cat.id} className="border rounded-lg" data-testid={`itinerary-category-${cat.id}`}>
-                      <button
-                        onClick={() => toggleCategory(cat.id)}
-                        className="w-full flex items-center justify-between gap-2 p-3 hover-elevate rounded-lg"
-                        data-testid={`button-toggle-category-${cat.id}`}
-                      >
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <CatIcon className="w-4 h-4 text-muted-foreground" />
-                          <span className="text-sm font-medium">{cat.label}</span>
-                          {catItems.length > 0 && (
-                            <Badge variant="secondary" className="text-[10px]">
-                              {bookedCount}/{catItems.length}
-                            </Badge>
+                    <div key={cat.id} className={cn("border rounded-lg", isCategoryDone && "border-green-500/30 bg-green-500/5")} data-testid={`itinerary-category-${cat.id}`}>
+                      <div className="flex items-center gap-0">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleCategoryChecked(cat.id); }}
+                          className="shrink-0 pl-3 py-3 pr-1"
+                          data-testid={`button-check-category-${cat.id}`}
+                        >
+                          {isCategoryDone ? (
+                            <CheckSquare className="w-5 h-5 text-green-500" />
+                          ) : (
+                            <Square className="w-5 h-5 text-muted-foreground" />
                           )}
-                        </div>
-                        {isExpanded ? (
-                          <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
-                        ) : (
-                          <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
-                        )}
-                      </button>
+                        </button>
+                        <button
+                          onClick={() => toggleCategory(cat.id)}
+                          className="flex-1 flex items-center justify-between gap-2 p-3 hover-elevate rounded-lg"
+                          data-testid={`button-toggle-category-${cat.id}`}
+                        >
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <CatIcon className="w-4 h-4 text-muted-foreground" />
+                            <span className={cn("text-sm font-medium", isCategoryDone && "line-through text-muted-foreground")}>{cat.label}</span>
+                            {catItems.length > 0 && (
+                              <Badge variant="secondary" className="text-[10px]">
+                                {bookedCount}/{catItems.length}
+                              </Badge>
+                            )}
+                          </div>
+                          {isExpanded ? (
+                            <ChevronDown className="w-4 h-4 text-muted-foreground shrink-0" />
+                          ) : (
+                            <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                          )}
+                        </button>
+                      </div>
 
                       {isExpanded && (
                         <div className="px-3 pb-3 space-y-2">

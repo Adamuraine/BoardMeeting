@@ -122,3 +122,21 @@
   border-radius: 8px !important;
   overflow: hidden;
 }
+
+.uppy-Dashboard-inner {
+  max-height: calc(100vh - 120px) !important;
+  max-height: calc(100dvh - 120px) !important;
+}
+
+.uppy-DashboardContent-bar {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+}
+
+.uppy-Dashboard-AddFiles {
+  padding-bottom: 80px !important;
+}
+
+.uppy-StatusBar {
+  padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+  margin-bottom: 16px !important;
+}

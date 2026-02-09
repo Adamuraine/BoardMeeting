@@ -781,7 +781,7 @@ export default function Profile() {
               </div>
               <ObjectUploader
                 maxNumberOfFiles={1}
-                maxFileSize={10485760}
+                maxFileSize={52428800}
                 onGetUploadParameters={getUploadParams}
                 onComplete={handleProfilePhotoComplete}
                 buttonClassName={`absolute bottom-0 right-0 w-8 h-8 rounded-full flex items-center justify-center border-2 border-background p-0 ${
@@ -1312,7 +1312,7 @@ export default function Profile() {
                 ))}
                 <ObjectUploader
                   maxNumberOfFiles={50}
-                  maxFileSize={10485760}
+                  maxFileSize={52428800}
                   onGetUploadParameters={getUploadParams}
                   onComplete={handleGalleryComplete}
                   buttonClassName="aspect-square w-full rounded-lg border-2 border-dashed border-border flex items-center justify-center text-muted-foreground hover:bg-secondary/50 transition-colors p-0"

@@ -707,7 +707,7 @@ export default function Marketplace() {
                   </div>
                   <ObjectUploader
                     maxNumberOfFiles={5}
-                    maxFileSize={10485760}
+                    maxFileSize={52428800}
                     onGetUploadParameters={async (file) => {
                       const { url, objectPath } = await handleImageUpload({ name: file.name, size: file.size || 0, type: file.type });
                       return { method: "PUT" as const, url, headers: { "Content-Type": file.type || "application/octet-stream" } };
